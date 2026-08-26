@@ -40,6 +40,11 @@ async def lifespan(app: FastAPI):
         settings.razorpay_key_id[:14],
         settings.anthropic_configured,
     )
+
+    from app.db.database import init_db
+
+    init_db()
+
     yield
     logger.info("Recourse shutting down")
 
@@ -61,6 +66,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+from app.api.routes import router as api_router  # noqa: E402
+
+app.include_router(api_router)
 
 
 @app.get("/health", tags=["ops"])

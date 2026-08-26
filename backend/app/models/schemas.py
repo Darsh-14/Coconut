@@ -139,6 +139,47 @@ class EvalMetrics(BaseModel):
     n_evaluated: int
 
 
+# --- API request/response shapes (Section 8) --------------------------------------------
+# These are the transport shapes the endpoints exchange. The contracts above are the
+# domain model and must not change; these compose them.
+
+DisputeStatus = Literal["pending", "decided", "approved", "submitted"]
+
+
+class DisputeSummary(BaseModel):
+    """One row of GET /disputes."""
+
+    dispute_id: str
+    phase: DisputePhase
+    reason_code: str
+    amount: int
+    currency: str
+    respond_by: datetime
+    status: DisputeStatus
+    # Not in Section 8's example, but the queue is far more useful when a reviewer can see
+    # at a glance which disputes rest on a real Razorpay payment and which do not.
+    payment_id: str
+    payment_is_real: bool
+
+
+class DisputeDetail(BaseModel):
+    """GET /disputes/{dispute_id}: the dispute, its latest decision, and its audit trail."""
+
+    dispute: Dispute
+    latest_decision: Optional[Decision] = None
+    decision_rationale: Optional[str] = None
+    audit_log: list[AuditLogEntry] = []
+    status: DisputeStatus
+    payment_is_real: bool
+
+
+class ApproveRequest(BaseModel):
+    """POST /disputes/{dispute_id}/approve."""
+
+    approved: bool
+    edited_packet: Optional[str] = None
+
+
 __all__ = [
     "KNOWN_REASON_CODES",
     "AuditLogEntry",
