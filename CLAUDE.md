@@ -49,9 +49,16 @@ before anything is treated as final.
   ```
   Do not call a large LLM API for this decision. It must be deterministic, local, and free to
   run thousands of times during evaluation without rate limits or per-call cost.
-- **LLM usage (Claude, via the `anthropic` Python SDK):** only for (a) generating the
+- **LLM usage** — only for (a) generating the
   synthetic dispute dataset offline, and (b) drafting the natural-language representment
-  packet after the decision is already made by the NLI model. Use a fast/cheap current model
+  packet after the decision is already made by the NLI model.
+
+  > **AMENDMENT (approved during phase 6):** drafting is now provider-pluggable —
+  > Gemini, Anthropic, or a deterministic template — selected via `LLM_PROVIDER`.
+  > Gemini is preferred by default because its free tier lets anyone cloning this repo
+  > exercise the LLM path without buying credits; the Anthropic path below remains fully
+  > implemented. Scope is unchanged: an LLM only ever rewrites prose for a decision the
+  > NLI engine has already made. See ARCHITECTURE.md → Representment drafting. Use a fast/cheap current model
   (e.g. `claude-haiku-4-5-20251001`) for bulk synthetic generation, and you may use a stronger
   current model (e.g. `claude-sonnet-5`) for packet drafting quality if you want — check
   `docs.claude.com` for the current canonical model id strings before hard-coding one, since
