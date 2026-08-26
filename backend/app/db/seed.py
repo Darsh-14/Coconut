@@ -49,18 +49,30 @@ def seed(reset: bool = False) -> int:
             session.flush()
             print("  cleared existing disputes, decisions and audit entries")
 
-        existing = set(session.scalars(select(DisputeRow.dispute_id)).all())
+        existing = {row.dispute_id: row for row in session.scalars(select(DisputeRow)).all()}
         added = 0
+        repointed = 0
         for dispute in disputes:
-            if dispute.dispute_id in existing:
+            row = existing.get(dispute.dispute_id)
+            if row is None:
+                session.add(DisputeRow.from_schema(dispute))
+                added += 1
                 continue
-            session.add(DisputeRow.from_schema(dispute))
-            added += 1
+            # Re-running backfill_razorpay_backing.py replaces a pay_PENDING_ placeholder
+            # with a real test-mode payment id. Without this the new id would sit in the
+            # JSON and never reach the queue, and the UI would keep showing the placeholder.
+            if row.payment_id != dispute.payment_id:
+                logger.info(
+                    "%s payment_id %s -> %s", row.dispute_id, row.payment_id, dispute.payment_id
+                )
+                row.payment_id = dispute.payment_id
+                repointed += 1
 
         session.flush()
         total = session.scalar(select(func.count()).select_from(DisputeRow))
 
-    print(f"  seeded {added} new dispute(s); {total} total in the queue")
+    print(f"  seeded {added} new dispute(s), repointed {repointed} payment_id(s); "
+          f"{total} total in the queue")
     return total or 0
 
 

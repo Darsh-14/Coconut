@@ -97,7 +97,7 @@
   },
   {
     "dispute_id": "disp_synthetic_0054",
-    "payment_id": "pay_PENDING_0054",
+    "payment_id": "pay_TUSjwsBKtOQpWj",
     "phase": "retrieval",
     "reason_code": "goods_not_received",
     "claim_text": "Issuer requests substantiation of delivery for a transaction queried by the cardholder.",
