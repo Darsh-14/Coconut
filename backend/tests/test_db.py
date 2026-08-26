@@ -276,3 +276,39 @@ def test_held_out_records_are_never_seeded():
     held_out_path = BACKEND_ROOT / "eval" / "held_out_set.json"
     held_out = {d["dispute_id"] for d in json.loads(held_out_path.read_text("utf-8"))}
     assert not (working & held_out), "working and held-out sets share dispute ids"
+
+
+# -- date rebasing ---------------------------------------------------------------------
+
+
+def test_rebase_shifts_dates_forward_preserving_spread():
+    """A clone made weeks later must still show a live queue, not an all-overdue one."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.db.seed import rebase_dates
+
+    old = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    disputes = [
+        make_dispute("disp_synthetic_0001").model_copy(
+            update={"raised_at": old, "respond_by": old + timedelta(days=21)}
+        ),
+        make_dispute("disp_synthetic_0002").model_copy(
+            update={"raised_at": old - timedelta(days=10), "respond_by": old + timedelta(days=11)}
+        ),
+    ]
+    now = datetime(2026, 8, 27, tzinfo=timezone.utc)
+    rebased = rebase_dates(disputes, now=now)
+
+    # Newest lands at now; the gap between the two is unchanged.
+    assert rebased[0].raised_at == now
+    original_gap = disputes[0].raised_at - disputes[1].raised_at
+    assert rebased[0].raised_at - rebased[1].raised_at == original_gap
+    # Response windows keep their length.
+    for before, after in zip(disputes, rebased):
+        assert after.respond_by - after.raised_at == before.respond_by - before.raised_at
+
+
+def test_rebase_handles_an_empty_set():
+    from app.db.seed import rebase_dates
+
+    assert rebase_dates([]) == []
