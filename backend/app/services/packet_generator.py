@@ -173,15 +173,15 @@ def generate_packet(
 
     if prefer_llm:
         try:
-            from app.services.packet_llm import draft_with_claude
+            from app.services.packet_llm import draft_with_llm
 
-            drafted = draft_with_claude(dispute, verdicts, template)
+            drafted = draft_with_llm(dispute, verdicts, template)
             if drafted:
                 return drafted
-        except ImportError:
-            pass  # phase 6 not present yet
         except Exception as exc:  # never let drafting break a decision
-            logger.warning("LLM drafting failed for %s (%s); using template", dispute.dispute_id, exc)
+            logger.warning(
+                "LLM drafting failed for %s (%s); using template", dispute.dispute_id, exc
+            )
 
     return template
 

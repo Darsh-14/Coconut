@@ -15,7 +15,12 @@ sentencepiece>=0.2.0
 protobuf>=4.25
 
 # --- external services ---
-razorpay>=1.4,<2.0
+# razorpay must be >=2.0: 1.x imports pkg_resources, which Python 3.12+ venvs no longer
+# ship, so it cannot even be imported on a modern interpreter.
+razorpay>=2.0,<3.0
+
+# --- LLM drafting (optional at runtime; packets fall back to a deterministic template) ---
+google-genai>=1.0
 anthropic>=0.40
 
 # --- tests ---

@@ -51,11 +51,32 @@ class Settings:
 
         self.razorpay_key_id: str = self._require("RAZORPAY_KEY_ID")
         self.razorpay_key_secret: str = self._require("RAZORPAY_KEY_SECRET")
-        self.anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "").strip()
         self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./recourse.db").strip()
         self.assumed_representment_cost_inr: float = self._float_env(
             "ASSUMED_REPRESENTMENT_COST_INR", default=1500.0
         )
+
+        # --- LLM drafting (optional; only ever used AFTER a decision is made) ---
+        # Every one of these may be absent: the packet generator falls back to a
+        # deterministic template, so the API serves fully without any LLM credentials.
+        self.anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        self.gemini_api_key: str = (
+            os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_API_KEY", "").strip()
+        )
+        self.gemini_model: str = os.getenv("GEMINI_MODEL", "").strip()
+        self.anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5").strip()
+        self.llm_provider: str = (os.getenv("LLM_PROVIDER", "auto").strip().lower() or "auto")
+        # Hard ceiling on a drafting attempt. Without one, an SDK's internal backoff can
+        # retry a 503 for minutes and hang the request that triggered it (measured: 296s).
+        self.llm_timeout_seconds: float = self._float_env("LLM_TIMEOUT_SECONDS", default=15.0)
+        self.llm_retry_attempts: int = int(
+            self._float_env("LLM_RETRY_ATTEMPTS", default=2.0)
+        )
+
+        if self.llm_provider not in {"auto", "gemini", "anthropic", "none"}:
+            raise ConfigError(
+                f"LLM_PROVIDER={self.llm_provider!r} is not one of: auto, gemini, anthropic, none."
+            )
 
         self._enforce_test_mode()
 
@@ -101,6 +122,30 @@ class Settings:
         generation (Phase 1) and representment drafting (Phase 6), not to serve the API.
         """
         return bool(self.anthropic_api_key)
+
+    @property
+    def gemini_configured(self) -> bool:
+        return bool(self.gemini_api_key)
+
+    def resolve_llm_provider(self) -> str:
+        """Which drafting provider to actually use: 'gemini', 'anthropic' or 'none'.
+
+        'auto' prefers Gemini because its free tier means a person cloning this repo can
+        exercise the LLM path without paying for credits. 'none' is a first-class outcome,
+        not an error: the deterministic template is a supported path, not a degraded one.
+        """
+        if self.llm_provider == "none":
+            return "none"
+        if self.llm_provider == "gemini":
+            return "gemini" if self.gemini_configured else "none"
+        if self.llm_provider == "anthropic":
+            return "anthropic" if self.anthropic_configured else "none"
+        # auto
+        if self.gemini_configured:
+            return "gemini"
+        if self.anthropic_configured:
+            return "anthropic"
+        return "none"
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid
         return (
