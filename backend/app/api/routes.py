@@ -67,6 +67,25 @@ def _load_dispute(session: Session, dispute_id: str) -> DisputeRow:
 # --- endpoints --------------------------------------------------------------------------
 
 
+def _summarise(row: DisputeRow) -> DisputeSummary:
+    """One queue row. `decisions` is eager-loaded, so the standing recommendation costs
+    no extra query."""
+    latest = row.latest_decision
+    return DisputeSummary(
+        dispute_id=row.dispute_id,
+        phase=row.phase,
+        reason_code=row.reason_code,
+        amount=row.amount,
+        currency=row.currency,
+        respond_by=row.respond_by,
+        status=row.computed_status(),
+        payment_id=row.payment_id,
+        payment_is_real=not is_placeholder_payment_id(row.payment_id),
+        recommendation=latest.recommendation if latest else None,
+        confidence=latest.confidence if latest else None,
+    )
+
+
 @router.get("/disputes", response_model=list[DisputeSummary], tags=["disputes"])
 def list_disputes(
     session: Session = Depends(get_session),
@@ -83,17 +102,7 @@ def list_disputes(
     ).all()
 
     summaries = [
-        DisputeSummary(
-            dispute_id=row.dispute_id,
-            phase=row.phase,
-            reason_code=row.reason_code,
-            amount=row.amount,
-            currency=row.currency,
-            respond_by=row.respond_by,
-            status=row.computed_status(),
-            payment_id=row.payment_id,
-            payment_is_real=not is_placeholder_payment_id(row.payment_id),
-        )
+        _summarise(row)
         for row in rows
     ]
     if dispute_status:

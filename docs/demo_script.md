@@ -21,8 +21,9 @@ the NLI model (~15s cold), and `/evaluate` takes about a minute.
 
 Open http://localhost:5173
 
-- 182 disputes, phase badges, response countdowns, **15 in red** — under 48 hours.
-- Point at the header strip: test mode, synthetic disputes, human approval required.
+- 182 disputes, ₹10L in dispute, response countdowns, urgent ones in red.
+- Press **Assess 15**. Rows fill in live: the split bar shows most land in *Unclear*.
+- Point at the sidebar guardrails: test mode, synthetic disputes, never auto-submits.
 - Point at a `real payment` tag: *"the dispute is synthetic, but the payment underneath it
   is a real test-mode Razorpay payment. I'll come back to why that distinction matters."*
 
@@ -53,7 +54,7 @@ Click a CONTEST case (`disp_synthetic_0168` is a good one).
 
 ## 2:45 — Approve, and the honest bit (45s)
 
-Scroll to the drafted representment, edit a word, click **Approve & Submit**.
+Scroll to the drafted representment, edit a word, click **Approve & prepare packet**.
 
 - Audit entry appears. Expand **"Would submit to Razorpay — not sent"**.
 
@@ -64,7 +65,8 @@ Scroll to the drafted representment, edit a word, click **Approve & Submit**.
 
 ## 3:30 — Metrics (60s)
 
-Evaluation tab → **Run evaluation**. While it runs:
+**Performance** → **Run evaluation**. The page already shows the last recorded run, so
+the live one is a verification rather than a reveal. While it runs:
 
 > "This is the held-out 30%, untouched during development. Real inference, not a cached
 > number — that's why it takes a minute."

@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import type { AuditLogEntry } from '../api/client'
+import { parseApiDate, type AuditLogEntry } from '../api/client'
+import { RECOMMENDATIONS } from '../lib/labels'
+import { Surface, toneDot } from './ui'
 
 function formatTimestamp(iso: string | null): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('en-IN', {
+  return parseApiDate(iso).toLocaleString('en-IN', {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
@@ -12,21 +14,21 @@ function formatTimestamp(iso: string | null): string {
 /**
  * The audit trail, including the "would submit to Razorpay" payload.
  *
- * CLAUDE.md Section 7 requires this to be shown clearly labelled: the payload was built
- * and logged but never transmitted, because the dispute is synthetic and does not exist
- * on Razorpay's side. The labelling here is deliberately blunt rather than reassuring.
+ * CLAUDE.md Section 7 requires this shown clearly labelled: the payload was built and
+ * logged but never transmitted, because the dispute is synthetic and does not exist on
+ * Razorpay's side. The labelling stays blunt rather than reassuring.
  */
 export function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
-  if (entries.length === 0) {
+  if (!entries.length) {
     return (
-      <p className="text-sm text-slate-500">
-        No audit entries yet. Approving or rejecting a recommendation records one here.
-      </p>
+      <Surface className="p-5 text-[12.5px] text-[var(--fg-3)]">
+        No entries yet. Approving or rejecting records one, with the exact payload.
+      </Surface>
     )
   }
 
   return (
-    <ol className="space-y-3">
+    <ol className="space-y-2.5">
       {entries.map((entry) => (
         <AuditEntry key={entry.id} entry={entry} />
       ))}
@@ -35,51 +37,72 @@ export function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
 }
 
 function AuditEntry({ entry }: { entry: AuditLogEntry }) {
-  const [showPayload, setShowPayload] = useState(false)
+  const [open, setOpen] = useState(false)
+  const copy = RECOMMENDATIONS[entry.decision.recommendation]
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white p-4">
+    <li className="surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-slate-900">
-          {entry.approved_by_human ? 'Approved by human' : 'Rejected by human'}
+        <span
+          className="flex items-center gap-2 text-[13px]"
+          style={{ fontVariationSettings: "'wght' 510" }}
+        >
+          <span
+            className={`size-1.5 rounded-full ${
+              entry.approved_by_human ? toneDot('win') : toneDot('mute')
+            }`}
+          />
+          {entry.approved_by_human ? 'Approved' : 'Rejected'} by human
         </span>
-        <span className="text-xs text-slate-500">
+        <span className="num text-[11.5px] text-[var(--fg-3)]">
           {formatTimestamp(entry.approved_at)}
         </span>
       </div>
 
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-slate-500">Recommendation</dt>
-        <dd className="font-medium">{entry.decision.recommendation.replace(/_/g, ' ')}</dd>
-        <dt className="text-slate-500">Confidence</dt>
-        <dd className="font-mono tabular-nums">
-          {(entry.decision.confidence * 100).toFixed(1)}%
-        </dd>
-        <dt className="text-slate-500">Model</dt>
-        <dd className="font-mono text-xs">{entry.decision.model_version}</dd>
+      <dl className="mt-2.5 flex flex-wrap gap-x-6 gap-y-1 text-[12px] text-[var(--fg-2)]">
+        <div className="flex gap-1.5">
+          <dt className="text-[var(--fg-3)]">Call</dt>
+          <dd>{copy.label}</dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt className="text-[var(--fg-3)]">Confidence</dt>
+          <dd className="num">{(entry.decision.confidence * 100).toFixed(0)}%</dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt className="text-[var(--fg-3)]">Model</dt>
+          <dd className="num text-[11px]">{entry.decision.model_version}</dd>
+        </div>
       </dl>
 
       {entry.would_be_razorpay_payload && (
-        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+        <div
+          className="mt-3 rounded-[var(--radius-control)] p-3"
+          style={{ background: 'var(--warn-soft)' }}
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-amber-900">
+            <p
+              className="text-[12.5px] text-[var(--warn)]"
+              style={{ fontVariationSettings: "'wght' 560" }}
+            >
               Would submit to Razorpay — not sent
             </p>
             <button
               type="button"
-              onClick={() => setShowPayload((v) => !v)}
-              className="rounded border border-amber-400 px-2 py-0.5 text-xs font-medium text-amber-900 hover:bg-amber-100"
+              onClick={() => setOpen((v) => !v)}
+              className="text-[11.5px] text-[var(--warn)] underline-offset-2 hover:underline"
             >
-              {showPayload ? 'Hide payload' : 'Show payload'}
+              {open ? 'Hide' : 'Show payload'}
             </button>
           </div>
-          <p className="mt-1 text-xs text-amber-800">
-            This dispute is synthetic and does not exist on Razorpay's side, so the request
-            below was built and logged rather than transmitted. Recourse never submits to a
-            bank or network automatically.
+          <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--fg-2)]">
+            The dispute is synthetic, so this was built and logged rather than transmitted.
+            Blocked in two places in the backend, each with a test.
           </p>
-          {showPayload && (
-            <pre className="mt-2 max-h-72 overflow-auto rounded bg-white p-3 text-xs leading-relaxed text-slate-800">
+          {open && (
+            <pre
+              className="rise mt-2 max-h-72 overflow-auto rounded-[6px] p-3 text-[11px] leading-relaxed text-[var(--fg-2)]"
+              style={{ background: 'var(--surface)' }}
+            >
               {JSON.stringify(entry.would_be_razorpay_payload, null, 2)}
             </pre>
           )}

@@ -1,18 +1,8 @@
 import type { Recommendation, VerdictLabel } from '../api/client'
+import { phaseCopy, RECOMMENDATIONS, statusLabel, VERDICTS } from '../lib/labels'
+import { Badge, Meter, toneDot } from './ui'
 
-/** Section 12: support = green, contradict = red, neutral = gray. */
-const VERDICT_STYLES: Record<VerdictLabel, string> = {
-  support: 'bg-green-100 text-green-800 ring-green-600/20',
-  contradict: 'bg-red-100 text-red-800 ring-red-600/20',
-  neutral: 'bg-slate-100 text-slate-700 ring-slate-500/20',
-}
-
-const VERDICT_LABELS: Record<VerdictLabel, string> = {
-  support: 'Supports contesting',
-  contradict: 'Contradicts merchant',
-  neutral: 'Does not resolve',
-}
-
+/** Section 12: support = green, contradict = red, neutral = grey. */
 export function VerdictBadge({
   label,
   confidence,
@@ -20,31 +10,20 @@ export function VerdictBadge({
   label: VerdictLabel
   confidence: number
 }) {
+  const v = VERDICTS[label]
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${VERDICT_STYLES[label]}`}
-    >
-      {VERDICT_LABELS[label]}
-      <span className="font-mono tabular-nums opacity-75">
+    <span className="inline-flex items-center gap-2">
+      <Badge tone={v.tone} dot>
+        {v.label}
+      </Badge>
+      <span className="num text-[11.5px] text-[var(--fg-3)]">
         {(confidence * 100).toFixed(0)}%
       </span>
     </span>
   )
 }
 
-const RECOMMENDATION_STYLES: Record<Recommendation, string> = {
-  CONTEST: 'border-green-300 bg-green-50 text-green-900',
-  ACCEPT: 'border-amber-300 bg-amber-50 text-amber-900',
-  NEEDS_HUMAN_REVIEW: 'border-slate-300 bg-slate-50 text-slate-900',
-}
-
-const RECOMMENDATION_COPY: Record<Recommendation, string> = {
-  CONTEST: 'The evidence supports contesting this dispute.',
-  ACCEPT: 'The evidence undermines the merchant. Contesting would likely fail.',
-  NEEDS_HUMAN_REVIEW:
-    'The evidence does not resolve this claim either way. Recourse is not guessing.',
-}
-
+/** The headline verdict. The confidence rule is stated once, small, and not repeated. */
 export function RecommendationBanner({
   recommendation,
   confidence,
@@ -54,63 +33,67 @@ export function RecommendationBanner({
   confidence: number
   rationale?: string | null
 }) {
+  const copy = RECOMMENDATIONS[recommendation]
+
   return (
     <section
-      className={`rounded-lg border p-4 ${RECOMMENDATION_STYLES[recommendation]}`}
+      className="surface overflow-hidden"
       aria-label="Recommendation"
+      style={{ borderLeft: `2px solid var(--${copy.tone})` }}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {recommendation.replace(/_/g, ' ')}
-        </h2>
-        <p className="text-sm">
-          Overall confidence{' '}
-          <span className="font-mono font-semibold tabular-nums">
-            {(confidence * 100).toFixed(1)}%
-          </span>
-          <span className="ml-1 opacity-70">(weakest link)</span>
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-5 p-5">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+            Recommendation
+          </p>
+          <h2
+            className="mt-1.5 flex items-center gap-2.5 text-[21px] tracking-[-0.022em]"
+            style={{ fontVariationSettings: "'wght' 590" }}
+          >
+            <span className={`size-2 rounded-full ${toneDot(copy.tone)}`} />
+            {copy.headline}
+          </h2>
+        </div>
+
+        <div className="w-44">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+              Confidence
+            </span>
+            <span
+              className="num text-[17px] tracking-[-0.02em]"
+              style={{ fontVariationSettings: "'wght' 560" }}
+            >
+              {(confidence * 100).toFixed(0)}%
+            </span>
+          </div>
+          <div className="mt-1.5">
+            <Meter value={confidence} tone={copy.tone} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-[var(--fg-3)]">Weakest link, not average</p>
+        </div>
       </div>
-      <p className="mt-1 text-sm">{RECOMMENDATION_COPY[recommendation]}</p>
-      {rationale && <p className="mt-2 text-sm opacity-80">{rationale}</p>}
+
+      {rationale && (
+        <details className="group border-t" style={{ borderColor: 'var(--line)' }}>
+          <summary className="cursor-pointer list-none px-5 py-2.5 text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]">
+            Rule that fired
+            <span className="ml-1.5 inline-block transition group-open:rotate-90">&rsaquo;</span>
+          </summary>
+          <p className="rise px-5 pb-4 text-[12.5px] leading-relaxed text-[var(--fg-2)]">
+            {rationale}
+          </p>
+        </details>
+      )}
     </section>
   )
 }
 
-const PHASE_STYLES: Record<string, string> = {
-  fraud: 'bg-red-50 text-red-700 ring-red-600/20',
-  retrieval: 'bg-blue-50 text-blue-700 ring-blue-600/20',
-  chargeback: 'bg-violet-50 text-violet-700 ring-violet-600/20',
-  pre_arbitration: 'bg-orange-50 text-orange-700 ring-orange-600/20',
-  arbitration: 'bg-rose-50 text-rose-700 ring-rose-600/20',
-}
-
 export function PhaseBadge({ phase }: { phase: string }) {
-  const style = PHASE_STYLES[phase] ?? 'bg-slate-50 text-slate-700 ring-slate-500/20'
-  return (
-    <span
-      className={`inline-block rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${style}`}
-    >
-      {phase.replace(/_/g, ' ')}
-    </span>
-  )
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-slate-100 text-slate-700',
-  decided: 'bg-blue-100 text-blue-800',
-  approved: 'bg-green-100 text-green-800',
-  submitted: 'bg-emerald-100 text-emerald-900',
+  const copy = phaseCopy(phase)
+  return <Badge title={copy.meaning}>{copy.label}</Badge>
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-block rounded-md px-2 py-0.5 text-xs font-medium ${
-        STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-700'
-      }`}
-    >
-      {status}
-    </span>
-  )
+  return <Badge>{statusLabel(status)}</Badge>
 }

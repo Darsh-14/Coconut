@@ -212,6 +212,13 @@ class VerificationEngine:
         self.model_name = model_name
         self._model = None
         self._lock = threading.Lock()
+        # A separate lock for inference. HuggingFace's fast tokenizer is a Rust object
+        # that panics with "RuntimeError: Already borrowed" if two threads call into it
+        # at once, and FastAPI runs sync endpoints in a threadpool -- so two concurrent
+        # /decide requests (two browser tabs, or a batch assessment) would 500 without
+        # this. Must not be self._lock: the model property holds that during load and
+        # threading.Lock is not reentrant.
+        self._predict_lock = threading.Lock()
 
     # -- model lifecycle ----------------------------------------------------
 
@@ -240,7 +247,9 @@ class VerificationEngine:
         """Return an (n, 3) probability matrix over (contradiction, entailment, neutral)."""
         if not pairs:
             return np.empty((0, 3), dtype=np.float64)
-        logits = self.model.predict(list(pairs))
+        model = self.model  # may block on first load; do it outside the inference lock
+        with self._predict_lock:
+            logits = model.predict(list(pairs))
         return softmax(np.asarray(logits))
 
     def verify_bundle(

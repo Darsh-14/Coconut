@@ -83,6 +83,9 @@ export interface DisputeSummary {
   status: DisputeStatus
   payment_id: string
   payment_is_real: boolean
+  /** Null until /decide has run for this dispute. */
+  recommendation: Recommendation | null
+  confidence: number | null
 }
 
 export interface DisputeDetail {
@@ -174,6 +177,28 @@ export function formatInr(paise: number): string {
   })}`
 }
 
+/**
+ * Paise to a compact rupee string for headline figures: ₹4.2L, ₹32.5k, ₹499.
+ * Indian grouping, because a merchant reading a portfolio total thinks in lakhs.
+ */
+export function formatInrCompact(paise: number): string {
+  const rupees = paise / 100
+  if (rupees >= 1e7) return `₹${(rupees / 1e7).toFixed(2)}Cr`
+  if (rupees >= 1e5) return `₹${(rupees / 1e5).toFixed(1)}L`
+  if (rupees >= 1000) return `₹${(rupees / 1000).toFixed(1)}k`
+  return `₹${Math.round(rupees)}`
+}
+
+/**
+ * The backend serialises naive UTC datetimes, so the string carries no offset and
+ * `new Date(s)` would read it as local time — shifting every countdown by the viewer's
+ * UTC offset (5h30m in IST). Treat an offset-less timestamp as UTC, which is what it is.
+ */
+export function parseApiDate(iso: string): Date {
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(iso)
+  return new Date(hasZone ? iso : `${iso}Z`)
+}
+
 export interface Countdown {
   label: string
   /** Section 12: highlight red under 48 hours. */
@@ -182,7 +207,7 @@ export interface Countdown {
 }
 
 export function countdownTo(iso: string, now: Date = new Date()): Countdown {
-  const target = new Date(iso).getTime()
+  const target = parseApiDate(iso).getTime()
   const ms = target - now.getTime()
 
   if (ms <= 0) return { label: 'overdue', urgent: true, expired: true }

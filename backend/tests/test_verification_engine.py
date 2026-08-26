@@ -14,6 +14,9 @@ These load the real model, so they are slower than the rest of the suite.
 
 from __future__ import annotations
 
+import time
+
+import numpy as np
 import pytest
 
 from app.models.schemas import EvidenceItem
@@ -273,3 +276,49 @@ def test_probes_are_short_declaratives():
     for code, probe in SUBSTANTIATION_PROBES.items():
         assert len(probe) < 80, f"probe for {code} is too long to score reliably"
         assert probe.endswith("."), f"probe for {code} should be a declarative sentence"
+
+
+# -- thread safety --------------------------------------------------------------------
+
+
+def test_concurrent_predicts_do_not_interleave_into_the_tokenizer():
+    """Regression: HuggingFace's fast tokenizer is a Rust object that raises
+    "RuntimeError: Already borrowed" when two threads call it at once. FastAPI runs sync
+    endpoints in a threadpool, so concurrent /decide requests hit one shared CrossEncoder
+    -- which 500'd until predict_proba was serialised.
+
+    Uses a stub model that fails loudly on overlap, so the guarantee is checked without
+    loading 750MB of weights.
+    """
+    import threading
+
+    from app.services.verification_engine import VerificationEngine
+
+    class ReentrancyDetectingModel:
+        def __init__(self) -> None:
+            self.inside = 0
+            self.overlapped = False
+
+        def predict(self, pairs):
+            self.inside += 1
+            if self.inside > 1:
+                self.overlapped = True
+            time.sleep(0.005)  # widen the window a real tokenizer would trip on
+            self.inside -= 1
+            return np.zeros((len(pairs), 3), dtype=np.float64)
+
+    engine = VerificationEngine()
+    stub = ReentrancyDetectingModel()
+    engine._model = stub
+
+    def hammer():
+        for _ in range(20):
+            engine.predict_proba([("premise", "hypothesis")])
+
+    threads = [threading.Thread(target=hammer) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not stub.overlapped, "two threads entered model.predict concurrently"

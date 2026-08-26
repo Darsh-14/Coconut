@@ -1,5 +1,78 @@
 @import 'tailwindcss';
 
+/*
+ * Design tokens.
+ *
+ * Derived from the conventions shared by Linear, Stripe, Vercel and Mercury: a neutral
+ * surface palette where colour is reserved strictly for state, Inter Variable with tight
+ * tracking at display sizes, a 4px spacing rhythm, 6px/10px radii, and shadow-as-border
+ * rather than drawn borders. In a risk product, restraint reads as credibility.
+ */
+
+@theme {
+  --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Berkeley Mono', 'Cascadia Code', ui-monospace, SFMono-Regular, monospace;
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+:root {
+  --bg: #fbfbfb;
+  --surface: #ffffff;
+  --surface-2: #f5f5f6;
+  --surface-3: #ededee;
+  --line: rgba(0, 0, 0, 0.07);
+  --line-strong: rgba(0, 0, 0, 0.12);
+
+  --fg: #0b0b0c;
+  --fg-2: #57585c;
+  --fg-3: #8a8b90;
+
+  --accent: #5e6ad2;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(94, 106, 210, 0.1);
+
+  /* State. These are the only colours in the product that carry meaning. */
+  --win: #10794f;
+  --win-soft: rgba(16, 121, 79, 0.09);
+  --warn: #9a5b09;
+  --warn-soft: rgba(154, 91, 9, 0.1);
+  --risk: #c2312d;
+  --risk-soft: rgba(194, 49, 45, 0.09);
+
+  --shadow-line: 0 0 0 1px var(--line);
+  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--line);
+}
+
+:root[data-theme='dark'] {
+  --bg: #08090a;
+  --surface: #101112;
+  --surface-2: #17181a;
+  --surface-3: #1f2023;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  --fg: #f7f8f8;
+  --fg-2: #9b9ea6;
+  --fg-3: #6c7079;
+
+  --accent: #7b85e0;
+  --accent-fg: #0b0b0c;
+  --accent-soft: rgba(123, 133, 224, 0.16);
+
+  --win: #43c17f;
+  --win-soft: rgba(67, 193, 127, 0.13);
+  --warn: #e0a253;
+  --warn-soft: rgba(224, 162, 83, 0.13);
+  --risk: #f0666a;
+  --risk-soft: rgba(240, 102, 106, 0.13);
+
+  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line);
+}
+
 html,
 body,
 #root {
@@ -7,5 +80,151 @@ body,
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  background: var(--bg);
+  color: var(--fg);
+  font-feature-settings: 'cv01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display sizes get negative tracking; it is most of what makes headings look engineered
+   rather than merely large. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.018em;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* --- primitives ---------------------------------------------------------------- */
+
+@utility surface {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-line);
+}
+
+@utility hairline {
+  border-color: var(--line);
+}
+
+/* Money and counts must not jitter as values change during a batch run. */
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@utility focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* --- state tone helpers -------------------------------------------------------- */
+
+@utility tone-win {
+  color: var(--win);
+  background: var(--win-soft);
+}
+@utility tone-warn {
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+@utility tone-risk {
+  color: var(--risk);
+  background: var(--risk-soft);
+}
+@utility tone-accent {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* --- motion -------------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility rise {
+  animation: rise 0.16s var(--ease-out) both;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeletons, not spinners: the layout is known, so show its shape while it loads. */
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+@utility skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+.skeleton-shimmer::after,
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface) 70%, transparent),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@utility breathe {
+  animation: breathe 1.4s var(--ease-out) infinite;
+}
+
+/* The highlighted span is the model showing its work — the single most important mark
+   in the product. Underline rather than a block fill: it reads as annotation, not
+   redaction, and survives dark mode. */
+mark.span {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 -1.5px 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--fg);
+  font-variation-settings: 'wght' 510;
+  border-radius: 3px;
+  padding: 1px 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

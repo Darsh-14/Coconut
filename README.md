@@ -146,9 +146,12 @@ npm run dev
 
 The dev server proxies `/api/*` to the backend, so there is no base URL to configure.
 
-**The loop:** queue → click a case → *Run assessment* → read the per-evidence verdicts and
-highlighted spans → edit the draft → *Approve & Submit* → see the audit entry with the
-"would submit to Razorpay" payload → Evaluation tab → *Run evaluation*.
+**The loop:** on the queue press *Assess 15* to score a batch in place → click a case →
+read the per-evidence verdicts and the highlighted sentence that drove each one → edit the
+draft → *Approve & prepare packet* → see the audit entry with the "would submit to
+Razorpay" payload → *Performance* → *Run evaluation*.
+
+The UI ships light and dark themes; the toggle is at the foot of the sidebar.
 
 ### Backing disputes with real Razorpay payments
 
@@ -191,7 +194,7 @@ seeded and reproducible, but a *different* dataset is a different experiment.
 
 ```bash
 cd backend
-python eval/run_evaluation.py          # or POST /evaluate, or the Evaluation tab
+python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
 pytest -q                              # 132 tests
 ```
 

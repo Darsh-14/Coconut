@@ -160,6 +160,11 @@ class DisputeSummary(BaseModel):
     # at a glance which disputes rest on a real Razorpay payment and which do not.
     payment_id: str
     payment_is_real: bool
+    # Also beyond Section 8's example, and for the same reason: without the standing
+    # recommendation the queue cannot show what Recourse actually concluded, which is the
+    # one thing a reviewer opens the queue to find out. Both are None until /decide runs.
+    recommendation: Optional[Recommendation] = None
+    confidence: Optional[float] = None
 
 
 class DisputeDetail(BaseModel):

@@ -256,6 +256,7 @@ The model id is **discovered at runtime**, not pinned. See below for why.
 | Failure | How it surfaced | Fix |
 |---|---|---|
 | Verification precision 0.481, **inverted** | Measured the naive engine before building on it | Two-signal design → 0.625 |
+| `RuntimeError: Already borrowed` under concurrent `/decide` | Batch-assessing from the queue; two tabs would have done it | HuggingFace's fast tokenizer is a Rust object that panics on concurrent entry, and FastAPI runs sync endpoints in a threadpool. Serialised inference behind a dedicated lock |
 | `razorpay` 1.4.2 cannot import on Python 3.12+ | `ModuleNotFoundError: pkg_resources` | Pin `>=2.0`. Would have hit every fresh clone |
 | Gemini 503 hung `/decide` for **296 seconds** | First live drafting call | Bounded timeout + retries → 296s → 41.6s → **3.2s** |
 | `gemini-2.5-flash`, `gemini-2.0-flash` → **404** | Probed the live key instead of trusting recall | Discover models from the API; the ids most likely hard-coded from memory don't resolve |
