@@ -35,3 +35,6 @@ dist-ssr/
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- per-account Razorpay test artefacts (regenerate with data/backfill_razorpay_backing.py) ---
+backend/data/razorpay_backing.json
