@@ -1,0 +1,374 @@
+[
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts merchandise was not received although the merchant records a completed delivery.",
+    "amount": 164900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The consignment shows a delivered scan on 21 July 2026 at 12:33 IST. The proof of delivery captures a signature but the recipient name field was left blank by the delivery agent.", "source_ref": "pod_ORD_55120"},
+      {"type": "order_history", "content": "The delivery address matches the billing address and has been used on two prior orders, one of which was also disputed and later resolved in the cardholder's favour.", "source_ref": "oms_ord_55120"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder maintains that an order marked delivered was never handed to anyone at the property.",
+    "amount": 329900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The courier recorded the parcel as delivered on 30 July 2026 at 17:50 IST. The accompanying photograph shows a parcel resting against a gate; no person appears in the image.", "source_ref": "pod_photo_55221"},
+      {"type": "communication_log", "content": "An automated delivery confirmation was sent to the customer at 17:52 IST. The customer replied at 19:10 IST stating nothing was at the gate.", "source_ref": "sms_thread_55221"},
+      {"type": "device_signal", "content": "The courier handset GPS at the completion event places the agent within thirty metres of the address.", "source_ref": "courier_gps_55221"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts that goods dispatched to an old address were never received.",
+    "amount": 449900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The consignment was delivered on 8 July 2026 and signed for. The delivery address is the customer's previous address, which was updated on their account profile on 2 July 2026, six days before dispatch.", "source_ref": "pod_ORD_55331"},
+      {"type": "order_history", "content": "The order was placed on 28 June 2026, before the profile address change. The merchant's system snapshots the shipping address at order time and does not re-read it at dispatch.", "source_ref": "address_snapshot_55331"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts non-receipt of an order the merchant claims was delivered to a locker.",
+    "amount": 119900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The parcel was deposited in parcel locker 14 at a location 2.4 kilometres from the shipping address on 2 August 2026, and the collection code was sent by SMS.", "source_ref": "locker_deposit_55441"},
+      {"type": "communication_log", "content": "The locker collection code SMS was sent to the registered mobile. The locker operator records the parcel as collected on 4 August 2026 at 08:12 IST, with no identity capture at collection.", "source_ref": "locker_collect_55441"},
+      {"type": "order_history", "content": "The customer did not select locker delivery at checkout; the courier diverted the parcel under its own discretion policy.", "source_ref": "oms_ord_55441"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts that an order was never delivered and no proof has been produced.",
+    "amount": 89900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The order was created and paid on 12 July 2026. The fulfilment record shows the item as allocated to the order but never picked.", "source_ref": "wms_alloc_55551"},
+      {"type": "delivery_proof", "content": "No consignment number was ever generated for this order.", "source_ref": "shipping_manifest_202607"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder contends that a garment received differed in fabric composition from the listing.",
+    "amount": 269900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The listing at purchase stated '100% cotton'. The supplier's specification sheet for the shipped batch records a 95% cotton, 5% elastane blend.", "source_ref": "supplier_spec_55661"},
+      {"type": "communication_log", "content": "The merchant's category team updated the listing to the correct composition on 2 August 2026, after the customer's complaint.", "source_ref": "listing_edit_log_55661"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder asserts an appliance delivered lacked accessories shown in the product images.",
+    "amount": 749900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The listing images show the appliance with three attachments. The 'what's in the box' section of the same listing lists only one attachment.", "source_ref": "listing_snapshot_55771.html"},
+      {"type": "delivery_proof", "content": "The dispatch weight of 3.2 kg matches the box specification for the single-attachment configuration.", "source_ref": "weighbridge_55771"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder contends the product delivered had a shorter warranty than represented.",
+    "amount": 1399900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The listing advertised a two-year manufacturer warranty. The warranty card packed with the unit states one year.", "source_ref": "listing_vs_card_55881"},
+      {"type": "communication_log", "content": "The manufacturer confirmed in writing on 12 August 2026 that the two-year warranty applies only to units purchased through its own channel, not through third-party resellers.", "source_ref": "manufacturer_stmt_20260812"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder states the delivered item was a lower storage capacity than ordered.",
+    "amount": 2199900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The order line specifies the 512GB variant. The serial number of the dispatched unit maps to the 512GB configuration in the manufacturer's registry.", "source_ref": "serial_lookup_55991"},
+      {"type": "communication_log", "content": "The customer reports the device reads as 256GB. No screenshot or device report has been supplied despite two requests.", "source_ref": "zendesk_ticket_140012"},
+      {"type": "delivery_proof", "content": "The unit was delivered sealed on 18 July 2026 with the seal intact per the delivery photograph.", "source_ref": "pod_photo_55991"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Cardholder asserts an identical amount was charged on two consecutive days for one service.",
+    "amount": 74900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "Two charges of Rs 749.00 appear on 14 and 15 July 2026. The first references invoice INV-6612 and the second references invoice INV-6613. Both invoices exist and describe the same service period.", "source_ref": "invoice_pair_56001"},
+      {"type": "communication_log", "content": "The billing team's note on 20 July 2026 states the second invoice was raised in error but no reversal was actioned.", "source_ref": "billing_note_56001"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Cardholder disputes a charge they believe duplicates an earlier settled amount.",
+    "amount": 349900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "Two transactions of Rs 3,499.00 appear on the account, dated 3 June and 4 July 2026. Each is linked to a distinct monthly invoice with different service periods.", "source_ref": "invoice_pair_56111"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Cardholder asserts a pre-authorisation was converted to a charge in addition to the final payment.",
+    "amount": 999900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "A pre-authorisation of Rs 9,999.00 was placed on 10 July 2026 and a final capture of Rs 9,999.00 was taken on 13 July 2026. The gateway record shows the pre-authorisation was released on 13 July 2026.", "source_ref": "auth_capture_56221"},
+      {"type": "communication_log", "content": "The issuer's hold release can take up to seven working days to reflect, as stated in the merchant's payment terms.", "source_ref": "payment_terms.html"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "fraud",
+    "reason_code": "unrecognized_transaction",
+    "claim_text": "Cardholder asserts a transaction was made after their card was skimmed.",
+    "amount": 279900,
+    "evidence_bundle": [
+      {"type": "device_signal", "content": "The transaction was card-not-present and used a device with no prior history on this merchant.", "source_ref": "fp_new_device_56331"},
+      {"type": "order_history", "content": "The billing address entered matched the card's address on file. The shipping address was a different city.", "source_ref": "avs_result_56331"},
+      {"type": "delivery_proof", "content": "The consignment was delivered and signed for by a name unrelated to the cardholder.", "source_ref": "pod_56331"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "fraud",
+    "reason_code": "unrecognized_transaction",
+    "claim_text": "Cardholder does not recognise a transaction and states no goods were received.",
+    "amount": 159900,
+    "evidence_bundle": [
+      {"type": "device_signal", "content": "The device fingerprint has three prior sessions on this account, all within the last ten days.", "source_ref": "fp_recent_56441"},
+      {"type": "order_history", "content": "The account was created eleven days before the transaction using an email address that differs by one character from the cardholder's known address.", "source_ref": "account_audit_56441"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "fraud",
+    "reason_code": "unrecognized_transaction",
+    "claim_text": "Cardholder asserts an unauthorised purchase of digital credits.",
+    "amount": 49900,
+    "evidence_bundle": [
+      {"type": "device_signal", "content": "The purchase used a device that has been the account's only device for eighteen months.", "source_ref": "fp_device_56551"},
+      {"type": "order_history", "content": "The credits were consumed within the same session as the purchase.", "source_ref": "credit_usage_56551"},
+      {"type": "communication_log", "content": "A purchase receipt was emailed and opened within four minutes.", "source_ref": "esp_receipt_56551"},
+      {"type": "delivery_proof", "content": "The digital entitlement remains attached to the account and has not been reversed.", "source_ref": "entitlement_56551"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "retrieval",
+    "reason_code": "unrecognized_transaction",
+    "claim_text": "Issuer requests supporting documentation for a transaction the cardholder has queried.",
+    "amount": 94900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The order record shows the cardholder name, email and billing address as entered at checkout.", "source_ref": "oms_ord_56661"},
+      {"type": "device_signal", "content": "The purchasing device had not been seen before on the account, and the account has only one prior order.", "source_ref": "fp_device_56661"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "subscription_cancelled",
+    "claim_text": "Cardholder asserts a subscription was cancelled through customer support but continued billing.",
+    "amount": 129900,
+    "evidence_bundle": [
+      {"type": "communication_log", "content": "A support chat on 6 June 2026 shows the customer requesting cancellation and the agent replying 'I have raised this for you'. The transcript ends there.", "source_ref": "chat_56771"},
+      {"type": "order_history", "content": "No cancellation ticket exists in the billing system referencing that chat. The subscription renewed on 1 July 2026.", "source_ref": "billing_sub_56771_events"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "subscription_cancelled",
+    "claim_text": "Cardholder asserts they were charged after the subscription term had ended.",
+    "amount": 219900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The plan is a rolling monthly subscription with no fixed end date. The customer refers to a twelve-month commitment which appears in the marketing material but not in the accepted terms.", "source_ref": "terms_vs_marketing_56881"},
+      {"type": "communication_log", "content": "The accepted terms document was presented at signup and the acceptance timestamp is recorded.", "source_ref": "consent_56881"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "subscription_cancelled",
+    "claim_text": "Cardholder asserts a subscription renewed at a materially higher price without notice.",
+    "amount": 599900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The renewal price increased from Rs 3,999.00 to Rs 5,999.00. The merchant's terms require thirty days' notice of a price change.", "source_ref": "price_change_56991"},
+      {"type": "communication_log", "content": "A price change notice was sent on 20 June 2026 for a renewal on 15 July 2026, twenty-five days later.", "source_ref": "esp_notice_56991"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "credit_not_processed",
+    "claim_text": "Cardholder asserts a refund was promised but only partially issued.",
+    "amount": 189900,
+    "evidence_bundle": [
+      {"type": "communication_log", "content": "Support agreed on 1 July 2026 to refund the full order value of Rs 1,899.00.", "source_ref": "chat_57001"},
+      {"type": "order_history", "content": "A refund of Rs 1,499.00 was processed on 2 July 2026. The Rs 400.00 difference corresponds to the delivery fee, which the merchant's policy states is non-refundable, though the agent did not mention this.", "source_ref": "refund_partial_57001"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "credit_not_processed",
+    "claim_text": "Cardholder asserts a refund for a cancelled service was never received.",
+    "amount": 429900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The refund was processed on 5 July 2026 to the original payment instrument with acquirer reference 74998877665544332211009.", "source_ref": "refund_57111"},
+      {"type": "communication_log", "content": "The customer states no credit appears on their statement. The acquirer settlement report confirms the credit was transmitted and accepted by the issuer on 8 July 2026.", "source_ref": "settlement_20260708.csv"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "credit_not_processed",
+    "claim_text": "Cardholder asserts a store credit was issued instead of the card refund they requested.",
+    "amount": 259900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "A store credit of Rs 2,599.00 was issued on 18 July 2026. The merchant's returns policy permits store credit for items returned outside the fourteen-day window, and this return was received on day nineteen.", "source_ref": "returns_policy_57221"},
+      {"type": "communication_log", "content": "The policy was displayed on the returns portal at the time the return was initiated.", "source_ref": "portal_snapshot_57221.html"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts a scheduled installation was charged but never took place.",
+    "amount": 349900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The installation job shows status 'completed' entered by the technician on 22 July 2026.", "source_ref": "job_57331"},
+      {"type": "device_signal", "content": "The technician's handset recorded no GPS activity within five kilometres of the customer address on that date.", "source_ref": "tech_gps_20260722"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts a courier delivered to a security guard who denies receiving the parcel.",
+    "amount": 199900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The proof of delivery names the recipient as 'security' with an illegible signature, timestamped 3 August 2026 at 15:20 IST.", "source_ref": "pod_57441"},
+      {"type": "communication_log", "content": "The building management confirmed in writing that its parcel register has no entry for that date and time.", "source_ref": "building_stmt_20260805"},
+      {"type": "order_history", "content": "The merchant's delivery instructions field for this order was blank.", "source_ref": "oms_ord_57441"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder contends a bundled offer did not include all advertised components.",
+    "amount": 899900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The bundle SKU includes four components per the catalogue definition. The packing list records all four scanned at packing.", "source_ref": "packlist_57551"},
+      {"type": "delivery_proof", "content": "The parcel weight at dispatch was 2.9 kg against a bundle specification weight of 2.9 kg.", "source_ref": "weighbridge_57551"},
+      {"type": "communication_log", "content": "The customer reports one component missing. The merchant offered to ship the component separately; the customer did not respond.", "source_ref": "zendesk_ticket_141120"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder asserts a service was performed to a materially lower standard than agreed.",
+    "amount": 649900,
+    "evidence_bundle": [
+      {"type": "communication_log", "content": "The customer submitted eight photographs on 25 July 2026 showing incomplete work. The merchant's supervisor visited on 27 July and recorded in the visit note that 'some areas require rework'.", "source_ref": "visit_note_57661"},
+      {"type": "order_history", "content": "No rework was scheduled and the job remains marked complete.", "source_ref": "job_57661"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Cardholder asserts two charges arose from a single checkout attempt.",
+    "amount": 129900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The checkout session log records a single submit event. Two authorisation requests were sent to the gateway 1.2 seconds apart from the same session identifier.", "source_ref": "checkout_log_57771"},
+      {"type": "communication_log", "content": "The merchant's engineering team logged a known double-submit defect affecting this checkout version between 1 and 9 July 2026.", "source_ref": "incident_INC-4471"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "unrecognized_transaction",
+    "claim_text": "Cardholder asserts no relationship with the merchant and no receipt of goods.",
+    "amount": 384900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The order was placed as a guest checkout with no account, using the cardholder's name and billing address.", "source_ref": "guest_order_57881"},
+      {"type": "device_signal", "content": "No device history exists because guest checkout does not persist a fingerprint across sessions.", "source_ref": "fp_absent_57881"},
+      {"type": "delivery_proof", "content": "The consignment was delivered on 28 July 2026 to the billing address with a signature captured.", "source_ref": "pod_57881"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "retrieval",
+    "reason_code": "subscription_cancelled",
+    "claim_text": "Issuer requests documentation of the cardholder's consent to recurring billing.",
+    "amount": 79900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The recurring mandate record includes the consent timestamp, the amount, the frequency and the customer's IP address at the point of consent.", "source_ref": "mandate_57991"},
+      {"type": "communication_log", "content": "Pre-debit notifications have been issued before every charge and all were delivered successfully.", "source_ref": "esp_predebit_57991"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Cardholder asserts an international shipment was never delivered.",
+    "amount": 2949900,
+    "evidence_bundle": [
+      {"type": "delivery_proof", "content": "The international consignment shows a customs clearance scan on 14 July 2026 and a delivered scan on 17 July 2026 with a signature captured at the destination.", "source_ref": "intl_track_58001"},
+      {"type": "order_history", "content": "Customs duties of Rs 4,200 were paid by the customer directly to the carrier on 16 July 2026, one day before the delivered scan.", "source_ref": "duty_receipt_58001"}
+    ],
+    "ground_truth_label": "contest_win"
+  },
+  {
+    "phase": "pre_arbitration",
+    "reason_code": "credit_not_processed",
+    "claim_text": "Issuer maintains that the refund evidence submitted does not correspond to the disputed transaction.",
+    "amount": 549900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The refund reference submitted at first representment relates to a different order on the same customer account, placed two weeks earlier.", "source_ref": "refund_mismatch_58111"},
+      {"type": "communication_log", "content": "No refund exists against the disputed order.", "source_ref": "refund_ledger_58111"}
+    ],
+    "ground_truth_label": "should_accept"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "goods_not_as_described",
+    "claim_text": "Cardholder contends the quantity supplied was less than ordered.",
+    "amount": 159900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The order specifies six units. The packing scan records six unit barcodes.", "source_ref": "packlist_58221"},
+      {"type": "delivery_proof", "content": "The dispatch weight of 1.8 kg is consistent with six units at 300 grams each.", "source_ref": "weighbridge_58221"},
+      {"type": "communication_log", "content": "The customer reports receiving four units and has provided a photograph showing four units alongside the opened carton.", "source_ref": "customer_photo_58221.jpg"}
+    ],
+    "ground_truth_label": "contest_loss"
+  },
+  {
+    "phase": "chargeback",
+    "reason_code": "subscription_cancelled",
+    "claim_text": "Cardholder asserts a subscription cancelled during a trial was charged the full amount.",
+    "amount": 99900,
+    "evidence_bundle": [
+      {"type": "order_history", "content": "The trial period ended on 20 June 2026. The cancellation is recorded on 20 June 2026 at 23:58 IST and the conversion charge at 20 June 2026 at 23:59 IST, one minute apart.", "source_ref": "billing_race_58331"},
+      {"type": "communication_log", "content": "The merchant's terms state cancellation takes effect immediately upon confirmation.", "source_ref": "terms_58331"}
+    ],
+    "ground_truth_label": "should_accept"
+  }
+]
