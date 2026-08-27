@@ -97,6 +97,75 @@ flip, and inverted: it fired CONTEST on losing cases *more often* than winning o
 
 ---
 
+## Name your risk budget, not a threshold
+
+Section 10 of the spec hard-coded `0.7` and `0.65`. Nothing justified those numbers — they
+were picked. In a track whose bar is measured precision on a held-out set, "I picked them"
+is a bad answer.
+
+So they are gone. You now state the **maximum false-positive rate you can live with**, and
+the threshold is *calibrated* to satisfy it:
+
+    lambda = min { lambda : R(lambda) + sqrt(log(1/delta) / (2 n_lambda)) <= alpha }
+
+where `R(lambda)` is the empirical false-positive rate among cases the system would
+auto-contest at `lambda`, and the square-root term is a Hoeffding correction for finite
+samples. Learn-then-Test style bounded risk control, ~40 lines, in
+[`conformal_calibrator.py`](backend/app/services/conformal_calibrator.py).
+
+> With probability at least 1 − δ over the draw of the calibration set, the false-positive
+> rate among disputes the system auto-contests is at most α, assuming calibration and
+> deployment data are exchangeable.
+
+**It beat the hand-picked thresholds.** Same held-out set, same model, only the threshold
+changed:
+
+| | Section 10 (0.7 / 0.65) | Calibrated |
+|---|---|---|
+| Precision | 0.625 | **0.692** |
+| Recall | 0.625 | **0.750** |
+| F1 | 0.625 | **0.720** |
+| Coverage | 0.215 | **0.291** |
+
+`POST /calibrate` sets the budget; `GET /verify-guarantee` checks whether it actually held,
+on a test split that shares no dispute ids with the calibration data. That endpoint exists
+so the system can prove itself wrong.
+
+### What the guarantee is not
+
+Stated up front rather than buried, because these are the parts that matter:
+
+1. **The tightest budget this data supports is ~72%.** Not a typo. The method is correct;
+   the *score* it calibrates has almost no dynamic range — contest scores cluster at 0.500
+   (p25 0.498, median 0.500, only 1 of 48 above 0.55) and precision does not improve as the
+   threshold rises. That is the same AUC ≈ 0.57 ceiling documented in
+   [ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here), reappearing as an
+   unachievable guarantee. Ask for 5% and the system says so and defers everything, rather
+   than pretending. **A tight, meaningful guarantee here needs a better-calibrated
+   confidence signal, not a better threshold search.**
+2. **Calibration data is synthetic.** The guarantee holds relative to that distribution and
+   does not automatically transfer to real disputes.
+3. **Exchangeability is an assumption.** Real dispute streams drift — seasonal fraud, new
+   attack modes — which breaks it. Handling that needs adaptive/online conformal methods,
+   out of scope here.
+4. **The bound is on false-positive rate only** — not recall, not money recovered.
+
+One deviation from the spec, deliberately: Addendum 3 says to split the held-out set 50/50
+for calibration and test. That leaves 12 contest-eligible calibration points, where the
+Hoeffding slack alone is 0.31 and the floor is 0.539. Calibration therefore runs on the
+**working set** and verification on the **full held-out set** — disjoint by construction,
+and it avoids spending held-out data to pick a threshold, which is exactly what the rest of
+this repo refuses to do.
+
+Grounding: split conformal prediction (Vovk et al. 2005; Papadopoulos et al. 2002),
+conformal risk control (Bates et al. 2021; Angelopoulos et al. 2024), selective
+classification and deferral (Chow; El-Yaniv & Wiener 2010; Geifman & El-Yaniv 2017).
+Active 2026 applications span drug discovery, medical foundation models, GUI agents and
+financial ranking — **not payment disputes**, which is the novelty claim here, and it is
+checkable.
+
+---
+
 ## UPI: the part nobody else builds for
 
 Every commercial chargeback-AI product surveyed — Justt, Chargeflow, Riskified Dispute
@@ -255,6 +324,13 @@ python data/add_upi_rails.py --report   # show what it would do
 python data/add_upi_rails.py            # assign rail + payer_ref, build the cap clusters
 ```
 
+The conformal calibration scores are cached too — one NLI pass, so moving the risk-budget
+slider is instant:
+
+```bash
+python eval/build_conformal_cache.py
+```
+
 Assignment is by hash of `dispute_id` and is blind to labels and to what the engine
 recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
 
@@ -265,7 +341,7 @@ recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
 ```bash
 cd backend
 python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
-pytest -q                              # 151 tests
+pytest -q                              # 165 tests
 ```
 
 ### Tuning, and why it stopped
@@ -299,20 +375,20 @@ recommends.
 
 | Metric | Value |
 |---|---|
-| Precision | **0.625** |
-| Recall | **0.625** |
-| F1 | **0.625** |
-| Coverage | **0.215** |
-| False-positive cost estimate | **₹4,500** |
+| Precision | **0.692** |
+| Recall | **0.750** |
+| F1 | **0.720** |
+| Coverage | **0.291** |
+| False-positive cost estimate | **₹6,000** |
 | Records evaluated | 79 |
 
 | | Count | Meaning |
 |---|---|---|
-| TP | 5 | model CONTEST, truth `contest_win` |
-| FP | 3 | model CONTEST, truth `contest_loss` / `should_accept` |
+| TP | 9 | model CONTEST, truth `contest_win` |
+| FP | 4 | model CONTEST, truth `contest_loss` / `should_accept` |
 | FN | 3 | model ACCEPT, truth `contest_win` |
-| TN | 6 | model ACCEPT, truth `contest_loss` / `should_accept` |
-| Flagged to human | 57 | routed to a person instead of guessed |
+| TN | 7 | model ACCEPT, truth `contest_loss` / `should_accept` |
+| Flagged to human | 51 | routed to a person instead of guessed |
 | URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
 
 **How to read these.** Coverage of 0.215 means the system auto-decides about a fifth of the

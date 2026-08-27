@@ -97,6 +97,34 @@ The discarded idea was the Evidence Gap Advisor — telling a merchant which mis
 would flip a borderline case. Justt already markets ROI-based fight-or-accept decisioning,
 so it was not the differentiator it looked like. What replaced it is in the beat below.
 
+## The headline beat — the risk budget dial
+
+> "Most chargeback tools report a win rate. That tells you what happened, not what will
+> happen. So instead of me picking a confidence threshold and hoping — watch this.
+>
+> [drag to a workable budget] I tell the system the maximum false-positive rate I'll
+> tolerate on disputes it contests automatically. It calibrates its own threshold on a
+> calibration split, and tells me what that costs in coverage. [drag to 5%] At 5% it can't
+> do it, and it says so rather than pretending.
+>
+> This is conformal risk control. It's used in drug discovery and medical AI; as far as I
+> can find, nobody has applied it to payment disputes."
+
+**Then the part that must not be cut for time:**
+
+> "And I'll be straight about what it showed me. The tightest budget this data supports is
+> about 72% — which is not a useful promise. The method is right; the confidence score
+> underneath it has no dynamic range, so there's nothing for a threshold to bite on. That's
+> the same AUC-0.57 ceiling I found three different ways. Calibration didn't fix the model.
+> It made the model's limits impossible to hide — and it still beat my hand-picked
+> thresholds on the held-out set, 0.69 precision against 0.63.
+>
+> Also: my calibration data is synthetic, and the guarantee assumes exchangeability, so
+> real-world drift would break it."
+
+That last paragraph is the pitch. In a track whose bar is honest measurement, being the one
+candidate who names their own ceiling out loud is worth more than a better number.
+
 ## The UPI beat
 
 Show a UPI dispute where the payer has already burned their cap. Then:

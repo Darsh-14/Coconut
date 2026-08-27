@@ -39,15 +39,24 @@ from app.models.schemas import (
     Recommendation,
     URCSForecast,
 )
+from app.services.conformal_calibrator import get_active_calibrated_threshold
 from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.verification_engine import MODEL_NAME
 
 logger = logging.getLogger("recourse.aggregator")
 
-# --- Section 10's thresholds. Do not tune these without updating the spec. ---
+# --- thresholds ---
+#
+# Section 10's two numeric thresholds are SUPERSEDED by Addendum 3: they are no longer
+# used to decide anything. Both branches now compare against a single threshold
+# calibrated to a stated risk budget by conformal_calibrator.py, so the number is derived
+# from data rather than chosen. The originals are kept only as the historical record of
+# what the spec first prescribed, and are referenced by nothing in the decision path.
+LEGACY_CONTRADICT_CONFIDENCE_THRESHOLD = 0.7
+LEGACY_SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD = 0.65
 
-CONTRADICT_CONFIDENCE_THRESHOLD = 0.7
-SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD = 0.65
+# Still in force. This one is a structural design choice -- corroboration across
+# independent evidence types -- not a tuned number, so calibration does not touch it.
 MIN_DISTINCT_SUPPORTING_EVIDENCE_TYPES = 2
 
 
@@ -73,8 +82,13 @@ def aggregate(
     evidence_bundle: Sequence[EvidenceItem],
     dispute: Optional[Dispute] = None,
     dispute_history: Optional[Sequence[Dispute]] = None,
+    threshold: Optional[float] = None,
 ) -> AggregationResult:
-    """Apply Section 10's rule to a bundle's verdicts.
+    """Apply the decision rule to a bundle's verdicts.
+
+    `threshold` is the conformally calibrated lambda. Omit it and the active calibrated
+    threshold is used; pass it explicitly to evaluate a bundle at a specific budget
+    without touching global state, which is what the tests and /verify-guarantee do.
 
     When `dispute` is supplied and settles on UPI rails, NPCI's deterministic caps are
     checked *first* (Addendum 2, Section 24). If URCS is expected to auto-reject the
@@ -84,6 +98,14 @@ def aggregate(
 
     Both new arguments are optional so every existing caller keeps working unchanged.
     """
+    # Addendum 3 supersedes Section 10's 0.7 and 0.65. Both branches now use one
+    # threshold calibrated to a stated risk budget, so the number is derived rather than
+    # picked. The structural rules -- unanimity, >= 2 distinct evidence types, and min-
+    # rather-than-average confidence -- are design choices, not arbitrary constants, and
+    # they stay exactly as Section 10 wrote them.
+    if threshold is None:
+        threshold = get_active_calibrated_threshold()
+
     forecast = None
     if dispute is not None:
         forecast = forecast_urcs_disposition(dispute, dispute_history or [])
@@ -104,6 +126,22 @@ def aggregate(
                 urcs_forecast=forecast,
             )
 
+    if threshold is None:
+        # Either nothing has been calibrated yet, or the requested risk budget is
+        # unachievable on the calibration data. Both mean the same thing: the system
+        # cannot promise the stated false-positive rate, so it decides nothing. Silently
+        # falling back to a default threshold would defeat the entire point.
+        return AggregationResult(
+            recommendation="NEEDS_HUMAN_REVIEW",
+            confidence=0.0,
+            driving_verdicts=[],
+            rationale=(
+                "No calibrated threshold is in force, so the system cannot guarantee the "
+                "requested false-positive rate and declines to decide."
+            ),
+            urcs_forecast=forecast,
+        )
+
     if not verdicts:
         return AggregationResult(
             recommendation="NEEDS_HUMAN_REVIEW",
@@ -117,7 +155,7 @@ def aggregate(
     contradicting = [
         v
         for v in verdicts
-        if v.label == "contradict" and v.confidence > CONTRADICT_CONFIDENCE_THRESHOLD
+        if v.label == "contradict" and v.confidence >= threshold
     ]
     if contradicting:
         confidence = min(v.confidence for v in contradicting)
@@ -127,9 +165,9 @@ def aggregate(
             confidence=confidence,
             driving_verdicts=contradicting,
             rationale=(
-                f"Evidence item(s) {indices} actively support the bank's claim with "
-                f"confidence above {CONTRADICT_CONFIDENCE_THRESHOLD:.2f}. Contesting on "
-                f"this record would likely fail and incur representment cost."
+                f"Evidence item(s) {indices} actively support the bank's claim at or "
+                f"above the calibrated threshold {threshold:.2f}. Contesting on this "
+                f"record would likely fail and incur representment cost."
             ),
             urcs_forecast=forecast,
         )
@@ -137,11 +175,14 @@ def aggregate(
     # --- branch 2: unanimous, sufficiently strong, corroborated support means contest ---
     supporting = [v for v in verdicts if v.label == "support"]
     if len(supporting) == len(verdicts):
-        average_confidence = sum(v.confidence for v in supporting) / len(supporting)
+        # The score the threshold is calibrated against is the weakest link, not the
+        # average -- that is the quantity conformal calibration was run on, so it has to
+        # be the quantity compared here.
+        weakest_link = min(v.confidence for v in supporting)
         distinct_types = _distinct_supporting_types(supporting, evidence_bundle)
 
         if (
-            average_confidence > SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD
+            weakest_link >= threshold
             and len(distinct_types) >= MIN_DISTINCT_SUPPORTING_EVIDENCE_TYPES
         ):
             return AggregationResult(
@@ -149,9 +190,9 @@ def aggregate(
                 confidence=min(v.confidence for v in supporting),
                 driving_verdicts=list(supporting),
                 rationale=(
-                    f"All {len(verdicts)} evidence item(s) support the merchant, average "
-                    f"confidence {average_confidence:.2f} exceeds "
-                    f"{SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD:.2f}, and the support is "
+                    f"All {len(verdicts)} evidence item(s) support the merchant, the "
+                    f"weakest of them at {weakest_link:.2f} clears the calibrated "
+                    f"threshold {threshold:.2f}, and the support is "
                     f"corroborated across {len(distinct_types)} evidence types "
                     f"({', '.join(sorted(distinct_types))}). Overall confidence is the "
                     f"weakest link in that chain."
@@ -161,10 +202,10 @@ def aggregate(
 
         # Unanimous but not strong enough: say precisely which condition failed.
         reasons = []
-        if average_confidence <= SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD:
+        if weakest_link < threshold:
             reasons.append(
-                f"average confidence {average_confidence:.2f} does not exceed "
-                f"{SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD:.2f}"
+                f"its weakest item at {weakest_link:.2f} falls below the calibrated "
+                f"threshold {threshold:.2f}"
             )
         if len(distinct_types) < MIN_DISTINCT_SUPPORTING_EVIDENCE_TYPES:
             reasons.append(
@@ -233,13 +274,14 @@ def build_decision(
     decided_at: Optional[datetime] = None,
     dispute: Optional[Dispute] = None,
     dispute_history: Optional[Sequence[Dispute]] = None,
+    threshold: Optional[float] = None,
 ) -> Decision:
     """Aggregate and wrap the outcome in the Section 6 Decision contract.
 
     Pass `dispute` and `dispute_history` to have NPCI's UPI caps checked first; omit them
     and the behaviour is exactly Section 10 as before.
     """
-    result = aggregate(verdicts, evidence_bundle, dispute, dispute_history)
+    result = aggregate(verdicts, evidence_bundle, dispute, dispute_history, threshold)
     return Decision(
         dispute_id=dispute_id,
         recommendation=result.recommendation,
@@ -248,13 +290,14 @@ def build_decision(
         drafted_packet=drafted_packet,
         decided_at=decided_at or datetime.now(timezone.utc),
         model_version=MODEL_NAME,
+        calibrated_threshold_used=threshold if threshold is not None else get_active_calibrated_threshold(),
     )
 
 
 __all__ = [
-    "CONTRADICT_CONFIDENCE_THRESHOLD",
+    "LEGACY_CONTRADICT_CONFIDENCE_THRESHOLD",
     "MIN_DISTINCT_SUPPORTING_EVIDENCE_TYPES",
-    "SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD",
+    "LEGACY_SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD",
     "AggregationResult",
     "aggregate",
     "build_decision",

@@ -37,6 +37,11 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from app.config import get_settings  # noqa: E402
 from app.models.schemas import Dispute, EvalMetrics  # noqa: E402
+from app.services.conformal_calibrator import (  # noqa: E402
+    active_state,
+    bootstrap_from_cache,
+    has_calibrated,
+)
 from app.services.decision_aggregator import aggregate  # noqa: E402
 from app.services.verification_engine import (  # noqa: E402
     VerificationEngine,
@@ -66,6 +71,13 @@ def run_evaluation(
     """Score the pipeline over the held-out set and return Section 11's metrics."""
     records = list(records) if records is not None else load_held_out()
     engine = engine or get_verification_engine()
+
+    # Run standalone, this process has never been through the API's startup hook, so no
+    # threshold is calibrated and the aggregator would defer every single record. Bootstrap
+    # from the cached scores exactly as the app does.
+    if not has_calibrated():
+        bootstrap_from_cache()
+    calibration = active_state()
     if representment_cost_inr is None:
         representment_cost_inr = get_settings().assumed_representment_cost_inr
 
@@ -129,6 +141,15 @@ def run_evaluation(
         coverage=round(coverage, 4),
         n_evaluated=n_evaluated,
         auto_resolved=auto_resolved,
+        alpha=calibration.get("alpha"),
+        calibrated_threshold=calibration.get("threshold"),
+        # The observed false-positive rate among auto-contested cases is 1 - precision.
+        # The guarantee is that it stays under alpha.
+        guarantee_held=(
+            None
+            if calibration.get("alpha") is None or (tp + fp) == 0
+            else (1.0 - precision) <= calibration["alpha"]
+        ),
     )
 
 

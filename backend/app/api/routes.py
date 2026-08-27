@@ -5,6 +5,8 @@
     GET  /disputes/{dispute_id}/urcs-forecast  NPCI cap forecast for a UPI dispute
     POST /disputes/{dispute_id}/decide   run the pipeline, persist and return a Decision
     POST /disputes/{dispute_id}/approve  record human approval, apply Section 7 handling
+    POST /calibrate                      calibrate the threshold to a risk budget
+    GET  /verify-guarantee               check the guarantee on the untouched test split
     POST /evaluate                       run the pipeline over the held-out set
 
 The safety-critical endpoint is /approve. Section 2's second hard constraint is that the
@@ -30,6 +32,9 @@ from app.db.database import get_session
 from app.db.models import AuditLogRow, DecisionRow, DisputeRow
 from app.models.schemas import (
     ApproveRequest,
+    CalibrateRequest,
+    CalibrationResult,
+    GuaranteeVerification,
     AuditLogEntry,
     Decision,
     Dispute,
@@ -39,6 +44,16 @@ from app.models.schemas import (
     URCSForecast,
 )
 from app.services.decision_aggregator import aggregate, build_decision
+from app.services.conformal_calibrator import (
+    active_state,
+    calibrate_threshold,
+    empirical_fp_rate,
+    guarantee_statement,
+    hoeffding_slack,
+    load_scores,
+    set_active_threshold,
+    smallest_achievable_alpha,
+)
 from app.services.packet_generator import generate_packet
 from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.razorpay_client import (
@@ -293,6 +308,117 @@ def approve(
         bool(entry.would_be_razorpay_payload),
     )
     return entry.to_schema()
+
+
+# --- conformal risk control (Addendum 3) ----------------------------------------------
+
+
+def _calibration_pairs(cache: dict) -> list[tuple[float, str]]:
+    return [
+        (r["score"], r["label"]) for r in cache["calibration"] if r["score"] is not None
+    ]
+
+
+@router.post("/calibrate", response_model=CalibrationResult, tags=["calibration"])
+def calibrate(body: CalibrateRequest) -> CalibrationResult:
+    """Calibrate the decision threshold to a stated maximum false-positive rate.
+
+    Replays the threshold search over cached scores, so this is instant regardless of how
+    many times the slider moves.
+    """
+    cache = load_scores()
+    if not cache:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "No calibration scores available. Build them with "
+                "`python eval/build_conformal_cache.py`."
+            ),
+        )
+
+    pairs = _calibration_pairs(cache)
+    lam = calibrate_threshold(pairs, body.alpha, body.delta)
+    set_active_threshold(lam, body.alpha, body.delta)
+
+    r_hat, n_lam = (None, 0) if lam is None else empirical_fp_rate(pairs, lam)
+    floor = smallest_achievable_alpha(pairs, body.delta)
+
+    statement = (
+        guarantee_statement(body.alpha, body.delta)
+        if lam is not None
+        else (
+            f"A {body.alpha:.0%} false-positive budget is not achievable on this "
+            f"calibration set"
+            + (f"; the tightest it can support is {floor:.0%}." if floor else ".")
+            + " The system will defer every case rather than promise something the data "
+            "does not support."
+        )
+    )
+
+    return CalibrationResult(
+        alpha=body.alpha,
+        delta=body.delta,
+        calibrated_threshold=lam,
+        achievable=lam is not None,
+        calibration_set_size=len(pairs),
+        n_above_threshold=n_lam,
+        empirical_fp_rate_on_calibration=r_hat,
+        hoeffding_slack=hoeffding_slack(n_lam, body.delta) if n_lam else None,
+        guarantee_statement=statement,
+        smallest_achievable_alpha=floor,
+    )
+
+
+@router.get("/verify-guarantee", response_model=GuaranteeVerification, tags=["calibration"])
+def verify_guarantee() -> GuaranteeVerification:
+    """Check whether the active threshold's guarantee actually held on the TEST split.
+
+    This endpoint exists so the system can prove itself wrong. It reads only the test
+    split, which shares no dispute ids with the calibration data.
+    """
+    cache = load_scores()
+    if not cache:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No calibration scores available.",
+        )
+
+    state = active_state()
+    lam, alpha = state["threshold"], state["alpha"]
+    test = cache["test"]
+
+    if lam is None or alpha is None:
+        # Nothing is auto-contested, so the false-positive rate is vacuously zero and
+        # coverage is zero. Reporting that plainly beats refusing to answer.
+        return GuaranteeVerification(
+            alpha=alpha if alpha is not None else 0.0,
+            observed_fp_rate_on_test=0.0,
+            guarantee_held=True,
+            coverage=0.0,
+            n_test=len(test),
+        )
+
+    contested = [r for r in test if r["score"] is not None and r["score"] >= lam]
+    fps = sum(1 for r in contested if r["label"] != "contest_win")
+    observed = fps / len(contested) if contested else 0.0
+
+    # Coverage counts every case the system settles without a human: contests, accepts,
+    # and the URCS auto-rejects that never needed a decision at all.
+    decided = sum(
+        1
+        for r in test
+        if r["urcs_auto_reject"]
+        or (r["max_contradict"] is not None and r["max_contradict"] >= lam)
+        or (r["score"] is not None and r["score"] >= lam)
+    )
+
+    return GuaranteeVerification(
+        alpha=alpha,
+        observed_fp_rate_on_test=round(observed, 4),
+        guarantee_held=observed <= alpha,
+        coverage=round(decided / len(test), 4) if test else 0.0,
+        n_test=len(test),
+    )
 
 
 @router.post("/evaluate", response_model=EvalMetrics, tags=["evaluation"])

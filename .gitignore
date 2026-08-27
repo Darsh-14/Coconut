@@ -41,3 +41,4 @@ backend/data/razorpay_backing.json
 
 # Tuning cache: regenerable via `python eval/tune_thresholds.py --build-cache`
 backend/eval/.signal_cache.json
+backend/eval/.conformal_scores.json

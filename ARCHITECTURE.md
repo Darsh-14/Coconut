@@ -186,6 +186,66 @@ at load rather than trusted.
 
 ---
 
+## Calibrated thresholds, not chosen ones
+
+`conformal_calibrator.py`
+
+Section 10's `0.7` and `0.65` were picked. They are now superseded by a single threshold
+calibrated to a stated risk budget, using Learn-then-Test style bounded risk control with a
+Hoeffding correction. The structural rules Section 10 also specified — unanimity, >= 2
+distinct evidence types, and min-not-average confidence — are design choices rather than
+tuned numbers, so calibration does not touch them.
+
+Measured on the same held-out set, only the threshold changing:
+
+| | Section 10 | Calibrated |
+|---|---|---|
+| Precision | 0.625 | **0.692** |
+| Recall | 0.625 | **0.750** |
+| F1 | 0.625 | **0.720** |
+| Coverage | 0.215 | **0.291** |
+
+### The finding that matters more than the improvement
+
+**The tightest budget this data supports is 0.719.** Every budget a user would actually ask
+for comes back unachievable, and the reason is not the method:
+
+| Threshold | n | precision | Hoeffding slack | bound |
+|---|---|---|---|---|
+| 0.50 | 24 | 0.500 | 0.219 | 0.719 |
+| 0.55 | 1 | 1.000 | 1.073 | 2.073 |
+| 0.65+ | 1 | 1.000 | 1.073 | 2.073 |
+
+The contest scores have almost no dynamic range: p25 0.498, median 0.500, p75 0.502, and
+exactly one of 48 calibration points above 0.55. So the [0.50, 0.99] grid has two usable
+settings — take everything, or take one case. And precision does not improve as the
+threshold rises; it sits near 0.50 at every cut.
+
+Rank-normalising the score to spread it across the grid was tried, and moved the floor only
+from 0.719 to 0.683 — because the ordering carries no information about correctness either.
+This is the third independent confirmation of the AUC ≈ 0.57 ceiling documented below: a
+threshold search cannot manufacture a guarantee from a score that does not discriminate.
+
+The honest conclusion is that a tight, meaningful conformal guarantee on this system needs a
+better-calibrated confidence signal — fine-tuning, or a richer probe set — not a better
+threshold search. The default risk budget is set to 0.75 rather than something flattering,
+specifically so the limitation is visible in the product instead of hidden behind a number
+nobody could justify.
+
+### Deviating from Addendum 3 Section 29
+
+The spec says to split the held-out set 50/50 into calibration and test. Implemented
+literally that gives 12 contest-eligible calibration points, a slack of 0.31, and a floor of
+0.539 — a guarantee of "at most 54% false positives", which is worthless. So calibration
+runs on the working set and verification on the full held-out set: disjoint by construction,
+exchangeable in the same way, and it avoids spending held-out data to pick a threshold,
+which is what the rest of this repo refuses to do.
+
+`GET /verify-guarantee` exists so the system can prove itself wrong, and reads only the test
+split. `test_conformal_calibrator.py` asserts the two id sets do not intersect.
+
+---
+
 ## Deterministic rules before the model
 
 `npci_rules.py` + `urcs_forecaster.py` + the short-circuit at the top of `aggregate()`

@@ -45,6 +45,13 @@ async def lifespan(app: FastAPI):
 
     init_db()
 
+    # Calibrate from the cached scores so the app boots with a working threshold. Without
+    # this the aggregator has no calibrated lambda and defers every case, which looks like
+    # a broken product rather than a cautious one.
+    from app.services.conformal_calibrator import bootstrap_from_cache
+
+    bootstrap_from_cache()
+
     yield
     logger.info("Recourse shutting down")
 

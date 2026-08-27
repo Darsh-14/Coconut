@@ -25,6 +25,27 @@ export type Recommendation =
 
 export type PaymentRail = 'upi' | 'rupay' | 'card'
 
+export interface CalibrationResult {
+  alpha: number
+  delta: number
+  calibrated_threshold: number | null
+  achievable: boolean
+  calibration_set_size: number
+  n_above_threshold: number
+  empirical_fp_rate_on_calibration: number | null
+  hoeffding_slack: number | null
+  guarantee_statement: string
+  smallest_achievable_alpha: number | null
+}
+
+export interface GuaranteeVerification {
+  alpha: number
+  observed_fp_rate_on_test: number
+  guarantee_held: boolean
+  coverage: number
+  n_test: number
+}
+
 export type URCSDisposition =
   | 'AUTO_REJECT'
   | 'AUTO_ACCEPT'
@@ -201,6 +222,12 @@ export const api = {
     }),
   evaluate: () => request<EvalMetrics>('/evaluate', { method: 'POST' }),
   urcsForecast: (id: string) => request<URCSForecast>(`/disputes/${id}/urcs-forecast`),
+  calibrate: (alpha: number, delta = 0.1) =>
+    request<CalibrationResult>('/calibrate', {
+      method: 'POST',
+      body: JSON.stringify({ alpha, delta }),
+    }),
+  verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
 }
 
 // --- formatting helpers -------------------------------------------------------------

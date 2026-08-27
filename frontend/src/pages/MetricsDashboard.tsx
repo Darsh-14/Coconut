@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, formatPercent, type EvalMetrics } from '../api/client'
 import { Button, Metric, PageHeader, Progress, Surface } from '../components/ui'
+import { RiskBudgetDial } from '../components/RiskBudgetDial'
 
 /**
  * The last committed evaluation run, so the page says something on open rather than
@@ -8,20 +9,20 @@ import { Button, Metric, PageHeader, Progress, Surface } from '../components/ui'
  * never as a live one. Same figures as README.md's results table.
  */
 const REFERENCE = {
-  working: { precision: 0.625, coverage: 0.214 },
-  heldOut: { precision: 0.625, coverage: 0.215 },
+  section10: { precision: 0.625, coverage: 0.215 },
+  heldOut: { precision: 0.692, coverage: 0.291 },
   naive: { precision: 0.481, coverage: 0.423 },
 }
 
 /** The recorded run in full, so the page is populated before anyone clicks anything. */
 const RECORDED: EvalMetrics = {
-  precision: 0.625,
-  recall: 0.625,
-  f1: 0.625,
-  coverage: 0.215,
+  precision: 0.692,
+  recall: 0.75,
+  f1: 0.72,
+  coverage: 0.291,
   n_evaluated: 79,
-  false_positive_cost_estimate_inr: 4500,
-  confusion_matrix: { tp: 5, fp: 3, fn: 3, tn: 6, flagged_human: 57 },
+  false_positive_cost_estimate_inr: 6000,
+  confusion_matrix: { tp: 9, fp: 4, fn: 3, tn: 7, flagged_human: 51 },
   auto_resolved: 5,
 }
 
@@ -59,6 +60,8 @@ export default function MetricsDashboard() {
         }
       />
 
+      <RiskBudgetDial />
+
       {running && <Progress />}
       {error && <Surface className="p-4 text-[13px] text-[var(--risk)]">{error}</Surface>}
 
@@ -66,15 +69,15 @@ export default function MetricsDashboard() {
       <Surface className="overflow-hidden">
         <div className="px-5 pb-1 pt-4">
           <h2 className="text-[13px]" style={{ fontVariationSettings: "'wght' 590" }}>
-            Tuned set and unseen set agree
+            Calibrated beats hand-picked
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
-            Within a tenth of a point — the design generalised rather than fitting noise.
+            Same held-out set, same model. Only the threshold changed.
           </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
-          <Compare label="Working set" sub="tuned against" {...REFERENCE.working} />
-          <Compare label="Held-out" sub="never seen" {...REFERENCE.heldOut} highlight />
+          <Compare label="Conformal" sub="calibrated threshold" {...REFERENCE.heldOut} highlight />
+          <Compare label="Section 10" sub="hand-picked 0.7 / 0.65" {...REFERENCE.section10} />
           <Compare label="Naive engine" sub="rejected" {...REFERENCE.naive} warn />
         </div>
         <p

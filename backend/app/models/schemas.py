@@ -129,6 +129,8 @@ class Decision(BaseModel):
     drafted_packet: Optional[str] = None
     decided_at: datetime
     model_version: str = "cross-encoder/nli-deberta-v3-base"
+    # Addendum 3: a decision is only reproducible if you know which threshold produced it.
+    calibrated_threshold_used: Optional[float] = None
 
 
 class AuditLogEntry(BaseModel):
@@ -155,6 +157,11 @@ class EvalMetrics(BaseModel):
     # recall exactly as NEEDS_HUMAN_REVIEW is -- counting them as wins would inflate the
     # headline number for work the system did not do.
     auto_resolved: int = 0
+    # Addendum 3: the risk budget in force, the threshold it produced, and whether the
+    # guarantee actually held on the test split.
+    alpha: Optional[float] = None
+    calibrated_threshold: Optional[float] = None
+    guarantee_held: Optional[bool] = None
 
 
 class DisputeBudget(BaseModel):
@@ -177,6 +184,40 @@ class URCSForecast(BaseModel):
     budget: DisputeBudget
     explanation: str
     rules_verified_on: str
+
+
+class CalibrationResult(BaseModel):
+    """Outcome of calibrating the decision threshold to a stated risk budget."""
+
+    alpha: float  # requested maximum false-positive rate
+    delta: float  # confidence level
+    calibrated_threshold: Optional[float]
+    achievable: bool
+    calibration_set_size: int
+    n_above_threshold: int
+    empirical_fp_rate_on_calibration: Optional[float]
+    hoeffding_slack: Optional[float]
+    guarantee_statement: str
+    # The tightest budget this calibration set can support, so an unachievable request is
+    # actionable rather than a dead end.
+    smallest_achievable_alpha: Optional[float] = None
+
+
+class GuaranteeVerification(BaseModel):
+    """Computed on the TEST split, never the calibration split."""
+
+    alpha: float
+    observed_fp_rate_on_test: float
+    guarantee_held: bool
+    coverage: float  # fraction auto-decided rather than deferred to a human
+    n_test: int
+
+
+class CalibrateRequest(BaseModel):
+    """Body of POST /calibrate."""
+
+    alpha: float = Field(gt=0.0, lt=1.0)
+    delta: float = Field(default=0.1, gt=0.0, lt=1.0)
 
 
 # --- API request/response shapes (Section 8) --------------------------------------------
