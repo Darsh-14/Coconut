@@ -3,16 +3,17 @@ import { NavLink, Route, Routes } from 'react-router-dom'
 import CaseDetail from './pages/CaseDetail'
 import DisputeQueue from './pages/DisputeQueue'
 import MetricsDashboard from './pages/MetricsDashboard'
-import { Button } from './components/ui'
+import Overview from './pages/Overview'
 
 export default function App() {
   return (
     <div className="flex min-h-full">
       <Sidebar />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[76rem] px-8 py-8">
+        <div className="mx-auto max-w-[74rem] px-8 py-9">
           <Routes>
-            <Route path="/" element={<DisputeQueue />} />
+            <Route path="/" element={<Overview />} />
+            <Route path="/disputes" element={<DisputeQueue />} />
             <Route path="/disputes/:disputeId" element={<CaseDetail />} />
             <Route path="/metrics" element={<MetricsDashboard />} />
             <Route path="*" element={<NotFound />} />
@@ -23,25 +24,39 @@ export default function App() {
   )
 }
 
+/**
+ * Chrome floats above content, so it takes the translucent material. Content surfaces
+ * stay opaque — translucency under dense financial text is the documented legibility
+ * failure of the style, and Apple's own guidance puts glass on the layer above content
+ * rather than behind it.
+ */
 function Sidebar() {
   return (
     <aside
-      className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col justify-between border-r px-3 py-4 lg:flex"
-      style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}
+      className="material sticky top-0 hidden h-screen w-[228px] shrink-0 flex-col justify-between border-r px-3 py-5 lg:flex"
+      style={{ borderColor: 'var(--line)' }}
     >
       <div>
-        <NavLink to="/" className="mb-6 flex items-center gap-2.5 px-2">
+        <NavLink to="/" className="mb-7 flex items-center gap-2.5 px-2">
           <Mark />
-          <span
-            className="text-[15px] tracking-[-0.02em]"
-            style={{ fontVariationSettings: "'wght' 590" }}
-          >
-            Recourse
+          <span className="leading-none">
+            <span
+              className="block text-[15px] tracking-[-0.02em]"
+              style={{ fontVariationSettings: "'wght' 600" }}
+            >
+              Recourse
+            </span>
+            <span className="mt-1 block text-[10.5px] tracking-[0.04em] text-[var(--fg-3)]">
+              CHARGEBACK DEFENCE
+            </span>
           </span>
         </NavLink>
 
         <nav className="space-y-0.5">
-          <NavItem to="/" icon={<QueueIcon />}>
+          <NavItem to="/" icon={<HomeIcon />}>
+            Overview
+          </NavItem>
+          <NavItem to="/disputes" icon={<QueueIcon />}>
             Disputes
           </NavItem>
           <NavItem to="/metrics" icon={<ChartIcon />}>
@@ -50,7 +65,7 @@ function Sidebar() {
         </nav>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Guardrails />
         <ThemeToggle />
       </div>
@@ -72,7 +87,7 @@ function NavItem({
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-1.5 text-[13px] transition duration-[160ms] ${
+        `pressable flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] ${
           isActive
             ? 'bg-[var(--surface-3)] text-[var(--fg)]'
             : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]'
@@ -80,16 +95,17 @@ function NavItem({
       }
       style={{ fontVariationSettings: "'wght' 510" }}
     >
-      <span className="text-[var(--fg-3)]">{icon}</span>
-      {children}
+      {({ isActive }) => (
+        <>
+          <span className={isActive ? 'text-[var(--fg)]' : 'text-[var(--fg-3)]'}>{icon}</span>
+          {children}
+        </>
+      )}
     </NavLink>
   )
 }
 
-/**
- * CLAUDE.md Section 2's hard constraints, kept visible in the product rather than only in
- * a README. Three lines, no prose — a status readout, not a disclaimer.
- */
+/** CLAUDE.md Section 2's hard constraints, as a status readout rather than a disclaimer. */
 function Guardrails() {
   const items = [
     { label: 'Test mode', tone: 'var(--win)' },
@@ -97,10 +113,13 @@ function Guardrails() {
     { label: 'Never auto-submits', tone: 'var(--warn)' },
   ]
   return (
-    <ul className="space-y-1.5 px-2">
+    <ul className="space-y-1.5 px-2.5">
       {items.map((i) => (
-        <li key={i.label} className="flex items-center gap-2 text-[11.5px] text-[var(--fg-3)]">
-          <span className="size-1.5 rounded-full" style={{ background: i.tone }} />
+        <li
+          key={i.label}
+          className="flex items-center gap-2 text-[11px] tracking-[0.01em] text-[var(--fg-3)]"
+        >
+          <span className="size-1 rounded-full" style={{ background: i.tone }} />
           {i.label}
         </li>
       ))}
@@ -109,26 +128,25 @@ function Guardrails() {
 }
 
 function ThemeToggle() {
-  const [theme, setTheme] = useState(
-    () => document.documentElement.dataset.theme ?? 'light',
-  )
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'light')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     localStorage.setItem('recourse.theme', theme)
   }, [theme])
 
+  const isDark = theme === 'dark'
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="w-full justify-start"
-      onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="pressable flex w-full items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]"
+      style={{ fontVariationSettings: "'wght' 510" }}
       aria-label="Toggle colour theme"
     >
-      {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-      {theme === 'dark' ? 'Light' : 'Dark'}
-    </Button>
+      <span className="text-[var(--fg-3)]">{isDark ? <SunIcon /> : <MoonIcon />}</span>
+      {isDark ? 'Light' : 'Dark'}
+    </button>
   )
 }
 
@@ -137,10 +155,13 @@ function ThemeToggle() {
 function Mark() {
   return (
     <span
-      className="grid size-7 place-items-center rounded-[7px]"
-      style={{ background: 'var(--fg)', color: 'var(--bg)' }}
+      className="grid size-8 shrink-0 place-items-center rounded-[9px]"
+      style={{
+        background: 'linear-gradient(160deg, var(--fg) 0%, color-mix(in srgb, var(--fg) 78%, var(--accent)) 100%)',
+        color: 'var(--bg)',
+      }}
     >
-      <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
+      <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" aria-hidden="true">
         <path
           d="M12 3.2l6.8 2.9v5.2c0 4-2.8 7.4-6.8 8.7-4-1.3-6.8-4.7-6.8-8.7V6.1L12 3.2z"
           stroke="currentColor"
@@ -168,6 +189,14 @@ const iconProps = {
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,
+}
+
+function HomeIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M2.5 6.8L8 2.5l5.5 4.3v6.2a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5V6.8z" />
+    </svg>
+  )
 }
 
 function QueueIcon() {
@@ -213,7 +242,7 @@ function NotFound() {
         to="/"
         className="mt-3 inline-block text-[13px] text-[var(--accent)] hover:underline"
       >
-        Back to disputes
+        Back to overview
       </NavLink>
     </div>
   )

@@ -39,7 +39,7 @@ export function RecommendationBanner({
     <section
       className="surface overflow-hidden"
       aria-label="Recommendation"
-      style={{ borderLeft: `2px solid var(--${copy.tone})` }}
+      style={{ boxShadow: `var(--shadow-line), inset 2px 0 0 0 var(--${copy.tone})` }}
     >
       <div className="flex flex-wrap items-start justify-between gap-5 p-5">
         <div>

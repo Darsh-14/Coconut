@@ -189,3 +189,139 @@ export function EmptyState({
     </div>
   )
 }
+
+/**
+ * Sticky page header on the material layer, so the page title and its primary action stay
+ * reachable while a long table scrolls under them.
+ */
+export function PageHeader({
+  title,
+  sub,
+  action,
+}: {
+  title: string
+  sub?: string
+  action?: React.ReactNode
+}) {
+  return (
+    <header className="material sticky top-0 z-10 -mx-8 mb-6 flex flex-wrap items-end justify-between gap-4 px-8 pb-4 pt-2">
+      <div>
+        <h1
+          className="text-[26px] leading-none tracking-[-0.028em]"
+          style={{ fontVariationSettings: "'wght' 600" }}
+        >
+          {title}
+        </h1>
+        {sub && <p className="mt-2 text-[13px] text-[var(--fg-2)]">{sub}</p>}
+      </div>
+      {action}
+    </header>
+  )
+}
+
+/** Apple-style segmented control: one visible selection, sliding rather than blinking. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ key: T; label: string; count?: number }>
+  value: T
+  onChange: (key: T) => void
+}) {
+  return (
+    <div
+      className="inline-flex gap-0.5 rounded-[var(--radius-control)] p-0.5"
+      style={{ background: 'var(--surface-2)' }}
+      role="tablist"
+    >
+      {options.map((o) => {
+        const active = o.key === value
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.key)}
+            className={`pressable rounded-[var(--radius-inner)] px-3 py-1.5 text-[12.5px] ${
+              active
+                ? 'bg-[var(--surface)] text-[var(--fg)] shadow-[var(--shadow-line)]'
+                : 'text-[var(--fg-2)] hover:text-[var(--fg)]'
+            }`}
+            style={{ fontVariationSettings: active ? "'wght' 560" : "'wght' 480" }}
+          >
+            {o.label}
+            {o.count != null && <span className="num ml-1.5 opacity-55">{o.count}</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** A display-scale figure. Negative tracking is what makes large numerals look composed. */
+export function BigFigure({
+  value,
+  label,
+  tone,
+  loading,
+}: {
+  value: string
+  label: string
+  tone?: 'win' | 'warn' | 'risk' | 'accent'
+  loading?: boolean
+}) {
+  return (
+    <div>
+      {loading ? (
+        <div className="skeleton h-11 w-40" />
+      ) : (
+        <p
+          className="num text-[44px] leading-[0.95] tracking-[-0.035em]"
+          style={{
+            fontVariationSettings: "'wght' 590",
+            color: tone ? `var(--${tone})` : 'var(--fg)',
+          }}
+        >
+          {value}
+        </p>
+      )}
+      <p className="mt-2 text-[12px] text-[var(--fg-3)]">{label}</p>
+    </div>
+  )
+}
+
+/** A compact row linking to a case. Used by Overview's shortlists. */
+export function CaseRow({
+  id,
+  title,
+  meta,
+  right,
+  onClick,
+}: {
+  id: string
+  title: string
+  meta: React.ReactNode
+  right: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="pressable flex w-full items-center justify-between gap-4 rounded-[var(--radius-inner)] px-2.5 py-2 text-left hover:bg-[var(--surface-2)]"
+    >
+      <span className="min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="text-[13px]" style={{ fontVariationSettings: "'wght' 510" }}>
+            {title}
+          </span>
+          <span className="num text-[11px] text-[var(--fg-3)]">{id}</span>
+        </span>
+        <span className="mt-0.5 block text-[11.5px] text-[var(--fg-3)]">{meta}</span>
+      </span>
+      <span className="shrink-0 text-right">{right}</span>
+    </button>
+  )
+}

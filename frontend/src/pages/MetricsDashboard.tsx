@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, formatPercent, type EvalMetrics } from '../api/client'
-import { Button, Metric, Progress, Surface } from '../components/ui'
+import { Button, Metric, PageHeader, Progress, Surface } from '../components/ui'
 
 /**
  * The last committed evaluation run, so the page says something on open rather than
@@ -47,23 +47,16 @@ export default function MetricsDashboard() {
   const isLive = metrics !== null
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1
-            className="text-[22px] tracking-[-0.022em]"
-            style={{ fontVariationSettings: "'wght' 590" }}
-          >
-            Performance
-          </h1>
-          <p className="mt-1 text-[13px] text-[var(--fg-2)]">
-            79 held-out disputes, never seen during tuning. Contest is the positive class.
-          </p>
-        </div>
-        <Button variant="primary" onClick={run} disabled={running}>
-          {running ? 'Running…' : metrics ? 'Run again' : 'Run evaluation'}
-        </Button>
-      </header>
+    <div className="space-y-5">
+      <PageHeader
+        title="Performance"
+        sub="79 held-out disputes, never seen during tuning. Contest is the positive class."
+        action={
+          <Button variant="primary" onClick={run} disabled={running}>
+            {running ? 'Running…' : metrics ? 'Run again' : 'Run evaluation'}
+          </Button>
+        }
+      />
 
       {running && <Progress />}
       {error && <Surface className="p-4 text-[13px] text-[var(--risk)]">{error}</Surface>}
