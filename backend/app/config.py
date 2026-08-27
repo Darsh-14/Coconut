@@ -51,6 +51,10 @@ class Settings:
 
         self.razorpay_key_id: str = self._require("RAZORPAY_KEY_ID")
         self.razorpay_key_secret: str = self._require("RAZORPAY_KEY_SECRET")
+        # Optional. Absent, the webhook endpoint refuses every request rather than
+        # accepting unsigned ones -- an unauthenticated write path into the queue would be
+        # a way for anyone who can reach the port to inject disputes.
+        self.razorpay_webhook_secret: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
         self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./recourse.db").strip()
         self.assumed_representment_cost_inr: float = self._float_env(
             "ASSUMED_REPRESENTMENT_COST_INR", default=1500.0

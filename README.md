@@ -367,6 +367,32 @@ python data/verify_razorpay_backing.py     # checks all three acceptance criteri
 
 ---
 
+## Webhooks
+
+`POST /webhooks/razorpay` is the one path into this system that is not someone clicking
+something -- it is the shape a real merchant integration takes, and it is what lets a
+completed Checkout payment promote itself onto its dispute without a page reload.
+
+Set `RAZORPAY_WEBHOOK_SECRET` from your dashboard (Settings -> Webhooks) and point the
+webhook at `/webhooks/razorpay`, subscribing to `payment.captured`.
+
+It fails closed in two ways, both deliberate:
+
+- **No secret configured, no requests accepted.** The tempting alternative -- accept
+  unsigned events when no secret is set -- would make this an unauthenticated write path
+  into the merchant's queue for anyone who can reach the port.
+- **The signature is verified against the raw request body**, before the JSON is parsed.
+  Verifying a re-serialised body is a well-known way to make the check meaningless, since
+  the bytes that were signed and the bytes that were checked are then different bytes. A
+  test signs a compact body and sends an indented one to prove this.
+
+**Dispute events are acknowledged and logged, never ingested.** Section 3 is explicit that
+disputes here are synthetic, and creating a real-looking dispute from a webhook would blur
+exactly the boundary Section 7 exists to keep sharp. They return 200 rather than an error
+because Razorpay retries a non-2xx and there is nothing to retry into.
+
+---
+
 ## Regenerating the synthetic data
 
 The dataset is committed, so this is never required to run the app.
