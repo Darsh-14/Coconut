@@ -541,6 +541,28 @@ already commercially available (Justt markets it directly), so it was not the di
 it first appeared to be. The UPI rules engine above was: no surveyed vendor models NPCI's
 mechanics, because their product architecture assumes a human adjudicator at a card network.
 
+### Deliberately not built
+
+Named here rather than left for someone to notice missing.
+
+**A script that completes test checkouts in bulk.** It would be the fastest way to back
+every dispute with a real payment. Razorpay's checkout is protected by a captcha, and
+automating past it means circumventing a bot-protection control on someone else's
+production infrastructure. Backing stays a deliberate, per-dispute act.
+
+**Background jobs for `/evaluate` and batch assessment.** Both currently occupy a request
+for as long as they run. At this dataset size that is seconds, and a job queue plus its
+progress plumbing would be more moving parts than the problem earns. It is the first thing
+to add if the held-out set grows.
+
+**Structured request logging and tracing.** `/health` reports the database, model,
+calibration state and LLM provider, which is enough to answer "is it working". It is not
+enough to answer "why was this specific decision slow", and that gap is real.
+
+**A settings page.** The representment cost, LLM provider and model are environment
+variables. The risk budget — the one that actually changes what the system recommends — is
+already adjustable in the UI and persisted, which is the one that mattered.
+
 ---
 
 ## What this generalises to

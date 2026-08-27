@@ -424,10 +424,28 @@ and guarded by a test:
 | Constraint | Enforced in | Guarded by |
 |---|---|---|
 | Test-mode keys only; refuse to boot otherwise | `config.py` — no override flag exists | `test_config.py` (11 cases) |
-| Synthetic disputes never reach the network | `razorpay_client._dispute_call()` | `test_razorpay_client.py` — SDK stub raises on any access |
-| No submission without human approval | `/approve` is the only writer of those flags | `test_api.py` |
+| **No** dispute id may reach the live dispute API | `razorpay_client.may_reach_razorpay()` — fails closed | `test_razorpay_client.py` — every action, every id shape |
+| No submission without human approval | `/approve` is the only writer of those flags | `test_api.py`, `test_write_paths.py` |
 | Held-out data never enters development | Seeder reads only the working set | `test_db.py` |
+| Ground truth is not settable through the API | absent from `DisputeCreate` | `test_write_paths.py` |
+| Webhooks are refused unless signed | `webhooks.py` — no secret, no acceptance | `test_webhooks.py` (13 cases, mutation-checked) |
+| Real dispute events are never ingested | `webhooks.py` acknowledges, never writes | `test_webhooks.py` |
 | Drafting failure never loses a decision | `generate_packet()` fallback chain | `test_packet_generator.py` — injected timeouts, errors, malformed responses |
 
 The UI states the first three in a persistent header strip, because a demo audience does
 not read the README either.
+
+### The guard that was wrong
+
+The network guard originally asked *"does this id start with `disp_synthetic_`?"* and sent
+anything else to the live dispute API. That is an allowlist written inside out. It held
+only because every id in the database happened to carry that prefix — adding hand-filed
+disputes (`disp_manual_`) would have walked straight through it, and so would a typo.
+
+It now fails closed: a call is permitted only for an id positively identified as a real
+Razorpay dispute, and since Section 3 states this system never ingests one, that set is
+empty by construction. The function exists rather than a bare `return False` so that the
+day a real ingestion path is added, there is exactly one place to state what qualifies.
+
+The same inversion shows up in the webhook: no configured secret means every request is
+refused, not that unsigned events are accepted.
