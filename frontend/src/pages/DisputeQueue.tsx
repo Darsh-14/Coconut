@@ -152,7 +152,10 @@ export default function DisputeQueue() {
 
       <Surface className="overflow-hidden">
         {error ? (
-          <EmptyState title={error} />
+          <EmptyState
+            title={error}
+            action={<Button onClick={() => void refresh()}>Try again</Button>}
+          />
         ) : loading ? (
           <TableSkeleton />
         ) : visible.length === 0 ? (

@@ -117,7 +117,18 @@ export default function CaseDetail() {
     return (
       <div className="space-y-4">
         <BackLink />
-        <Surface className="p-5 text-[13px] text-[var(--risk)]">{error}</Surface>
+        <Surface className="p-5">
+          <p className="text-[13px] text-[var(--risk)]">{error}</p>
+          <Button
+            className="mt-3"
+            onClick={() => {
+              setError(null)
+              void load()
+            }}
+          >
+            Try again
+          </Button>
+        </Surface>
       </div>
     )
   }

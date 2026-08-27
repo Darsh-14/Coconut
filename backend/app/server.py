@@ -25,6 +25,7 @@ the tests, the README's curl examples, and the dev workflow are untouched.
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -38,12 +39,41 @@ logger = logging.getLogger("recourse.server")
 # backend/app/server.py -> backend/app -> backend -> repo root -> frontend/dist
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Run the mounted API's startup and shutdown as part of this app's.
+
+    Starlette does NOT run the lifespan of an app mounted with `mount()` -- only the
+    top-level app gets those events. Without this delegation the composed server silently
+    skipped every one of the API's startup steps, and each failure was quiet rather than
+    loud:
+
+      * config validation never ran AT STARTUP, so a process configured with a
+        non-test-mode RAZORPAY_KEY_ID would boot happily and fail on the first request
+        instead. get_settings() still validates lazily, so the check is not absent -- but
+        Section 2 wants a misconfigured process to refuse to start, and it would not have;
+      * init_db and seed_if_empty never ran, so a fresh container had no tables and an
+        empty queue;
+      * the conformal threshold was never calibrated, so the aggregator deferred EVERY
+        case to a human and the product looked broken rather than cautious;
+      * the model never warmed up, so /ready never returned 200 and the container
+        healthcheck could never pass.
+
+    Caught by checking /api/health on the composed server and finding calibrated: false.
+    test_server.py pins it.
+    """
+    async with api_app.router.lifespan_context(api_app):
+        yield
+
+
 site = FastAPI(
     title="Recourse",
     version=APP_VERSION,
     docs_url=None,  # the API's own /api/docs is the one to use
     redoc_url=None,
     openapi_url=None,
+    lifespan=lifespan,
 )
 
 # Mounted whole, so every API route -- present and future -- is reachable under /api
