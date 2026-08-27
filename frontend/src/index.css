@@ -48,17 +48,34 @@
   --risk: #c2312d;
   --risk-soft: rgba(194, 49, 45, 0.09);
 
+  /* Opaque in light: a translucent card over a near-white ground buys nothing and only
+     costs contrast. The utility reads these, so it needs no theme branch. */
+  --surface-solid: #ffffff;
+  --card-blur: 0px;
+
   --shadow-line: 0 0 0 1px var(--line);
   --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--line);
 }
 
+/*
+ * Dark is the default (Addendum 4, 35.1). Surfaces are translucent neutrals over a near
+ * black ground -- the token equivalent of bg-neutral-900/70 with border-white/10 -- and
+ * the blur is applied by the surface utility rather than per component.
+ *
+ * Translucency under dense financial text is a real legibility risk, so it is bounded:
+ * the ground behind a card is always flat --bg, never other content, which is what makes
+ * 70% safe here. Text tokens are unchanged and still clear WCAG AA on the composited
+ * result.
+ */
 :root[data-theme='dark'] {
-  --bg: #08090a;
-  --surface: #101112;
-  --surface-2: #17181a;
-  --surface-3: #1f2023;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  --bg: #0a0a0a;
+  --surface: rgba(23, 23, 23, 0.72);
+  --surface-solid: #171717;
+  --surface-2: rgba(38, 38, 38, 0.62);
+  --surface-3: #262626;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --card-blur: 12px;
 
   --fg: #f7f8f8;
   --fg-2: #9b9ea6;
@@ -68,12 +85,14 @@
   --accent-fg: #0b0b0c;
   --accent-soft: rgba(123, 133, 224, 0.16);
 
-  --win: #43c17f;
-  --win-soft: rgba(67, 193, 127, 0.13);
-  --warn: #e0a253;
-  --warn-soft: rgba(224, 162, 83, 0.13);
-  --risk: #f0666a;
-  --risk-soft: rgba(240, 102, 106, 0.13);
+  /* Emerald / amber / rose, per Addendum 4's role colours. Tuned a step brighter than
+     the Tailwind 400s so they hold contrast against a translucent surface. */
+  --win: #34d399;
+  --win-soft: rgba(52, 211, 153, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --risk: #fb7185;
+  --risk-soft: rgba(251, 113, 133, 0.14);
 
   --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line);
 }
@@ -107,6 +126,8 @@ h3 {
 
 @utility surface {
   background: var(--surface);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-line);
 }
@@ -141,14 +162,32 @@ h3 {
 }
 
 /* Money and counts must not jitter as values change during a batch run. */
+/* Amounts, paise and identifiers (Addendum 4, 35.1). Mono is what makes a column of
+   figures scannable; tabular-nums keeps the glyph widths equal even in the sans fallback,
+   and the slight size step down stops mono reading larger than the text around it. */
 @utility num {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
+  font-size: 0.94em;
+  letter-spacing: -0.005em;
 }
 
+/*
+ * The ring must be scoped to :focus-visible. Applied unconditionally -- as it was from the
+ * original token rebuild -- every element carrying this utility wore a permanent accent
+ * outline. It went unnoticed while only ten controls used it, and became unmissable the
+ * moment the queue's 184 case links took it: a table of ringed cells.
+ *
+ * :focus-visible rather than :focus so a mouse click does not leave a ring behind, while a
+ * keyboard user still gets one.
+ */
 @utility focus-ring {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  }
 }
 
 /* --- state tone helpers -------------------------------------------------------- */

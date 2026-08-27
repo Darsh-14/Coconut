@@ -1,3 +1,4 @@
+import { BarChart3, House, ListFilter, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -59,13 +60,13 @@ function Sidebar() {
         </NavLink>
 
         <nav className="space-y-0.5">
-          <NavItem to="/" icon={<HomeIcon />}>
+          <NavItem to="/" icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Overview
           </NavItem>
-          <NavItem to="/disputes" icon={<QueueIcon />}>
+          <NavItem to="/disputes" icon={<ListFilter size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Disputes
           </NavItem>
-          <NavItem to="/metrics" icon={<ChartIcon />}>
+          <NavItem to="/metrics" icon={<BarChart3 size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Performance
           </NavItem>
         </nav>
@@ -186,7 +187,7 @@ function Guardrails() {
 }
 
 function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'light')
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'dark')
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -204,7 +205,7 @@ function ThemeToggle({ compact = false }: { compact?: boolean }) {
       style={{ fontVariationSettings: "'wght' 510" }}
       aria-label="Toggle colour theme"
     >
-      <span className="text-[var(--fg-3)]">{isDark ? <SunIcon /> : <MoonIcon />}</span>
+      <span className="text-[var(--fg-3)]">{isDark ? <Sun size={16} strokeWidth={1.6} aria-hidden="true" /> : <Moon size={16} strokeWidth={1.6} aria-hidden="true" />}</span>
       {!compact && (isDark ? 'Light' : 'Dark')}
     </button>
   )
@@ -221,6 +222,8 @@ function Mark() {
         color: 'var(--bg)',
       }}
     >
+      {/* Bespoke on purpose: the mark is the product's identity, not a UI affordance,
+          so it is not something to source from an icon set. */}
       <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" aria-hidden="true">
         <path
           d="M12 3.2l6.8 2.9v5.2c0 4-2.8 7.4-6.8 8.7-4-1.3-6.8-4.7-6.8-8.7V6.1L12 3.2z"
@@ -237,58 +240,6 @@ function Mark() {
         />
       </svg>
     </span>
-  )
-}
-
-const iconProps = {
-  viewBox: '0 0 16 16',
-  className: 'size-4',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.5,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  'aria-hidden': true,
-}
-
-function HomeIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M2.5 6.8L8 2.5l5.5 4.3v6.2a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5V6.8z" />
-    </svg>
-  )
-}
-
-function QueueIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M2.5 4h11M2.5 8h11M2.5 12h7" />
-    </svg>
-  )
-}
-
-function ChartIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M2.5 13.5V9M6.8 13.5V4M11.2 13.5v-6M15 13.5v-9" />
-    </svg>
-  )
-}
-
-function MoonIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M13.5 9.4A5.6 5.6 0 016.6 2.5a5.8 5.8 0 100 11 5.8 5.8 0 006.9-4.1z" />
-    </svg>
-  )
-}
-
-function SunIcon() {
-  return (
-    <svg {...iconProps}>
-      <circle cx="8" cy="8" r="3" />
-      <path d="M8 1v1.6M8 13.4V15M15 8h-1.6M2.6 8H1M12.9 3.1l-1.1 1.1M4.2 11.8l-1.1 1.1M12.9 12.9l-1.1-1.1M4.2 4.2L3.1 3.1" />
-    </svg>
   )
 }
 

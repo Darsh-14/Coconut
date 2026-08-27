@@ -6,10 +6,15 @@ import '@fontsource-variable/inter'
 import App from './App.tsx'
 import './index.css'
 
-// Applied before first paint to avoid a light flash for anyone on the dark theme.
+// Dark-mode first (Addendum 4, 35.1). The system preference is deliberately NOT
+// consulted: most machines report light, so deferring to it would mean a dark-first
+// product almost never appears dark. Dark is the default; the toggle in the sidebar is
+// how someone chooses otherwise, and that choice is what persists.
+//
+// Applied before first paint, because a light flash on a dark-first product is the most
+// visible bug a theme can have.
 const stored = localStorage.getItem('recourse.theme')
-document.documentElement.dataset.theme =
-  stored ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+document.documentElement.dataset.theme = stored === 'light' ? 'light' : 'dark'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

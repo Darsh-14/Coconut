@@ -32,9 +32,13 @@ export function Dialog({
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     // Move focus into the dialog so keyboard users are not left behind on the page.
-    panelRef.current?.querySelector<HTMLElement>(
+    // The panel itself is the fallback: a dialog that opens on a loading skeleton has no
+    // control to focus yet, and without this focus stayed outside it entirely -- Escape
+    // still worked, but Tab walked off into the page behind.
+    const first = panelRef.current?.querySelector<HTMLElement>(
       'button, input, textarea, select, a[href]',
-    )?.focus()
+    )
+    ;(first ?? panelRef.current)?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
@@ -59,6 +63,7 @@ export function Dialog({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={labelledBy}
         onClick={stop}
         className={`rise flex max-h-[86vh] w-full ${width} flex-col overflow-hidden rounded-[var(--radius-card)]`}

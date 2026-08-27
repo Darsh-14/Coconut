@@ -88,9 +88,19 @@ interface RecommendationCopy {
   headline: string
   action: string
   /** Semantic tone token — the only place colour enters the product. */
-  tone: 'win' | 'warn' | 'accent' | 'mute'
+  tone: 'win' | 'warn' | 'risk' | 'mute'
 }
 
+/*
+ * Role colours, per Addendum 4 (35.1): Support = emerald, Contradict = rose,
+ * Neutral / Needs Human = amber, and slate for anything that needs no action.
+ *
+ * ACCEPT takes rose rather than amber because it is the CONTRADICT outcome wearing a
+ * recommendation's clothes -- the evidence works against the merchant. Giving it amber
+ * would collide with NEEDS_HUMAN_REVIEW and leave the banner unable to distinguish "the
+ * evidence settles this against you" from "the evidence settles nothing", which are
+ * opposite instructions to the person reading it.
+ */
 export const RECOMMENDATIONS: Record<Recommendation, RecommendationCopy> = {
   CONTEST: {
     label: 'Contest',
@@ -102,13 +112,13 @@ export const RECOMMENDATIONS: Record<Recommendation, RecommendationCopy> = {
     label: 'Concede',
     headline: 'Not worth fighting',
     action: 'Approve — do not contest',
-    tone: 'warn',
+    tone: 'risk',
   },
   NEEDS_HUMAN_REVIEW: {
     label: 'Unclear',
     headline: 'Evidence does not settle it',
     action: 'Record my decision',
-    tone: 'accent',
+    tone: 'warn',
   },
   NO_ACTION_NEEDED: {
     label: 'No action',

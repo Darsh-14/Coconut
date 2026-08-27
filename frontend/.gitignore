@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .smoke-shots/
+
+# Screenshot output from the optional UI scripts
+.shots/
+.evidence-shots/

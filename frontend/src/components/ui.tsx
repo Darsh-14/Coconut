@@ -3,6 +3,8 @@
  * radius and density stay consistent without each page re-deciding them.
  */
 
+import { Inbox, type LucideIcon } from 'lucide-react'
+
 type Tone = 'win' | 'warn' | 'risk' | 'accent' | 'mute'
 
 const TONE_SOFT: Record<Tone, string> = {
@@ -84,12 +86,19 @@ export function Button({
 
 export function Surface({
   className = '',
+  style,
   children,
 }: {
   className?: string
+  /** For the inset accent bar that encodes state on a card. */
+  style?: React.CSSProperties
   children: React.ReactNode
 }) {
-  return <div className={`surface ${className}`}>{children}</div>
+  return (
+    <div className={`surface ${className}`} style={style}>
+      {children}
+    </div>
+  )
 }
 
 /** A labelled figure. The one number someone came for, plus its unit. */
@@ -175,16 +184,46 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
   )
 }
 
+/**
+ * Empty and error states both land here (Addendum 4, 35.1): an informative icon, a
+ * descriptive line, and — when there is something to do about it — a non-destructive
+ * action. `tone` is the only thing that separates "nothing here" from "something failed",
+ * because they are the same shape and should not be two components.
+ */
 export function EmptyState({
+  icon: Icon = Inbox,
   title,
+  detail,
+  tone = 'mute',
   action,
 }: {
+  icon?: LucideIcon
   title: string
+  detail?: string
+  tone?: 'mute' | 'risk'
   action?: React.ReactNode
 }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-      <p className="text-[13px] text-[var(--fg-3)]">{title}</p>
+      <Icon
+        size={22}
+        strokeWidth={1.5}
+        aria-hidden="true"
+        style={{ color: tone === 'risk' ? 'var(--risk)' : 'var(--fg-3)' }}
+      />
+      <div className="space-y-1">
+        <p
+          className="text-[13px]"
+          style={{ color: tone === 'risk' ? 'var(--risk)' : 'var(--fg-2)' }}
+        >
+          {title}
+        </p>
+        {detail && (
+          <p className="mx-auto max-w-sm text-[12px] leading-relaxed text-[var(--fg-3)]">
+            {detail}
+          </p>
+        )}
+      </div>
       {action}
     </div>
   )

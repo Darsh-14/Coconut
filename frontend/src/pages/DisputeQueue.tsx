@@ -1,5 +1,6 @@
+import { AlertTriangle, Inbox, SearchX } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   countdownTo,
   formatInr,
@@ -153,14 +154,23 @@ export default function DisputeQueue() {
       <Surface className="overflow-hidden">
         {error ? (
           <EmptyState
-            title={error}
+            icon={AlertTriangle}
+            tone="risk"
+            title="Could not load the queue"
+            detail={error}
             action={<Button onClick={() => void refresh()}>Try again</Button>}
           />
         ) : loading ? (
           <TableSkeleton />
         ) : visible.length === 0 ? (
           <EmptyState
-            title="Nothing in this view."
+            icon={search ? SearchX : Inbox}
+            title={search ? `Nothing matches "${search}"` : 'Nothing in this view'}
+            detail={
+              search
+                ? 'Try a dispute id, a payment id, or part of a reason.'
+                : 'Change the filter above, or assess what is still pending.'
+            }
             action={
               stats.unassessed > 0 ? (
                 <Button variant="primary" size="sm" onClick={() => assessNext(15)}>
@@ -200,9 +210,18 @@ export default function DisputeQueue() {
                       }`}
                     >
                       <td className="px-4 py-3 align-middle">
-                        <span className="num text-[12px] text-[var(--fg-3)]">
+                        {/* A real link, not just the row's onClick. The row handler is a
+                            mouse convenience; without this the queue -- the app's primary
+                            navigation -- was unreachable by keyboard entirely, and
+                            middle-click to open a case in a new tab did nothing. */}
+                        <Link
+                          to={`/disputes/${row.dispute_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Open ${reason.short}, ${formatInr(row.amount)}, case ${row.dispute_id}`}
+                          className="focus-ring num rounded text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                        >
                           {row.dispute_id.replace('disp_synthetic_', '')}
-                        </span>
+                        </Link>
                         {row.payment_is_real && (
                           <span
                             className="ml-1.5 inline-block size-1.5 rounded-full align-middle"

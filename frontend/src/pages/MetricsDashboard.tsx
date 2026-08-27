@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { api, formatPercent, type EvalMetrics } from '../api/client'
 import { Button, Metric, PageHeader, Progress, Surface } from '../components/ui'
@@ -63,7 +64,21 @@ export default function MetricsDashboard() {
       <RiskBudgetDial />
 
       {running && <Progress />}
-      {error && <Surface className="p-4 text-[13px] text-[var(--risk)]">{error}</Surface>}
+      {error && (
+        <Surface
+          className="flex flex-wrap items-center justify-between gap-3 p-4"
+          style={{ boxShadow: 'var(--shadow-line), inset 2px 0 0 0 var(--risk)' }}
+        >
+          <span className="flex items-center gap-2 text-[13px] text-[var(--risk)]">
+            <AlertTriangle size={15} strokeWidth={1.6} aria-hidden="true" />
+            {error}
+          </span>
+          {/* Non-destructive: the last recorded numbers stay on screen behind this. */}
+          <Button onClick={run} disabled={running}>
+            {running ? 'Running…' : 'Try again'}
+          </Button>
+        </Surface>
+      )}
 
       {/* The headline claim: the tuned set and the unseen set agree. */}
       <Surface className="overflow-hidden">

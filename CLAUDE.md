@@ -1085,3 +1085,52 @@ real-world drift would break it. That's the honest version."
 The last sentence is not a hedge to be trimmed for time. Leave it in. In a track whose bar is
 honest measurement, being the one candidate who names their own assumptions out loud is the
 differentiator.
+
+# CLAUDE.md — Addendum 4: Frontend Engineering & MCP Tooling Directives
+
+Append after Addendum 3. This section defines operational rules for Claude Code in VS Code
+when generating or modifying frontend code across `frontend/src/`.
+
+---
+
+## 35. Frontend Engineering & MCP Tooling Directives
+
+### 35.1 UI/UX & Component Architecture
+- **Framework & Tooling**: Vite + React + TypeScript, Tailwind CSS, Lucide React (`lucide-react`) icons.
+- **Component Foundations**: Accessible, lightweight headless primitives (Radix UI / shadcn patterns).
+- **Design Philosophy**: High-signal, executive dashboard aesthetic.
+  - Dark-mode first by default: neutral card surfaces (`bg-neutral-900/70` or `bg-slate-900/60`), subtle borders (`border-white/10` or `border-neutral-800`), clean backdrop blur (`backdrop-blur-md`).
+  - Clear typography hierarchy: prominent metric readouts, clean tabular numbers (`font-mono` for amounts/paise/IDs), and explicit role colors (Support = Emerald/Green, Contradict = Rose/Red, Neutral/Needs Human = Amber/Yellow/Slate).
+- **Required UI States**: For every page and data-driven card (`DisputeQueue`, `CaseDetail`, `MetricsDashboard`):
+  1. **Active**: Populated with realistic data adhering strictly to Section 6 schemas.
+  2. **Loading**: Skeleton shimmers (`animate-pulse`), never blocking spinners.
+  3. **Empty**: Informative icon + descriptive empty text.
+  4. **Error**: Inline badge/banner with a non-destructive retry button.
+
+---
+
+### 35.2 MCP Connector Integration Rules
+
+When Model Context Protocol (MCP) servers are active in Claude Code / VS Code, follow these protocols before modifying or authoring frontend code:
+
+1. **Figma MCP (`figma-mcp`)**:
+   - Extract exact hex tokens, border radii, card padding, and font scales directly from design nodes.
+   - Map Figma auto-layout properties directly to Tailwind flex/grid utility classes (`flex`, `gap-x`, `items-center`).
+   - If a matching primitive already exists in `src/components/`, reuse it instead of creating duplicate styles.
+
+2. **Context7 Documentation MCP (`context7` / `@upstash/context7-mcp`)**:
+   - Query current API documentation before using newer Tailwind CSS utility classes, Vite configurations, or Radix UI primitive props.
+   - Prevent deprecated hook usage or stale TypeScript types.
+
+3. **Playwright MCP (`playwright` / `@playwright/mcp`)**:
+   - For end-to-end user workflows (`DisputeQueue` row click → `CaseDetail` review → `Approve & Submit` → `MetricsDashboard` slider interaction), run headless verification.
+   - Verify keyboard navigability (`Tab`, `Enter`, `Escape`) across editable packet textareas and modal dialogs.
+   - Test responsive layout boundaries at desktop (`1280px+`) and standard laptop (`1024px`) viewports.
+
+4. **GitHub & Local Filesystem MCP (`filesystem` / `github`)**:
+   - Confirm file paths and TypeScript aliases (e.g. `@/components`, `@/api/client`) before adding imports.
+   - Use utility functions like `cn()` (`clsx` + `tailwind-merge`) consistently for dynamic class styling.
+
+5. **Backend Schema Synchronization**:
+   - Ensure frontend TypeScript types in `src/api/` match backend Pydantic models in `backend/app/models/schemas.py` 1:1.
+   - Update `client.ts` endpoints to reflect the exact signatures defined in Section 8, Section 24, and Section 30.
