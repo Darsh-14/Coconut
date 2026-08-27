@@ -10,7 +10,8 @@ export default function App() {
     <div className="flex min-h-full">
       <Sidebar />
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[74rem] px-8 py-9">
+        <MobileBar />
+        <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/disputes" element={<DisputeQueue />} />
@@ -73,6 +74,58 @@ function Sidebar() {
   )
 }
 
+/**
+ * Navigation for viewports below the sidebar's breakpoint. Carries the same three
+ * destinations plus the theme toggle, so no window size is left without a way to move
+ * around the app.
+ */
+function MobileBar() {
+  return (
+    <div
+      className="material sticky top-0 z-30 border-b px-4 py-2.5 lg:hidden"
+      style={{ borderColor: 'var(--line)' }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <NavLink to="/" className="flex shrink-0 items-center gap-2">
+          <Mark />
+          <span
+            className="text-[14px] tracking-[-0.02em]"
+            style={{ fontVariationSettings: "'wght' 600" }}
+          >
+            Recourse
+          </span>
+        </NavLink>
+        <ThemeToggle compact />
+      </div>
+
+      <nav className="mt-2.5 flex gap-1 overflow-x-auto">
+        <MobileTab to="/">Overview</MobileTab>
+        <MobileTab to="/disputes">Disputes</MobileTab>
+        <MobileTab to="/metrics">Performance</MobileTab>
+      </nav>
+    </div>
+  )
+}
+
+function MobileTab({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        `pressable shrink-0 rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] ${
+          isActive
+            ? 'bg-[var(--fg)] text-[var(--bg)]'
+            : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)]'
+        }`
+      }
+      style={{ fontVariationSettings: "'wght' 510" }}
+    >
+      {children}
+    </NavLink>
+  )
+}
+
 function NavItem({
   to,
   icon,
@@ -127,7 +180,7 @@ function Guardrails() {
   )
 }
 
-function ThemeToggle() {
+function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'light')
 
   useEffect(() => {
@@ -140,12 +193,14 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="pressable flex w-full items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]"
+      className={`pressable flex items-center gap-2.5 rounded-[var(--radius-control)] text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)] ${
+        compact ? 'p-2' : 'w-full px-2.5 py-2'
+      }`}
       style={{ fontVariationSettings: "'wght' 510" }}
       aria-label="Toggle colour theme"
     >
       <span className="text-[var(--fg-3)]">{isDark ? <SunIcon /> : <MoonIcon />}</span>
-      {isDark ? 'Light' : 'Dark'}
+      {!compact && (isDark ? 'Light' : 'Dark')}
     </button>
   )
 }

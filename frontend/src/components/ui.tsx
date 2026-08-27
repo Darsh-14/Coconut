@@ -204,7 +204,7 @@ export function PageHeader({
   action?: React.ReactNode
 }) {
   return (
-    <header className="material sticky top-0 z-10 -mx-8 mb-6 flex flex-wrap items-end justify-between gap-4 px-8 pb-4 pt-2">
+    <header className="material -mx-4 mb-6 flex flex-wrap items-end justify-between gap-4 px-4 pb-4 pt-2 sm:-mx-8 sm:px-8 lg:sticky lg:top-0 lg:z-10">
       <div>
         <h1
           className="text-[26px] leading-none tracking-[-0.028em]"

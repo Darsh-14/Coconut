@@ -94,7 +94,10 @@ export default function DisputeQueue() {
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Segmented options={filters} value={filter} onChange={setFilter} />
+        {/* Five filters do not fit a phone; let the strip scroll rather than the page. */}
+        <div className="-mx-1 max-w-full overflow-x-auto px-1">
+          <Segmented options={filters} value={filter} onChange={setFilter} />
+        </div>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
