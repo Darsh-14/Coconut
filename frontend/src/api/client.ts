@@ -218,6 +218,8 @@ export interface DisputeDetail {
   /** Evidence changed after the latest decision: verdicts no longer line up with the
    *  current bundle and must not be drawn against it. */
   decision_is_stale: boolean
+  /** The merchant's unapproved working copy of the packet, if they have edited it. */
+  edited_packet: string | null
 }
 
 export interface EvalMetrics {
@@ -296,6 +298,11 @@ export const api = {
       body: JSON.stringify({ alpha, delta }),
     }),
   verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
+  savePacketDraft: (id: string, text: string) =>
+    request<{ text: string }>(`/disputes/${id}/packet-draft`, {
+      method: 'PUT',
+      body: JSON.stringify({ text }),
+    }),
   createDispute: (body: DisputeCreate) =>
     request<Dispute>('/disputes', { method: 'POST', body: JSON.stringify(body) }),
   addEvidence: (id: string, body: EvidenceAdd) =>

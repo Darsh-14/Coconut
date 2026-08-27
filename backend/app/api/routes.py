@@ -48,6 +48,7 @@ from app.models.schemas import (
     EvidenceAdd,
     EvidenceDocument,
     EvidenceItem,
+    PacketDraft,
     URCSForecast,
 )
 from app.services.decision_aggregator import aggregate, build_decision
@@ -233,6 +234,7 @@ def get_dispute(dispute_id: str, session: Session = Depends(get_session)) -> Dis
         decision_is_stale=bool(
             latest and (latest.evidence_revision or 0) != (row.evidence_revision or 0)
         ),
+        edited_packet=latest.edited_packet if latest else None,
     )
 
 
@@ -400,6 +402,39 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
         decision.confidence,
     )
     return decision
+
+
+@router.put(
+    "/disputes/{dispute_id}/packet-draft",
+    response_model=PacketDraft,
+    tags=["disputes"],
+)
+def save_packet_draft(
+    dispute_id: str, body: PacketDraft, session: Session = Depends(get_session)
+) -> PacketDraft:
+    """Save a merchant's in-progress edit of the representment.
+
+    Before this, an edit lived only in React state: navigating away, or a reload, silently
+    discarded however long they had spent rewriting the packet. The draft is saved against
+    the decision it was written for, so re-assessing starts a clean draft rather than
+    resurrecting text written against different verdicts.
+
+    This is NOT approval, and it must not read as it. Nothing here touches
+    approved_by_human or would_be_razorpay_payload -- only /approve does, and only when a
+    human clicks it (Section 2.2).
+    """
+    row = _load_dispute(session, dispute_id)
+    latest = row.latest_decision
+    if latest is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{dispute_id} has no decision yet; nothing to draft against.",
+        )
+
+    # An empty draft clears it, so "revert to the model's text" is expressible.
+    latest.edited_packet = body.text or None
+    session.commit()
+    return PacketDraft(text=latest.edited_packet or "")
 
 
 @router.post(

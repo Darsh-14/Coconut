@@ -19,12 +19,15 @@ export default function CaseDetail() {
   const [packet, setPacket] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('evidence')
+  const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const load = useCallback(async () => {
     try {
       const next = await api.getDispute(disputeId)
       setDetail(next)
-      setPacket(next.latest_decision?.drafted_packet ?? '')
+      // Prefer the merchant's saved working copy over the model's original draft.
+      setPacket(next.edited_packet ?? next.latest_decision?.drafted_packet ?? '')
+      setDraftState('idle')
       setError(null)
     } catch (e) {
       setError((e as Error).message)
@@ -34,6 +37,34 @@ export default function CaseDetail() {
   useEffect(() => {
     void load()
   }, [load])
+
+  /**
+   * Autosave the representment edit.
+   *
+   * Debounced rather than saved per keystroke: a merchant rewriting a packet types for
+   * minutes, and one PUT per character would be pointless load. 800ms is long enough to
+   * batch a sentence and short enough that closing the tab rarely loses anything.
+   *
+   * Saving a draft is explicitly not approving it — nothing here touches the audit log.
+   */
+  const decisionId = detail?.latest_decision?.decided_at ?? null
+  useEffect(() => {
+    if (!decisionId) return
+    const original = detail?.edited_packet ?? detail?.latest_decision?.drafted_packet ?? ''
+    if (packet === original) return
+
+    setDraftState('saving')
+    const timer = setTimeout(() => {
+      api
+        .savePacketDraft(disputeId, packet)
+        .then(() => setDraftState('saved'))
+        .catch(() => setDraftState('idle'))
+    }, 800)
+    return () => clearTimeout(timer)
+    // detail is deliberately not a dependency: it changes on every reload and would
+    // re-fire the timer against text that has not moved.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packet, disputeId, decisionId])
 
   async function runDecide() {
     setBusy('deciding')
@@ -192,15 +223,22 @@ export default function CaseDetail() {
                   <p className="text-[12px] text-[var(--fg-3)]">
                     Written from the verdicts. Your edits are what get logged.
                   </p>
-                  {decision.drafted_packet && packet !== decision.drafted_packet && (
-                    <button
-                      type="button"
-                      onClick={() => setPacket(decision.drafted_packet ?? '')}
-                      className="text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
-                    >
-                      Revert to draft
-                    </button>
-                  )}
+                  <span className="flex items-center gap-3">
+                    {draftState !== 'idle' && (
+                      <span className="text-[11px] text-[var(--fg-3)]">
+                        {draftState === 'saving' ? 'Saving…' : 'Saved'}
+                      </span>
+                    )}
+                    {decision.drafted_packet && packet !== decision.drafted_packet && (
+                      <button
+                        type="button"
+                        onClick={() => setPacket(decision.drafted_packet ?? '')}
+                        className="text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
+                      >
+                        Revert to draft
+                      </button>
+                    )}
+                  </span>
                 </div>
                 <textarea
                   value={packet}

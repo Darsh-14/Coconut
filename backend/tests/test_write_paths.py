@@ -244,3 +244,65 @@ def test_evidence_on_an_unknown_dispute_is_404(client):
         "/disputes/disp_nope/evidence", json={"type": "other", "content": "x"}
     )
     assert response.status_code == 404
+
+
+# -- the representment working copy -------------------------------------------------------
+# An edit used to live only in React state, so navigating away discarded however long a
+# merchant had spent rewriting the packet. What matters most here is that saving a draft
+# is not, and never becomes, approving one.
+
+
+def test_a_draft_survives_being_saved_and_read_back(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "My own wording."})
+    assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] == "My own wording."
+
+
+def test_saving_a_draft_is_not_approving_it(client, monkeypatch):
+    """Section 2.2: only a human clicking approve may set these."""
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    before = client.get(f"/disputes/{dispute_id}").json()
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Draft text."})
+    after = client.get(f"/disputes/{dispute_id}").json()
+
+    assert after["audit_log"] == before["audit_log"] == []
+    assert after["status"] == before["status"]
+
+
+def test_an_empty_draft_clears_it(client, monkeypatch):
+    """So 'revert to the model's text' is expressible, not just 'overwrite with spaces'."""
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Something."})
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": ""})
+    assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] is None
+
+
+def test_re_assessing_does_not_resurrect_an_edit_of_the_old_draft(client, monkeypatch):
+    """The edit belongs to the decision it was written against. Carrying it across would
+    show a merchant text they wrote while looking at different verdicts."""
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Old wording."})
+
+    _stub_decision(client, monkeypatch, dispute_id)  # re-assess
+    assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] is None
+
+
+def test_drafting_before_any_decision_is_a_conflict(client):
+    dispute_id = file_dispute(client)["dispute_id"]
+    response = client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "x"})
+    assert response.status_code == 409
+
+
+def test_drafting_on_an_unknown_dispute_is_404(client):
+    assert client.put("/disputes/disp_nope/packet-draft", json={"text": "x"}).status_code == 404

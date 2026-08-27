@@ -305,6 +305,8 @@ class DisputeDetail(BaseModel):
     # verdicts join to evidence by index, so a stale decision must not be drawn against the
     # current bundle -- the UI shows the recommendation but withholds the per-item verdicts.
     decision_is_stale: bool = False
+    # The human's unapproved working copy of the packet, if they have edited it.
+    edited_packet: Optional[str] = None
 
 
 class DisputeCreate(BaseModel):
@@ -388,6 +390,12 @@ class BackingStatus(BaseModel):
     message: str
 
 
+class PacketDraft(BaseModel):
+    """PUT /disputes/{id}/packet-draft -- save an in-progress representment edit."""
+
+    text: str
+
+
 class ApproveRequest(BaseModel):
     """POST /disputes/{dispute_id}/approve."""
 
@@ -401,6 +409,7 @@ __all__ = [
     "BackingOrder",
     "DisputeCreate",
     "EvidenceAdd",
+    "PacketDraft",
     "BackingStatus",
     "ClaimVerdict",
     "Decision",

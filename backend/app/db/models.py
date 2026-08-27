@@ -171,6 +171,12 @@ class DecisionRow(Base):
     # moved on, the verdicts no longer describe the current bundle and must not be shown
     # against it.
     evidence_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # A human's in-progress edit of drafted_packet, saved as they type so navigating away
+    # does not discard it. Held on the DECISION rather than the dispute: re-assessing
+    # produces a new draft, and carrying an edit of the old one across would silently show
+    # a merchant text they wrote against different verdicts. Distinct from
+    # AuditLogRow.edited_packet, which is the immutable text they actually approved.
+    edited_packet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     dispute: Mapped[DisputeRow] = relationship(back_populates="decisions")
     audit_entries: Mapped[list["AuditLogRow"]] = relationship(back_populates="decision")
