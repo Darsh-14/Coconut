@@ -31,6 +31,18 @@ cases it decides, and routes everything else to a human rather than guessing.
 The hard part is that "we have delivery proof" and "we have *good* delivery proof" look
 almost identical to a language model. Most of the engineering here is about that gap.
 
+### Where this sits next to Razorpay's own Agent Studio
+
+Razorpay's Agent Studio already ships a **Dispute Responder Agent**, alongside Abandoned
+Cart Conversion and Subscription Recovery agents, launched publicly with Anthropic on the
+Claude Agent SDK. This project is not pretending that space is empty.
+
+What it does instead is take a position those products do not: it optimises for **precision
+on the cases it decides and abstains on the rest**, and it adds a component built for the
+rails Razorpay actually runs on — see [UPI dispute forecasting](#upi-the-part-nobody-else-builds-for)
+below. Where an agent answers disputes, this decides which disputes are worth answering at
+all, and refuses to guess when the evidence will not carry it.
+
 ---
 
 ## Architecture
@@ -82,6 +94,44 @@ the decision is made — it cannot change a recommendation, a verdict or a confi
 **Why two signals.** See [ARCHITECTURE.md](ARCHITECTURE.md#the-two-signal-verification-engine).
 Scoring evidence against the claim alone produced **precision 0.481** — worse than a coin
 flip, and inverted: it fired CONTEST on losing cases *more often* than winning ones.
+
+---
+
+## UPI: the part nobody else builds for
+
+Every commercial chargeback-AI product surveyed — Justt, Chargeflow, Riskified Dispute
+Resolve, Kount, Signifyd, Chargeback Specialist — is architected around **card-network**
+mechanics: Visa VAMP, Mastercard ECM, card reason-code taxonomies, and a human adjudicator
+at the network. India's UPI rails work differently in a way that is mechanical, not
+cosmetic:
+
+| Rule | What it does | Source |
+|---|---|---|
+| Dispute caps | 10 chargebacks per customer per rolling 30 days (11th → **CD1**); 5 per payer-payee VPA pair (6th → **CD2**) | NPCI circular, 5 Dec 2023 |
+| URCS auto-disposition | Auto-accepts/rejects on the beneficiary bank's TCC or return, bulk-upload and UDIR only | UPI OC No. 213 FY 2024-25, from 15 Feb 2025 |
+| RGNB | Remitting bank may re-raise a CD1/CD2 auto-decline in good faith, front-end only | NPCI OC No. 184B/2025-2026, from 15 Jul 2025 |
+
+**The consequence is the whole idea.** On UPI rails a meaningful share of dispute outcomes
+is decided by a deterministic rules engine, not by human judgement — which makes them
+predictable *exactly*, in advance, rather than statistically. So Recourse forecasts NPCI's
+disposition before the merchant spends anything, and recommends `NO_ACTION_NEEDED` when
+URCS is expected to reject the chargeback on the merchant's behalf.
+
+It is a rules engine, not a model: a pure function over counters, fully explainable, no
+inference. The rules live in one config block,
+[`npci_rules.py`](backend/app/services/npci_rules.py), each with the circular it came from
+and the date it was last verified — and that date is rendered in the UI, because NPCI has
+revised these rules three times in two years and a rules engine with invisible provenance
+is one nobody should trust.
+
+**What it deliberately does not claim:** `AUTO_ACCEPT` is never predicted. That branch
+depends on the beneficiary bank's TCC or return in the settlement cycle *after* the
+chargeback is raised, which this system cannot see. It reports `PROCEEDS_TO_MERCHANT` and
+says so.
+
+Cap-breach cases are excluded from precision and recall and counted separately under
+`auto_resolved`, for the same reason human referrals are: crediting the model for work
+NPCI's rules engine did would inflate the headline number.
 
 ---
 
@@ -197,6 +247,17 @@ Both paths feed the same validation, normalisation and stratified 70/30 split. R
 overwrites `eval/held_out_set.json`, which invalidates the numbers below — the split is
 seeded and reproducible, but a *different* dataset is a different experiment.
 
+The UPI rails were added to the committed dataset by augmenting it in place rather than
+regenerating, precisely to avoid that:
+
+```bash
+python data/add_upi_rails.py --report   # show what it would do
+python data/add_upi_rails.py            # assign rail + payer_ref, build the cap clusters
+```
+
+Assignment is by hash of `dispute_id` and is blind to labels and to what the engine
+recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
+
 ---
 
 ## Running the evaluation
@@ -204,7 +265,7 @@ seeded and reproducible, but a *different* dataset is a different experiment.
 ```bash
 cd backend
 python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
-pytest -q                              # 133 tests
+pytest -q                              # 151 tests
 ```
 
 ### Tuning, and why it stopped
@@ -230,6 +291,12 @@ precision collapses to 0.490. Details in
 79 records, never inspected or tuned against during development (CLAUDE.md Section 9).
 CONTEST is the positive class.
 
+Re-run after the UPI rails were added to the dataset. The confusion matrix is unchanged —
+all five cap-breach cases came out of the human-review bucket, not the decided one — so
+precision, recall, F1 and coverage all held exactly. That was not engineered: breach
+records are selected blind, by hash, with no look at labels or at what the engine
+recommends.
+
 | Metric | Value |
 |---|---|
 | Precision | **0.625** |
@@ -245,7 +312,8 @@ CONTEST is the positive class.
 | FP | 3 | model CONTEST, truth `contest_loss` / `should_accept` |
 | FN | 3 | model ACCEPT, truth `contest_win` |
 | TN | 6 | model ACCEPT, truth `contest_loss` / `should_accept` |
-| Flagged to human | 62 | routed to a person instead of guessed |
+| Flagged to human | 57 | routed to a person instead of guessed |
+| URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
 
 **How to read these.** Coverage of 0.215 means the system auto-decides about a fifth of the
 queue and hands back the rest. That is the intended behaviour, not a shortfall — the
@@ -293,6 +361,21 @@ Stated plainly.
 
 ---
 
+## What's next, and what was discarded
+
+**Evidence Gap Advisor — planned, not built.** The idea: run the Section 10 aggregation
+rule in reverse, substituting a canonical strong exemplar for each evidence type a case is
+missing, to tell a merchant *before the deadline* which specific missing document would
+flip a borderline case from "unclear" to "contest". No new model — the same rule, run
+backwards.
+
+It was designed, then demoted. On re-examination, ROI-based fight-or-accept decisioning is
+already commercially available (Justt markets it directly), so it was not the differentiator
+it first appeared to be. The UPI rules engine above was: no surveyed vendor models NPCI's
+mechanics, because their product architecture assumes a human adjudicator at a card network.
+
+---
+
 ## What this generalises to
 
 The reusable core is not chargeback-specific: it is a **claim-verification loop** that
@@ -304,3 +387,11 @@ account's own history, and abuse-ring detection asks whether shared signals acro
 substantiate a link or merely co-occur. Both would reuse the two-signal scorer, the explicit
 aggregation rule, the abstention path and the audit trail, swapping only the probe set and
 the evidence adapters. Neither is built here; this repo does one loop end to end.
+
+One honest note on measurement. Razorpay's own published results for **Bumblebee**, its
+agentic merchant-risk system, report *system reliability* — task completion rate, 88% to
+99%+ — rather than decision accuracy against labelled outcomes. That is a reasonable thing
+to report for an agent pipeline, and it is a different question from the one `/evaluate`
+answers here. This project reports precision, recall and false-positive cost against a
+held-out set precisely because that measurement is complementary to, not a substitute for,
+the reliability numbers the public material shows.

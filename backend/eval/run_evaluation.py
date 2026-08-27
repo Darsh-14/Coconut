@@ -81,13 +81,20 @@ def run_evaluation(
         verdicts = engine.verify_bundle(
             record.claim_text, record.evidence_bundle, record.reason_code
         )
-        result = aggregate(verdicts, record.evidence_bundle)
+        # The held-out file is the payer history for its own records: NPCI's window is
+        # counted within the set being evaluated, never across the split boundary.
+        result = aggregate(verdicts, record.evidence_bundle, record, records)
 
         is_positive = record.ground_truth_label == "contest_win"
         if result.recommendation == "CONTEST":
             counts["tp" if is_positive else "fp"] += 1
         elif result.recommendation == "ACCEPT":
             counts["fn" if is_positive else "tn"] += 1
+        elif result.recommendation == "NO_ACTION_NEEDED":
+            # URCS resolves these without the merchant. Excluded from precision and recall
+            # exactly as NEEDS_HUMAN_REVIEW is -- scoring them as wins would credit the
+            # model for work NPCI's rules engine did.
+            counts["auto_resolved"] += 1
         else:  # NEEDS_HUMAN_REVIEW
             counts["flagged_human"] += 1
 
@@ -96,12 +103,16 @@ def run_evaluation(
 
     tp, fp, fn, tn = counts["tp"], counts["fp"], counts["fn"], counts["tn"]
     flagged_human = counts["flagged_human"]
+    auto_resolved = counts["auto_resolved"]
 
     # Guard divide-by-zero, per Section 11.
     precision = tp / (tp + fp) if (tp + fp) else 0.0
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
-    coverage = (n_evaluated - flagged_human) / n_evaluated if n_evaluated else 0.0
+    # Coverage is the share the system decides *on the merits*. Cap-breach cases are not
+    # a decision it made, so they come out of the numerator alongside human referrals.
+    decided_on_merits = n_evaluated - flagged_human - auto_resolved
+    coverage = decided_on_merits / n_evaluated if n_evaluated else 0.0
 
     return EvalMetrics(
         precision=round(precision, 4),
@@ -117,18 +128,20 @@ def run_evaluation(
         false_positive_cost_estimate_inr=round(fp * representment_cost_inr, 2),
         coverage=round(coverage, 4),
         n_evaluated=n_evaluated,
+        auto_resolved=auto_resolved,
     )
 
 
 def format_report(metrics: EvalMetrics) -> str:
     cm = metrics.confusion_matrix
-    decided = metrics.n_evaluated - cm["flagged_human"]
+    decided = metrics.n_evaluated - cm["flagged_human"] - metrics.auto_resolved
     return "\n".join(
         [
             "",
             "=== Recourse evaluation (held-out set) ===",
             f"  n_evaluated   : {metrics.n_evaluated}",
-            f"  auto-decided  : {decided}   flagged to human: {cm['flagged_human']}",
+            f"  decided on merits: {decided}   to human: {cm['flagged_human']}"
+            f"   URCS auto-resolved: {metrics.auto_resolved}",
             "",
             "  confusion matrix (raw counts, CONTEST is the positive class)",
             f"    TP {cm['tp']:<4} model CONTEST, truth contest_win",

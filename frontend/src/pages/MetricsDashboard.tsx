@@ -21,7 +21,8 @@ const RECORDED: EvalMetrics = {
   coverage: 0.215,
   n_evaluated: 79,
   false_positive_cost_estimate_inr: 4500,
-  confusion_matrix: { tp: 5, fp: 3, fn: 3, tn: 6, flagged_human: 62 },
+  confusion_matrix: { tp: 5, fp: 3, fn: 3, tn: 6, flagged_human: 57 },
+  auto_resolved: 5,
 }
 
 export default function MetricsDashboard() {
@@ -111,7 +112,7 @@ export default function MetricsDashboard() {
             <Metric
               label="Coverage"
               value={formatPercent(shown.coverage)}
-              sub={`calls ${shown.n_evaluated - cm.flagged_human} of ${shown.n_evaluated}`}
+              sub={`decides ${shown.n_evaluated - cm.flagged_human - shown.auto_resolved} of ${shown.n_evaluated} on the merits`}
             />
           </div>
 
@@ -127,6 +128,12 @@ export default function MetricsDashboard() {
                   <MatrixRow tone="warn" cell="FN" n={cm.fn} meaning="Conceded, but was winnable" />
                   <MatrixRow tone="fg-3" cell="TN" n={cm.tn} meaning="Conceded, correctly" />
                   <MatrixRow tone="accent" cell="—" n={cm.flagged_human} meaning="Handed to a person" />
+                  <MatrixRow
+                    tone="fg-3"
+                    cell="URCS"
+                    n={shown.auto_resolved}
+                    meaning="Over NPCI's cap — auto-rejected without the merchant"
+                  />
                 </tbody>
               </table>
             </Surface>

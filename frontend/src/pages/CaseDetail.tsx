@@ -4,8 +4,9 @@ import { api, countdownTo, formatInr, parseApiDate, type DisputeDetail } from '.
 import { AuditTrail } from '../components/AuditTrail'
 import { EvidenceClaimMap, EvidenceSummary } from '../components/EvidenceClaimMap'
 import { PhaseBadge, RecommendationBanner, StatusBadge } from '../components/ConfidenceBadge'
-import { phaseCopy, reasonCopy, RECOMMENDATIONS } from '../lib/labels'
-import { Button, Progress, Segmented, Skeleton, Surface } from '../components/ui'
+import { UrcsBudgetStrip } from '../components/UrcsBudgetStrip'
+import { phaseCopy, railCopy, reasonCopy, RECOMMENDATIONS } from '../lib/labels'
+import { Badge, Button, Progress, Segmented, Skeleton, Surface } from '../components/ui'
 
 type Tab = 'evidence' | 'packet' | 'audit'
 
@@ -102,6 +103,7 @@ export default function CaseDetail() {
               {reason.short}
             </h1>
             <PhaseBadge phase={dispute.phase} />
+            <Badge title={railCopy(dispute.rail).meaning}>{railCopy(dispute.rail).label}</Badge>
             <StatusBadge status={detail.status} />
           </div>
           <p className="num mt-2 text-[12px] text-[var(--fg-3)]">{dispute.dispute_id}</p>
@@ -132,6 +134,8 @@ export default function CaseDetail() {
               {dispute.claim_text}
             </blockquote>
           </Surface>
+
+          {dispute.rail === 'upi' && <UrcsBudgetStrip disputeId={dispute.dispute_id} />}
 
           {decision ? (
             <RecommendationBanner

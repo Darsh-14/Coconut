@@ -6,7 +6,7 @@ import {
   parseApiDate,
   type Recommendation,
 } from '../api/client'
-import { phaseCopy, reasonCopy, RECOMMENDATIONS, statusLabel } from '../lib/labels'
+import { phaseCopy, railCopy, reasonCopy, RECOMMENDATIONS, statusLabel } from '../lib/labels'
 import { useDisputes } from '../lib/useDisputes'
 import {
   Badge,
@@ -36,6 +36,7 @@ export default function DisputeQueue() {
       { key: 'CONTEST' as const, label: 'Contest', count: stats.contestCount },
       { key: 'ACCEPT' as const, label: 'Concede', count: stats.accept },
       { key: 'NEEDS_HUMAN_REVIEW' as const, label: 'Unclear', count: stats.review },
+      { key: 'NO_ACTION_NEEDED' as const, label: 'No action', count: stats.noAction },
     ],
     [stats],
   )
@@ -146,11 +147,14 @@ export default function DisputeQueue() {
                   const countdown = countdownTo(row.respond_by)
                   const reason = reasonCopy(row.reason_code)
                   const rec = row.recommendation ? RECOMMENDATIONS[row.recommendation] : null
+                  const noAction = row.recommendation === 'NO_ACTION_NEEDED'
                   return (
                     <tr
                       key={row.dispute_id}
                       onClick={() => navigate(`/disputes/${row.dispute_id}`)}
-                      className="cursor-pointer transition-colors duration-[160ms] hover:bg-[var(--surface-2)]"
+                      className={`cursor-pointer transition-colors duration-[160ms] hover:bg-[var(--surface-2)] ${
+                        noAction ? 'opacity-55' : ''
+                      }`}
                     >
                       <td className="px-4 py-3 align-middle">
                         <span className="num text-[12px] text-[var(--fg-3)]">
@@ -166,12 +170,15 @@ export default function DisputeQueue() {
                       </td>
 
                       <td className="max-w-sm px-4 py-3 align-middle">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span style={{ fontVariationSettings: "'wght' 510" }}>
                             {reason.short}
                           </span>
                           <Badge title={phaseCopy(row.phase).meaning}>
                             {phaseCopy(row.phase).label}
+                          </Badge>
+                          <Badge title={railCopy(row.rail).meaning}>
+                            {railCopy(row.rail).label}
                           </Badge>
                         </div>
                       </td>
@@ -189,7 +196,15 @@ export default function DisputeQueue() {
                       </td>
 
                       <td className="px-4 py-3 align-middle">
-                        {rec ? (
+                        {noAction ? (
+                          <span
+                            className="text-[12px] text-[var(--fg-3)]"
+                            title="NPCI's URCS is expected to reject this without the merchant responding"
+                          >
+                            URCS will auto-reject
+                            {row.urcs_reason_code && ` (${row.urcs_reason_code})`}
+                          </span>
+                        ) : rec ? (
                           <span className="inline-flex items-center gap-2">
                             <span className={`size-1.5 rounded-full ${toneDot(rec.tone)}`} />
                             <span style={{ fontVariationSettings: "'wght' 510" }}>

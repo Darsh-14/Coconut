@@ -2,6 +2,7 @@
 
     GET  /disputes                       queue with computed status
     GET  /disputes/{dispute_id}          dispute + latest decision + audit trail
+    GET  /disputes/{dispute_id}/urcs-forecast  NPCI cap forecast for a UPI dispute
     POST /disputes/{dispute_id}/decide   run the pipeline, persist and return a Decision
     POST /disputes/{dispute_id}/approve  record human approval, apply Section 7 handling
     POST /evaluate                       run the pipeline over the held-out set
@@ -31,12 +32,15 @@ from app.models.schemas import (
     ApproveRequest,
     AuditLogEntry,
     Decision,
+    Dispute,
     DisputeDetail,
     DisputeSummary,
     EvalMetrics,
+    URCSForecast,
 )
 from app.services.decision_aggregator import aggregate, build_decision
 from app.services.packet_generator import generate_packet
+from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.razorpay_client import (
     build_contest_payload,
     is_placeholder_payment_id,
@@ -64,6 +68,22 @@ def _load_dispute(session: Session, dispute_id: str) -> DisputeRow:
     return row
 
 
+def _payer_history(session: Session, dispute: Dispute) -> list[Dispute]:
+    """Every other UPI dispute from the same payer, for the NPCI cap counters.
+
+    Narrowed in SQL rather than loading the queue: the counters only ever look at one
+    payer, and this runs on every /decide.
+    """
+    if dispute.rail != "upi" or not dispute.payer_ref:
+        return []
+    rows = session.scalars(
+        select(DisputeRow)
+        .where(DisputeRow.payer_ref == dispute.payer_ref)
+        .where(DisputeRow.dispute_id != dispute.dispute_id)
+    ).all()
+    return [r.to_schema() for r in rows]
+
+
 # --- endpoints --------------------------------------------------------------------------
 
 
@@ -83,6 +103,10 @@ def _summarise(row: DisputeRow) -> DisputeSummary:
         payment_is_real=not is_placeholder_payment_id(row.payment_id),
         recommendation=latest.recommendation if latest else None,
         confidence=latest.confidence if latest else None,
+        rail=row.rail or "card",
+        urcs_reason_code=(
+            (latest.urcs_forecast or {}).get("predicted_reason_code") if latest else None
+        ),
     )
 
 
@@ -125,6 +149,21 @@ def get_dispute(dispute_id: str, session: Session = Depends(get_session)) -> Dis
     )
 
 
+@router.get(
+    "/disputes/{dispute_id}/urcs-forecast",
+    response_model=URCSForecast,
+    tags=["disputes"],
+)
+def urcs_forecast(dispute_id: str, session: Session = Depends(get_session)) -> URCSForecast:
+    """What NPCI's URCS is expected to do with this chargeback, and why.
+
+    A pure rules engine over counters -- no model, no LLM, no inference -- so this is
+    cheap enough to call on every case-page load.
+    """
+    dispute = _load_dispute(session, dispute_id).to_schema()
+    return forecast_urcs_disposition(dispute, _payer_history(session, dispute))
+
+
 @router.post(
     "/disputes/{dispute_id}/decide",
     response_model=Decision,
@@ -138,10 +177,12 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
     """
     row = _load_dispute(session, dispute_id)
     evidence = row.evidence_items()
+    dispute = row.to_schema()
+    history = _payer_history(session, dispute)
 
     engine = get_verification_engine()
     verdicts = engine.verify_bundle(row.claim_text, evidence, row.reason_code)
-    result = aggregate(verdicts, evidence)
+    result = aggregate(verdicts, evidence, dispute, history)
 
     # Only CONTEST decisions get a drafted representment (Section 12).
     packet = None
@@ -155,9 +196,15 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
         verdicts=verdicts,
         evidence_bundle=evidence,
         drafted_packet=packet,
+        dispute=dispute,
+        dispute_history=history,
     )
 
-    session.add(DecisionRow.from_schema(decision, rationale=result.rationale))
+    session.add(
+        DecisionRow.from_schema(
+            decision, rationale=result.rationale, urcs_forecast=result.urcs_forecast
+        )
+    )
     session.commit()
 
     logger.info(

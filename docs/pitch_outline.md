@@ -86,6 +86,36 @@ Also available if time permits: `razorpay` 1.4.2 unimportable on Python 3.12+ (w
 broken every fresh clone); the international-card rejection; test suite silently starting to
 call a paid API once a key existed.
 
+## What did you discard, and why
+
+The question a panel always asks. The answer, verbatim:
+
+> "I checked, found my own idea was already commercial, and moved to something genuinely
+> unbuilt."
+
+The discarded idea was the Evidence Gap Advisor — telling a merchant which missing evidence
+would flip a borderline case. Justt already markets ROI-based fight-or-accept decisioning,
+so it was not the differentiator it looked like. What replaced it is in the beat below.
+
+## The UPI beat
+
+Show a UPI dispute where the payer has already burned their cap. Then:
+
+> "Every chargeback-AI product I looked at — Justt, Chargeflow, Riskified, Kount — is built
+> around Visa and Mastercard mechanics, because that's where their market is. UPI doesn't
+> work that way. NPCI caps disputes at 10 per customer and 5 per payer-payee per 30 days,
+> and URCS auto-rejects the overflow under CD1 and CD2 without a human ever looking at it.
+> So on these rails a real share of outcomes is deterministic — which means it's predictable
+> exactly, not statistically. This tells the merchant not to spend representment effort on a
+> dispute the system will reject on its own. It's a rules engine, not a model, which is why
+> it's fully explainable and why the rules live in one config block with the date I verified
+> them against NPCI's circulars."
+
+Follow-up worth having ready: *why no `AUTO_ACCEPT`?* Because that branch depends on the
+beneficiary bank's TCC or return in the next settlement cycle, which this system cannot
+see. Declining to fill in an enum branch you cannot observe is the same instinct as
+abstaining on thin evidence.
+
 ## What to avoid claiming
 
 - Don't call the metrics good. 0.625 precision at 21.5% coverage is honest and defensible

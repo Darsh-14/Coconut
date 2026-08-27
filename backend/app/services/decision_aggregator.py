@@ -34,9 +34,12 @@ from typing import Optional, Sequence
 from app.models.schemas import (
     ClaimVerdict,
     Decision,
+    Dispute,
     EvidenceItem,
     Recommendation,
+    URCSForecast,
 )
+from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.verification_engine import MODEL_NAME
 
 logger = logging.getLogger("recourse.aggregator")
@@ -60,19 +63,54 @@ class AggregationResult:
     confidence: float
     driving_verdicts: list[ClaimVerdict]
     rationale: str
+    # Present only for UPI disputes. Addendum 2: NPCI's rules engine decides a real share
+    # of UPI outcomes deterministically, so the forecast travels with the decision.
+    urcs_forecast: Optional[URCSForecast] = None
 
 
 def aggregate(
     verdicts: Sequence[ClaimVerdict],
     evidence_bundle: Sequence[EvidenceItem],
+    dispute: Optional[Dispute] = None,
+    dispute_history: Optional[Sequence[Dispute]] = None,
 ) -> AggregationResult:
-    """Apply Section 10's rule to a bundle's verdicts."""
+    """Apply Section 10's rule to a bundle's verdicts.
+
+    When `dispute` is supplied and settles on UPI rails, NPCI's deterministic caps are
+    checked *first* (Addendum 2, Section 24). If URCS is expected to auto-reject the
+    chargeback, no amount of evidence quality matters -- the merchant should spend nothing
+    on it. Deterministic rules before the model, which is the same ordering Razorpay's own
+    Bumblebee system describes.
+
+    Both new arguments are optional so every existing caller keeps working unchanged.
+    """
+    forecast = None
+    if dispute is not None:
+        forecast = forecast_urcs_disposition(dispute, dispute_history or [])
+        if forecast.predicted_disposition == "AUTO_REJECT":
+            return AggregationResult(
+                recommendation="NO_ACTION_NEEDED",
+                # The rule is deterministic, so this is certainty about NPCI's behaviour,
+                # not a model's belief about the evidence.
+                confidence=1.0,
+                driving_verdicts=[],
+                rationale=(
+                    f"{forecast.explanation} No representment is needed: NPCI will reject "
+                    f"this on the merchant's behalf. The remitting bank may still re-raise "
+                    f"it in good faith under RGNB."
+                    if forecast.rgnb_re_raise_possible
+                    else forecast.explanation
+                ),
+                urcs_forecast=forecast,
+            )
+
     if not verdicts:
         return AggregationResult(
             recommendation="NEEDS_HUMAN_REVIEW",
             confidence=0.0,
             driving_verdicts=[],
             rationale="No evidence was supplied, so there is nothing to verify.",
+            urcs_forecast=forecast,
         )
 
     # --- branch 1: any strongly contradicting evidence means give up and accept ---
@@ -93,6 +131,7 @@ def aggregate(
                 f"confidence above {CONTRADICT_CONFIDENCE_THRESHOLD:.2f}. Contesting on "
                 f"this record would likely fail and incur representment cost."
             ),
+            urcs_forecast=forecast,
         )
 
     # --- branch 2: unanimous, sufficiently strong, corroborated support means contest ---
@@ -117,6 +156,7 @@ def aggregate(
                     f"({', '.join(sorted(distinct_types))}). Overall confidence is the "
                     f"weakest link in that chain."
                 ),
+                urcs_forecast=forecast,
             )
 
         # Unanimous but not strong enough: say precisely which condition failed.
@@ -140,6 +180,7 @@ def aggregate(
             rationale=(
                 "All evidence points the merchant's way, but " + " and ".join(reasons) + "."
             ),
+            urcs_forecast=forecast,
         )
 
     # --- branch 3: everything else needs a human ---
@@ -156,6 +197,7 @@ def aggregate(
             f"{counts['contradict']} contradicting, {counts['neutral']} neutral) and does "
             f"not resolve the claim either way. Routed to a human rather than guessed at."
         ),
+        urcs_forecast=forecast,
     )
 
 
@@ -189,9 +231,15 @@ def build_decision(
     evidence_bundle: Sequence[EvidenceItem],
     drafted_packet: Optional[str] = None,
     decided_at: Optional[datetime] = None,
+    dispute: Optional[Dispute] = None,
+    dispute_history: Optional[Sequence[Dispute]] = None,
 ) -> Decision:
-    """Aggregate and wrap the outcome in the Section 6 Decision contract."""
-    result = aggregate(verdicts, evidence_bundle)
+    """Aggregate and wrap the outcome in the Section 6 Decision contract.
+
+    Pass `dispute` and `dispute_history` to have NPCI's UPI caps checked first; omit them
+    and the behaviour is exactly Section 10 as before.
+    """
+    result = aggregate(verdicts, evidence_bundle, dispute, dispute_history)
     return Decision(
         dispute_id=dispute_id,
         recommendation=result.recommendation,

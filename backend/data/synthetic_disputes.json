@@ -21,7 +21,9 @@
         "source_ref": "test_report_60091"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0009"
   },
   {
     "dispute_id": "disp_synthetic_0096",
@@ -45,7 +47,9 @@
         "source_ref": "cash_recon_20260802"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0017",
@@ -55,8 +59,8 @@
     "claim_text": "Cardholder asserts that a promised refund was never credited to the account.",
     "amount": 219900,
     "currency": "INR",
-    "raised_at": "2026-08-08T14:01:46.496264Z",
-    "respond_by": "2026-08-29T14:01:46.496264Z",
+    "raised_at": "2026-08-13T19:18:54.706179+00:00",
+    "respond_by": "2026-09-03T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -69,7 +73,9 @@
         "source_ref": "esp_message_9944120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0124",
@@ -93,7 +99,9 @@
         "source_ref": "product_page_note.html"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0054",
@@ -117,7 +125,9 @@
         "source_ref": "oms_ord_88992"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0159",
@@ -146,7 +156,9 @@
         "source_ref": "pod_57881"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0103",
@@ -170,7 +182,9 @@
         "source_ref": "sub_shipments_44120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0101",
@@ -194,7 +208,9 @@
         "source_ref": "delivery_pref_44120.pdf"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0021",
@@ -204,8 +220,8 @@
     "claim_text": "Cardholder contends the goods supplied were defective and not fit for the purpose described at sale.",
     "amount": 1549900,
     "currency": "INR",
-    "raised_at": "2026-08-23T13:10:58.529018Z",
-    "respond_by": "2026-09-13T13:10:58.529018Z",
+    "raised_at": "2026-08-17T19:18:54.706179+00:00",
+    "respond_by": "2026-09-07T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -218,7 +234,9 @@
         "source_ref": "zendesk_ticket_122019"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0092",
@@ -242,7 +260,9 @@
         "source_ref": "esp_campaign_5512"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0078",
@@ -271,7 +291,9 @@
         "source_ref": "pod_ORD_88120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0213",
@@ -295,7 +317,9 @@
         "source_ref": "esp_message_70161"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0139",
@@ -319,7 +343,9 @@
         "source_ref": "manufacturer_stmt_20260812"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0065",
@@ -329,8 +355,8 @@
     "claim_text": "Cardholder asserts a trial was never converted knowingly and the plan charge was unexpected.",
     "amount": 129900,
     "currency": "INR",
-    "raised_at": "2026-08-22T13:44:04.192032Z",
-    "respond_by": "2026-09-12T13:44:04.192032Z",
+    "raised_at": "2026-08-21T19:18:54.706179+00:00",
+    "respond_by": "2026-09-11T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -343,7 +369,9 @@
         "source_ref": "esp_message_9996612"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0260",
@@ -367,7 +395,9 @@
         "source_ref": "oms_80311"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0055",
@@ -391,7 +421,9 @@
         "source_ref": "ticket_GR99120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0102",
@@ -415,7 +447,9 @@
         "source_ref": "collection_return_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0024",
@@ -425,8 +459,8 @@
     "claim_text": "Cardholder asserts a repeated debit for the same subscription period.",
     "amount": 129900,
     "currency": "INR",
-    "raised_at": "2026-08-24T20:07:06.177305Z",
-    "respond_by": "2026-09-14T20:07:06.177305Z",
+    "raised_at": "2026-08-23T19:18:54.706179+00:00",
+    "respond_by": "2026-09-13T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -439,7 +473,9 @@
         "source_ref": "esp_bundle_44012"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0177",
@@ -463,7 +499,9 @@
         "source_ref": "process_doc_collections.pdf"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0135",
@@ -492,7 +530,9 @@
         "source_ref": "oms_ord_55441"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0128",
@@ -516,7 +556,9 @@
         "source_ref": "esp_message_1006610"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0089",
@@ -540,7 +582,9 @@
         "source_ref": "install_photos_44120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0129",
@@ -564,7 +608,9 @@
         "source_ref": "call_audit_20260714"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0187",
@@ -588,7 +634,9 @@
         "source_ref": "ui_snapshot_60231.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0013"
   },
   {
     "dispute_id": "disp_synthetic_0212",
@@ -612,7 +660,9 @@
         "source_ref": "pod_70151"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0127",
@@ -636,7 +686,9 @@
         "source_ref": "esp_message_1005510"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0147",
@@ -660,7 +712,9 @@
         "source_ref": "fp_device_56661"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0028",
@@ -684,7 +738,9 @@
         "source_ref": "esp_message_9971882"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0105",
@@ -708,7 +764,9 @@
         "source_ref": "call_log_20260718"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0140",
@@ -737,7 +795,9 @@
         "source_ref": "pod_photo_55991"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0149",
@@ -761,7 +821,9 @@
         "source_ref": "consent_56881"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0013",
@@ -771,8 +833,8 @@
     "claim_text": "Cardholder asserts no knowledge of this merchant or the transaction posted to their account.",
     "amount": 129900,
     "currency": "INR",
-    "raised_at": "2026-08-25T10:56:03.860771Z",
-    "respond_by": "2026-09-12T10:56:03.860771Z",
+    "raised_at": "2026-08-09T19:18:54.706179+00:00",
+    "respond_by": "2026-08-27T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -785,7 +847,9 @@
         "source_ref": "acs_summary_20260705"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0238",
@@ -809,7 +873,9 @@
         "source_ref": "pod_pair_80091"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0198",
@@ -833,7 +899,9 @@
         "source_ref": "oms_70011"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0025"
   },
   {
     "dispute_id": "disp_synthetic_0178",
@@ -862,7 +930,9 @@
         "source_ref": "pod_60141"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0172",
@@ -886,7 +956,9 @@
         "source_ref": "policy_snapshot_60081.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0022"
   },
   {
     "dispute_id": "disp_synthetic_0085",
@@ -910,7 +982,9 @@
         "source_ref": "zendesk_ticket_129910"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0010"
   },
   {
     "dispute_id": "disp_synthetic_0214",
@@ -934,7 +1008,9 @@
         "source_ref": "telemetry_gap_note"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0223",
@@ -963,7 +1039,9 @@
         "source_ref": "pod_70261"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0151",
@@ -987,7 +1065,9 @@
         "source_ref": "refund_partial_57001"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0022"
   },
   {
     "dispute_id": "disp_synthetic_0114",
@@ -1011,7 +1091,9 @@
         "source_ref": "wallet_spend_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0022",
@@ -1021,8 +1103,8 @@
     "claim_text": "Cardholder does not recognise the merchant descriptor appearing on their statement for this amount.",
     "amount": 34900,
     "currency": "INR",
-    "raised_at": "2026-08-09T11:57:31.603039Z",
-    "respond_by": "2026-08-30T11:57:31.603039Z",
+    "raised_at": "2026-08-19T19:18:54.706179+00:00",
+    "respond_by": "2026-09-09T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1040,7 +1122,9 @@
         "source_ref": "fp_device_aa2019cc"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0236",
@@ -1064,7 +1148,9 @@
         "source_ref": "ticket_80071"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0125",
@@ -1093,7 +1179,9 @@
         "source_ref": "esp_message_1004410"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0025"
   },
   {
     "dispute_id": "disp_synthetic_0053",
@@ -1117,7 +1205,9 @@
         "source_ref": "zendesk_ticket_125501"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0133",
@@ -1146,7 +1236,9 @@
         "source_ref": "courier_gps_55221"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0234",
@@ -1175,7 +1267,9 @@
         "source_ref": "ticket_80051"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0023",
@@ -1185,8 +1279,8 @@
     "claim_text": "Cardholder reports the transaction as fraudulent and states the card was compromised prior to the purchase date.",
     "amount": 649900,
     "currency": "INR",
-    "raised_at": "2026-08-12T22:15:36.282523Z",
-    "respond_by": "2026-08-30T22:15:36.282523Z",
+    "raised_at": "2026-08-21T19:18:54.706179+00:00",
+    "respond_by": "2026-09-08T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1199,7 +1293,9 @@
         "source_ref": "address_graph_cluster_882"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0155",
@@ -1228,7 +1324,9 @@
         "source_ref": "oms_ord_57441"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0197",
@@ -1252,7 +1350,9 @@
         "source_ref": "customer_photo_60331.jpg"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0163",
@@ -1281,7 +1381,9 @@
         "source_ref": "customer_photo_58221.jpg"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0056",
@@ -1305,7 +1407,9 @@
         "source_ref": "prefs_account_44120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0104",
@@ -1329,7 +1433,9 @@
         "source_ref": "fleet_telematics_20260802"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0230",
@@ -1358,7 +1464,9 @@
         "source_ref": "delivery_history_80011"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0199",
@@ -1382,7 +1490,9 @@
         "source_ref": "chat_70021"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0215",
@@ -1406,7 +1516,9 @@
         "source_ref": "esp_message_70181"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0171",
@@ -1430,7 +1542,9 @@
         "source_ref": "internal_note_60071"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0004"
   },
   {
     "dispute_id": "disp_synthetic_0041",
@@ -1440,8 +1554,8 @@
     "claim_text": "Cardholder states an online course purchased did not contain the modules advertised.",
     "amount": 749900,
     "currency": "INR",
-    "raised_at": "2026-08-07T12:28:35.779967Z",
-    "respond_by": "2026-08-28T12:28:35.779967Z",
+    "raised_at": "2026-08-13T19:18:54.706179+00:00",
+    "respond_by": "2026-09-03T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1454,7 +1568,9 @@
         "source_ref": "lms_progress_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0219",
@@ -1478,7 +1594,9 @@
         "source_ref": "esp_message_70221"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0014"
   },
   {
     "dispute_id": "disp_synthetic_0148",
@@ -1502,7 +1620,9 @@
         "source_ref": "billing_sub_56771_events"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0003",
@@ -1512,8 +1632,8 @@
     "claim_text": "Cardholder maintains that no merchandise was received for this transaction despite the merchant's assertion of shipment.",
     "amount": 1249900,
     "currency": "INR",
-    "raised_at": "2026-08-09T10:08:47.233009Z",
-    "respond_by": "2026-08-30T10:08:47.233009Z",
+    "raised_at": "2026-07-30T19:18:54.706179+00:00",
+    "respond_by": "2026-08-20T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1526,7 +1646,9 @@
         "source_ref": "oms_ord_70118"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0169",
@@ -1550,7 +1672,9 @@
         "source_ref": "address_correction_60051"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0239",
@@ -1569,7 +1693,9 @@
         "source_ref": "ledger_80101"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0049",
@@ -1593,7 +1719,9 @@
         "source_ref": "esp_message_9988120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0014"
   },
   {
     "dispute_id": "disp_synthetic_0043",
@@ -1617,7 +1745,9 @@
         "source_ref": "faq_snapshot_payments.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0220",
@@ -1646,7 +1776,9 @@
         "source_ref": "oms_70231"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0203",
@@ -1670,7 +1802,9 @@
         "source_ref": "ticket_70061"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0010"
   },
   {
     "dispute_id": "disp_synthetic_0064",
@@ -1680,8 +1814,8 @@
     "claim_text": "Issuer requests transaction details on behalf of a cardholder who does not recognise the charge.",
     "amount": 34900,
     "currency": "INR",
-    "raised_at": "2026-08-17T01:17:05.658087Z",
-    "respond_by": "2026-08-29T01:17:05.658087Z",
+    "raised_at": "2026-08-19T19:18:54.706179+00:00",
+    "respond_by": "2026-08-31T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1694,7 +1828,9 @@
         "source_ref": "fp_device_cc8812"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0035",
@@ -1704,8 +1840,8 @@
     "claim_text": "Cardholder disputes a food delivery charge stating the order was never handed over.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-20T04:21:43.665762Z",
-    "respond_by": "2026-09-10T04:21:43.665762Z",
+    "raised_at": "2026-08-09T19:18:54.706179+00:00",
+    "respond_by": "2026-08-30T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1718,7 +1854,9 @@
         "source_ref": "masked_call_log_22190"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0154",
@@ -1742,7 +1880,9 @@
         "source_ref": "tech_gps_20260722"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0016",
@@ -1752,8 +1892,8 @@
     "claim_text": "Cardholder disputes a recurring charge on the basis that the subscription had been terminated.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-23T14:16:50.938452Z",
-    "respond_by": "2026-09-13T14:16:50.938452Z",
+    "raised_at": "2026-08-11T19:18:54.706179+00:00",
+    "respond_by": "2026-09-01T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1766,7 +1906,9 @@
         "source_ref": "product_analytics_55201"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0005",
@@ -1790,7 +1932,9 @@
         "source_ref": "zendesk_ticket_119402"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0132",
@@ -1814,7 +1958,9 @@
         "source_ref": "oms_ord_55120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0184",
@@ -1838,7 +1984,9 @@
         "source_ref": "esp_predebit_60201"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0008"
   },
   {
     "dispute_id": "disp_synthetic_0094",
@@ -1862,7 +2010,9 @@
         "source_ref": "chat_SD4471"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0165",
@@ -1891,7 +2041,9 @@
         "source_ref": "delivery_history_60011"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0025"
   },
   {
     "dispute_id": "disp_synthetic_0004",
@@ -1901,8 +2053,8 @@
     "claim_text": "Cardholder disputes the charge on the basis that the goods were not received at the delivery address provided at checkout.",
     "amount": 459900,
     "currency": "INR",
-    "raised_at": "2026-08-13T11:43:02.880967Z",
-    "respond_by": "2026-09-03T11:43:02.880967Z",
+    "raised_at": "2026-08-01T19:18:54.706179+00:00",
+    "respond_by": "2026-08-22T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1915,7 +2067,9 @@
         "source_ref": "sms_gateway_log"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0131",
@@ -1939,7 +2093,9 @@
         "source_ref": "refund_ledger_44120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0153",
@@ -1963,7 +2119,9 @@
         "source_ref": "portal_snapshot_57221.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0014"
   },
   {
     "dispute_id": "disp_synthetic_0109",
@@ -1987,7 +2145,9 @@
         "source_ref": "vehicle_trace_20260806"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0003"
   },
   {
     "dispute_id": "disp_synthetic_0006",
@@ -1997,8 +2157,8 @@
     "claim_text": "Cardholder asserts the delivered product did not match the advertised specification and was of unacceptable quality.",
     "amount": 719900,
     "currency": "INR",
-    "raised_at": "2026-08-21T21:23:50.698166Z",
-    "respond_by": "2026-09-11T21:23:50.698166Z",
+    "raised_at": "2026-08-03T19:18:54.706179+00:00",
+    "respond_by": "2026-08-24T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -2011,7 +2171,9 @@
         "source_ref": "oms_ticket_RPL-8871"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0251",
@@ -2035,7 +2197,9 @@
         "source_ref": "portal_80221.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0025",
@@ -2054,7 +2218,9 @@
         "source_ref": "track_XPB4471"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0002",
@@ -2073,7 +2239,9 @@
         "source_ref": "wms_ship_20260602"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0014",
@@ -2097,7 +2265,9 @@
         "source_ref": "esp_message_9911204"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0063",
@@ -2107,8 +2277,8 @@
     "claim_text": "Cardholder asserts a retried payment resulted in two charges for one order.",
     "amount": 549900,
     "currency": "INR",
-    "raised_at": "2026-08-10T10:57:23.766548Z",
-    "respond_by": "2026-08-31T10:57:23.766548Z",
+    "raised_at": "2026-08-17T19:18:54.706179+00:00",
+    "respond_by": "2026-09-07T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -2121,7 +2291,9 @@
         "source_ref": "esp_message_9995510"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0246",
@@ -2145,7 +2317,9 @@
         "source_ref": "billing_80171"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0120",
@@ -2169,7 +2343,9 @@
         "source_ref": "billing_adjustment_44120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0074",
@@ -2193,7 +2369,9 @@
         "source_ref": "metrics_export_202607"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0118",
@@ -2217,7 +2395,9 @@
         "source_ref": "exit_inspection_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0170",
@@ -2241,7 +2421,9 @@
         "source_ref": "zendesk_ticket_142210"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0185",
@@ -2265,7 +2447,9 @@
         "source_ref": "esp_message_60211"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0090",
@@ -2294,7 +2478,9 @@
         "source_ref": "fp_device_dd4412"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0210",
@@ -2318,7 +2504,9 @@
         "source_ref": "address_audit_70131"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0045",
@@ -2328,8 +2516,8 @@
     "claim_text": "Cardholder reports duplicate billing across two payment instruments for one order.",
     "amount": 219900,
     "currency": "INR",
-    "raised_at": "2026-08-09T05:37:39.794065Z",
-    "respond_by": "2026-08-30T05:37:39.794065Z",
+    "raised_at": "2026-08-15T19:18:54.706179+00:00",
+    "respond_by": "2026-09-05T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -2342,7 +2530,9 @@
         "source_ref": "esp_message_9982110"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0026",
@@ -2366,7 +2556,9 @@
         "source_ref": "esp_bundle_66120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0108",
@@ -2390,7 +2582,9 @@
         "source_ref": "zendesk_ticket_133120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0009"
   },
   {
     "dispute_id": "disp_synthetic_0150",
@@ -2414,7 +2608,9 @@
         "source_ref": "esp_notice_56991"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0192",
@@ -2438,7 +2634,9 @@
         "source_ref": "esp_message_60281"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0226",
@@ -2457,7 +2655,9 @@
         "source_ref": "courier_correction_70291"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0211",
@@ -2491,7 +2691,9 @@
         "source_ref": "usage_70141"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0047",
@@ -2515,7 +2717,9 @@
         "source_ref": "fp_session_20260714"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0008"
   },
   {
     "dispute_id": "disp_synthetic_0113",
@@ -2539,7 +2743,9 @@
         "source_ref": "account_audit_99120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0242",
@@ -2568,7 +2774,9 @@
         "source_ref": "pod_80131"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0019"
   },
   {
     "dispute_id": "disp_synthetic_0077",
@@ -2592,7 +2800,9 @@
         "source_ref": "folio_delivery_44120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0027",
@@ -2602,8 +2812,8 @@
     "claim_text": "Cardholder states the size delivered did not correspond to the size ordered.",
     "amount": 249900,
     "currency": "INR",
-    "raised_at": "2026-08-14T09:25:21.767929Z",
-    "respond_by": "2026-09-04T09:25:21.767929Z",
+    "raised_at": "2026-08-25T19:18:54.706179+00:00",
+    "respond_by": "2026-09-15T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -2616,7 +2826,9 @@
         "source_ref": "zendesk_ticket_123441"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0182",
@@ -2640,7 +2852,9 @@
         "source_ref": "esp_message_60181"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0022"
   },
   {
     "dispute_id": "disp_synthetic_0115",
@@ -2664,7 +2878,9 @@
         "source_ref": "esp_message_1001120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0110",
@@ -2683,7 +2899,9 @@
         "source_ref": "parking_sessions_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0116",
@@ -2707,7 +2925,9 @@
         "source_ref": "esp_message_1002210"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0009"
   },
   {
     "dispute_id": "disp_synthetic_0111",
@@ -2731,7 +2951,9 @@
         "source_ref": "utility_statement_44120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0011",
@@ -2741,8 +2963,8 @@
     "claim_text": "Cardholder does not recognise this transaction and asserts it was not authorised by them.",
     "amount": 899900,
     "currency": "INR",
-    "raised_at": "2026-08-22T08:51:50.300792Z",
-    "respond_by": "2026-09-09T08:51:50.300792Z",
+    "raised_at": "2026-08-07T19:18:54.706179+00:00",
+    "respond_by": "2026-08-25T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -2760,7 +2982,9 @@
         "source_ref": "acs_3ds_log_66120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0225",
@@ -2784,7 +3008,9 @@
         "source_ref": "esp_bundle_70281"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0123",
@@ -2808,7 +3034,9 @@
         "source_ref": "ui_snapshot_cancel.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0218",
@@ -2832,7 +3060,9 @@
         "source_ref": "refund_70211"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0004"
   },
   {
     "dispute_id": "disp_synthetic_0136",
@@ -2856,7 +3086,9 @@
         "source_ref": "shipping_manifest_202607"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0014"
   },
   {
     "dispute_id": "disp_synthetic_0256",
@@ -2885,7 +3117,9 @@
         "source_ref": "fp_80271"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0244",
@@ -2909,7 +3143,9 @@
         "source_ref": "esp_bundle_80151"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0193",
@@ -2933,7 +3169,9 @@
         "source_ref": "sms_code_60291"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0258",
@@ -2957,7 +3195,9 @@
         "source_ref": "esp_predebit_80291"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0070",
@@ -2967,8 +3207,8 @@
     "claim_text": "Cardholder asserts a prescription medicine order was not delivered.",
     "amount": 134900,
     "currency": "INR",
-    "raised_at": "2026-08-14T13:26:53.778192Z",
-    "respond_by": "2026-09-04T13:26:53.778192Z",
+    "raised_at": "2026-08-25T19:18:54.706179+00:00",
+    "respond_by": "2026-09-15T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -2976,7 +3216,9 @@
         "source_ref": "pharma_pod_44120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0232",
@@ -3000,7 +3242,9 @@
         "source_ref": "ticket_80031"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0062",
@@ -3024,7 +3268,9 @@
         "source_ref": "esp_message_9994412"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0021"
   },
   {
     "dispute_id": "disp_synthetic_0038",
@@ -3048,7 +3294,9 @@
         "source_ref": "oms_claim_44821"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0095",
@@ -3072,7 +3320,9 @@
         "source_ref": "esp_message_9999120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0241",
@@ -3101,7 +3351,9 @@
         "source_ref": "pod_80121"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0195",
@@ -3125,7 +3377,9 @@
         "source_ref": "incident_INC-5521"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0014"
   },
   {
     "dispute_id": "disp_synthetic_0086",
@@ -3149,7 +3403,9 @@
         "source_ref": "pod_consolidated_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0084",
@@ -3173,7 +3429,9 @@
         "source_ref": "esp_message_9998812"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0162",
@@ -3197,7 +3455,9 @@
         "source_ref": "refund_ledger_58111"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0010"
   },
   {
     "dispute_id": "disp_synthetic_0240",
@@ -3221,7 +3481,9 @@
         "source_ref": "engagement_letter_80111.pdf"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0138",
@@ -3245,7 +3507,9 @@
         "source_ref": "weighbridge_55771"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0194",
@@ -3269,7 +3533,9 @@
         "source_ref": "spec_sheet_60301"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "card",
+    "payer_ref": "payer_0009"
   },
   {
     "dispute_id": "disp_synthetic_0106",
@@ -3298,7 +3564,9 @@
         "source_ref": "chat_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0117",
@@ -3322,7 +3590,9 @@
         "source_ref": "esp_message_1003310"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0186",
@@ -3346,7 +3616,9 @@
         "source_ref": "returns_grn_search_60221"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0004"
   },
   {
     "dispute_id": "disp_synthetic_0030",
@@ -3375,7 +3647,9 @@
         "source_ref": "pod_ORD_91120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0174",
@@ -3399,7 +3673,9 @@
         "source_ref": "pod_pair_60101_60102"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0019"
   },
   {
     "dispute_id": "disp_synthetic_0156",
@@ -3428,7 +3704,9 @@
         "source_ref": "zendesk_ticket_141120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0152",
@@ -3452,7 +3730,9 @@
         "source_ref": "settlement_20260708.csv"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0228",
@@ -3476,7 +3756,9 @@
         "source_ref": "presales_chat_70311"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0022"
   },
   {
     "dispute_id": "disp_synthetic_0112",
@@ -3505,7 +3787,9 @@
         "source_ref": "donation_history_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0227",
@@ -3529,7 +3813,9 @@
         "source_ref": "billing_70301"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0167",
@@ -3553,7 +3839,9 @@
         "source_ref": "sms_thread_60031"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0126",
@@ -3577,7 +3865,9 @@
         "source_ref": "oms_ord_77991"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0013"
   },
   {
     "dispute_id": "disp_synthetic_0168",
@@ -3601,7 +3891,9 @@
         "source_ref": "chat_60041"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0017"
   },
   {
     "dispute_id": "disp_synthetic_0071",
@@ -3630,7 +3922,9 @@
         "source_ref": "assay_report_20260802.pdf"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0082",
@@ -3654,7 +3948,9 @@
         "source_ref": "billing_sub_88120_events"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0004"
   },
   {
     "dispute_id": "disp_synthetic_0233",
@@ -3683,7 +3979,9 @@
         "source_ref": "chat_80041"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0013"
   },
   {
     "dispute_id": "disp_synthetic_0039",
@@ -3707,7 +4005,9 @@
         "source_ref": "property_stmt_20260520"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0057",
@@ -3731,7 +4031,9 @@
         "source_ref": "purchase_history_88120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0137",
@@ -3755,7 +4057,9 @@
         "source_ref": "listing_edit_log_55661"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0183",
@@ -3779,7 +4083,9 @@
         "source_ref": "billing_sub_60191_events"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0022"
   },
   {
     "dispute_id": "disp_synthetic_0248",
@@ -3803,7 +4109,9 @@
         "source_ref": "billing_80191"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0119",
@@ -3827,7 +4135,9 @@
         "source_ref": "purchase_consent_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0004"
   },
   {
     "dispute_id": "disp_synthetic_0224",
@@ -3851,7 +4161,9 @@
         "source_ref": "pod_70271"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0007"
   },
   {
     "dispute_id": "disp_synthetic_0008",
@@ -3861,8 +4173,8 @@
     "claim_text": "Cardholder reports being billed twice for a single purchase and requests reversal of the duplicate amount.",
     "amount": 154900,
     "currency": "INR",
-    "raised_at": "2026-08-24T14:05:26.657395Z",
-    "respond_by": "2026-09-14T14:05:26.657395Z",
+    "raised_at": "2026-08-05T19:18:54.706179+00:00",
+    "respond_by": "2026-08-26T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -3875,7 +4187,9 @@
         "source_ref": "pod_bundle_33110_33144.pdf"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0145",
@@ -3899,7 +4213,9 @@
         "source_ref": "account_audit_56441"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0025"
   },
   {
     "dispute_id": "disp_synthetic_0166",
@@ -3923,7 +4239,9 @@
         "source_ref": "oms_note_60021"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0008"
   },
   {
     "dispute_id": "disp_synthetic_0018",
@@ -3933,8 +4251,8 @@
     "claim_text": "Cardholder states the merchant agreed to a refund following a return but no credit has appeared.",
     "amount": 384900,
     "currency": "INR",
-    "raised_at": "2026-08-12T22:34:43.272206Z",
-    "respond_by": "2026-09-02T22:34:43.272206Z",
+    "raised_at": "2026-08-15T19:18:54.706179+00:00",
+    "respond_by": "2026-09-05T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -3947,7 +4265,9 @@
         "source_ref": "returns_grn_44821"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0001"
   },
   {
     "dispute_id": "disp_synthetic_0259",
@@ -3971,7 +4291,9 @@
         "source_ref": "esp_bundle_80301"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0011"
   },
   {
     "dispute_id": "disp_synthetic_0080",
@@ -3995,7 +4317,9 @@
         "source_ref": "oms_ord_88771"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0033",
@@ -4024,7 +4348,9 @@
         "source_ref": "service_report_SC44120.pdf"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0016"
   },
   {
     "dispute_id": "disp_synthetic_0040",
@@ -4034,8 +4360,8 @@
     "claim_text": "Cardholder asserts the accommodation booked did not match the listing photographs or amenities described.",
     "amount": 899900,
     "currency": "INR",
-    "raised_at": "2026-08-10T02:55:36.748863Z",
-    "respond_by": "2026-08-31T02:55:36.748863Z",
+    "raised_at": "2026-08-11T19:18:54.706179+00:00",
+    "respond_by": "2026-09-01T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -4048,7 +4374,9 @@
         "source_ref": "listing_snapshot_TRV_20260415.html"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0066",
@@ -4058,8 +4386,8 @@
     "claim_text": "Cardholder asserts non-delivery of an order the merchant states was collected in store.",
     "amount": 349900,
     "currency": "INR",
-    "raised_at": "2026-08-14T19:53:50.738179Z",
-    "respond_by": "2026-09-04T19:53:50.738179Z",
+    "raised_at": "2026-08-23T19:18:54.706179+00:00",
+    "respond_by": "2026-09-13T19:18:54.706179+00:00",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -4072,7 +4400,9 @@
         "source_ref": "cctv_retention_note"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0002"
   },
   {
     "dispute_id": "disp_synthetic_0069",
@@ -4096,7 +4426,9 @@
         "source_ref": "giftcard_redemption_88120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0010"
   },
   {
     "dispute_id": "disp_synthetic_0200",
@@ -4120,7 +4452,9 @@
         "source_ref": "courier_gps_70031"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0009"
   },
   {
     "dispute_id": "disp_synthetic_0031",
@@ -4144,7 +4478,9 @@
         "source_ref": "oms_ord_77120"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0207",
@@ -4168,7 +4504,9 @@
         "source_ref": "shipping_70101"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0143",
@@ -4192,7 +4530,9 @@
         "source_ref": "payment_terms.html"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0221",
@@ -4216,7 +4556,9 @@
         "source_ref": "ticket_70241"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0015"
   },
   {
     "dispute_id": "disp_synthetic_0201",
@@ -4240,7 +4582,9 @@
         "source_ref": "oms_70041"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0024"
   },
   {
     "dispute_id": "disp_synthetic_0217",
@@ -4264,7 +4608,9 @@
         "source_ref": "esp_message_70201"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0012"
   },
   {
     "dispute_id": "disp_synthetic_0206",
@@ -4288,7 +4634,9 @@
         "source_ref": "pod_70091"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "rupay",
+    "payer_ref": "payer_0013"
   },
   {
     "dispute_id": "disp_synthetic_0144",
@@ -4317,7 +4665,9 @@
         "source_ref": "pod_56331"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0005"
   },
   {
     "dispute_id": "disp_synthetic_0189",
@@ -4341,7 +4691,9 @@
         "source_ref": "esp_campaign_60251"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0006"
   },
   {
     "dispute_id": "disp_synthetic_0243",
@@ -4365,7 +4717,9 @@
         "source_ref": "pod_80141"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "rupay",
+    "payer_ref": "payer_0020"
   },
   {
     "dispute_id": "disp_synthetic_0196",
@@ -4389,7 +4743,9 @@
         "source_ref": "esp_bundle_60321"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "rupay",
+    "payer_ref": "payer_0010"
   },
   {
     "dispute_id": "disp_synthetic_0107",
@@ -4413,7 +4769,9 @@
         "source_ref": "access_log_44120"
       }
     ],
-    "ground_truth_label": "contest_win"
+    "ground_truth_label": "contest_win",
+    "rail": "upi",
+    "payer_ref": "payer_0018"
   },
   {
     "dispute_id": "disp_synthetic_0122",
@@ -4437,7 +4795,9 @@
         "source_ref": "delivery_prefs_44120"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0023"
   },
   {
     "dispute_id": "disp_synthetic_0091",
@@ -4461,7 +4821,9 @@
         "source_ref": "courier_coverage_note"
       }
     ],
-    "ground_truth_label": "contest_loss"
+    "ground_truth_label": "contest_loss",
+    "rail": "upi",
+    "payer_ref": "payer_0013"
   },
   {
     "dispute_id": "disp_synthetic_0158",
@@ -4485,6 +4847,8 @@
         "source_ref": "incident_INC-4471"
       }
     ],
-    "ground_truth_label": "should_accept"
+    "ground_truth_label": "should_accept",
+    "rail": "upi",
+    "payer_ref": "payer_0014"
   }
 ]

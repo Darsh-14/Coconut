@@ -85,7 +85,7 @@ interface RecommendationCopy {
   headline: string
   action: string
   /** Semantic tone token — the only place colour enters the product. */
-  tone: 'win' | 'warn' | 'accent'
+  tone: 'win' | 'warn' | 'accent' | 'mute'
 }
 
 export const RECOMMENDATIONS: Record<Recommendation, RecommendationCopy> = {
@@ -107,6 +107,30 @@ export const RECOMMENDATIONS: Record<Recommendation, RecommendationCopy> = {
     action: 'Record my decision',
     tone: 'accent',
   },
+  NO_ACTION_NEEDED: {
+    label: 'No action',
+    headline: 'NPCI will reject this for you',
+    action: 'Acknowledge',
+    tone: 'mute',
+  },
+}
+
+// --- payment rails --------------------------------------------------------------------
+
+const RAILS: Record<string, { label: string; meaning: string }> = {
+  upi: {
+    label: 'UPI',
+    meaning: 'Clears through NPCI. Dispute caps and URCS auto-disposition apply.',
+  },
+  rupay: {
+    label: 'RuPay',
+    meaning: "Clears through NPCI's RGCS, with its own codes and timelines.",
+  },
+  card: { label: 'Card', meaning: 'Clears through Visa/Mastercard scheme rules.' },
+}
+
+export function railCopy(rail: string) {
+  return RAILS[rail] ?? { label: rail.toUpperCase(), meaning: 'Settlement rail.' }
 }
 
 // --- per-evidence verdicts ------------------------------------------------------------

@@ -186,6 +186,53 @@ at load rather than trusted.
 
 ---
 
+## Deterministic rules before the model
+
+`npci_rules.py` + `urcs_forecaster.py` + the short-circuit at the top of `aggregate()`
+
+On UPI rails, NPCI's URCS decides a real share of dispute outcomes deterministically —
+chargebacks beyond 10 per customer or 5 per payer-payee pair in a rolling 30 days are
+auto-rejected under CD1 and CD2 without anyone reviewing them. So the caps are checked
+**before** the NLI engine's verdicts are aggregated: if URCS will reject the chargeback on
+the merchant's behalf, no amount of evidence quality changes what the merchant should do,
+which is nothing.
+
+```
+forecast = forecast_urcs_disposition(dispute, payer_history)
+if forecast.predicted_disposition == "AUTO_REJECT":
+    -> NO_ACTION_NEEDED, confidence 1.0     # certainty about NPCI, not belief about evidence
+else:
+    -> Section 10's rule, unchanged
+```
+
+Three properties worth naming:
+
+- **It is a rules engine, not a model.** A pure function over counters. No inference, no
+  LLM, no probability. That is why it is fully explainable and why it can run on every
+  page load.
+- **Its provenance is visible.** Every value carries the circular it came from and the
+  date it was verified, and that date travels on every forecast into the UI.
+- **It refuses to over-claim.** `AUTO_ACCEPT` is never returned, because that branch turns
+  on the beneficiary bank's TCC/RET in the following settlement cycle, which this system
+  has no visibility into. A fuller-looking enum would be a lie with four branches.
+
+### A convergence worth naming
+
+This ordering — deterministic logic first, model second — was chosen here for the reason
+above, and only afterwards found to match the architecture Razorpay describes in its own
+engineering write-up, **"Meet Bumblebee: Agentic AI Flagging Risky Merchants in Under 90
+Seconds"** (Razorpay engineering blog / dev.to, December 2025). Bumblebee likewise runs
+deterministic checks ahead of model reasoning, degrades to human review rather than
+guessing on thin evidence, and logs every decision for replay.
+
+The convergence is the point, so it is stated rather than buried: the same three
+constraints — cost, auditability, and the unacceptability of a confident wrong answer —
+push independent designs to the same shape. All three properties predate the discovery in
+this codebase; they are visible in the abstention path, the audit trail, and the
+`min()` confidence rule, none of which were added afterwards.
+
+---
+
 ## Decision aggregation
 
 `backend/app/services/decision_aggregator.py` — a plain conditional, deliberately not a

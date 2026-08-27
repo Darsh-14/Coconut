@@ -10,6 +10,7 @@ export interface QueueStats {
   contestValue: number
   accept: number
   review: number
+  noAction: number
   urgent: number
   urgentValue: number
 }
@@ -57,6 +58,7 @@ export function useDisputes() {
       contestValue: contest.reduce((s, r) => s + r.amount, 0),
       accept: all.filter((r) => r.recommendation === 'ACCEPT').length,
       review: all.filter((r) => r.recommendation === 'NEEDS_HUMAN_REVIEW').length,
+      noAction: all.filter((r) => r.recommendation === 'NO_ACTION_NEEDED').length,
       urgent: urgent.length,
       urgentValue: urgent.reduce((s, r) => s + r.amount, 0),
     }

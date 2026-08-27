@@ -17,7 +17,37 @@ export type DisputeStatus = 'pending' | 'decided' | 'approved' | 'submitted'
 
 export type VerdictLabel = 'support' | 'contradict' | 'neutral'
 
-export type Recommendation = 'CONTEST' | 'ACCEPT' | 'NEEDS_HUMAN_REVIEW'
+export type Recommendation =
+  | 'CONTEST'
+  | 'ACCEPT'
+  | 'NEEDS_HUMAN_REVIEW'
+  | 'NO_ACTION_NEEDED'
+
+export type PaymentRail = 'upi' | 'rupay' | 'card'
+
+export type URCSDisposition =
+  | 'AUTO_REJECT'
+  | 'AUTO_ACCEPT'
+  | 'PROCEEDS_TO_MERCHANT'
+  | 'UNKNOWN'
+
+export interface DisputeBudget {
+  payer_ref: string
+  customer_disputes_30d: number
+  payer_payee_disputes_30d: number
+  customer_cap_remaining: number
+  payer_payee_cap_remaining: number
+  window_resets_at: string
+}
+
+export interface URCSForecast {
+  predicted_disposition: URCSDisposition
+  predicted_reason_code: string | null
+  rgnb_re_raise_possible: boolean
+  budget: DisputeBudget
+  explanation: string
+  rules_verified_on: string
+}
 
 export type EvidenceType =
   | 'delivery_proof'
@@ -44,6 +74,8 @@ export interface Dispute {
   respond_by: string
   evidence_bundle: EvidenceItem[]
   ground_truth_label: string | null
+  rail: PaymentRail
+  payer_ref: string | null
 }
 
 export interface ClaimVerdict {
@@ -86,6 +118,8 @@ export interface DisputeSummary {
   /** Null until /decide has run for this dispute. */
   recommendation: Recommendation | null
   confidence: number | null
+  rail: PaymentRail
+  urcs_reason_code: string | null
 }
 
 export interface DisputeDetail {
@@ -111,6 +145,7 @@ export interface EvalMetrics {
   false_positive_cost_estimate_inr: number
   coverage: number
   n_evaluated: number
+  auto_resolved: number
 }
 
 export class ApiError extends Error {
@@ -165,6 +200,7 @@ export const api = {
       body: JSON.stringify({ approved, edited_packet: editedPacket }),
     }),
   evaluate: () => request<EvalMetrics>('/evaluate', { method: 'POST' }),
+  urcsForecast: (id: string) => request<URCSForecast>(`/disputes/${id}/urcs-forecast`),
 }
 
 // --- formatting helpers -------------------------------------------------------------

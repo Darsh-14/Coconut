@@ -30,7 +30,18 @@ GroundTruthLabel = Literal["contest_win", "contest_loss", "should_accept"]
 
 VerdictLabel = Literal["support", "contradict", "neutral"]
 
-Recommendation = Literal["CONTEST", "ACCEPT", "NEEDS_HUMAN_REVIEW"]
+# NO_ACTION_NEEDED is Addendum 2's addition: URCS is expected to reject the chargeback on
+# the merchant's behalf, so spending representment effort would be waste. It is distinct
+# from ACCEPT (concede on the merits) and from NEEDS_HUMAN_REVIEW (we cannot tell).
+Recommendation = Literal["CONTEST", "ACCEPT", "NEEDS_HUMAN_REVIEW", "NO_ACTION_NEEDED"]
+
+# UPI and RuPay clear through NPCI; card rails clear through Visa/Mastercard. The
+# distinction is mechanical, not cosmetic -- only UPI is governed by URCS's cap rules.
+PaymentRail = Literal["upi", "rupay", "card"]
+
+URCSDisposition = Literal[
+    "AUTO_REJECT", "AUTO_ACCEPT", "PROCEEDS_TO_MERCHANT", "UNKNOWN"
+]
 
 # The reason codes Section 9 rotates through. Kept as a tuple (not a Literal) because
 # real acquirers emit codes outside any fixed list, and Dispute.reason_code stays a free
@@ -73,6 +84,9 @@ class Dispute(BaseModel):
     respond_by: datetime
     evidence_bundle: list[EvidenceItem]
     ground_truth_label: Optional[GroundTruthLabel] = None
+    # Addendum 2. Defaulted so every pre-existing record still validates unchanged.
+    rail: PaymentRail = "card"
+    payer_ref: Optional[str] = None  # stable pseudonymous payer identifier
 
     @field_validator("amount")
     @classmethod
@@ -137,6 +151,32 @@ class EvalMetrics(BaseModel):
     false_positive_cost_estimate_inr: float
     coverage: float  # fraction NOT flagged to human
     n_evaluated: int
+    # Cap-breach cases URCS resolves without the merchant. Excluded from precision and
+    # recall exactly as NEEDS_HUMAN_REVIEW is -- counting them as wins would inflate the
+    # headline number for work the system did not do.
+    auto_resolved: int = 0
+
+
+class DisputeBudget(BaseModel):
+    """How much of the payer's NPCI dispute allowance is already spent."""
+
+    payer_ref: str
+    customer_disputes_30d: int
+    payer_payee_disputes_30d: int
+    customer_cap_remaining: int
+    payer_payee_cap_remaining: int
+    window_resets_at: datetime
+
+
+class URCSForecast(BaseModel):
+    """What NPCI's rules engine is expected to do with this chargeback, and why."""
+
+    predicted_disposition: URCSDisposition
+    predicted_reason_code: Optional[str] = None  # "CD1" | "CD2" | None
+    rgnb_re_raise_possible: bool
+    budget: DisputeBudget
+    explanation: str
+    rules_verified_on: str
 
 
 # --- API request/response shapes (Section 8) --------------------------------------------
@@ -165,6 +205,10 @@ class DisputeSummary(BaseModel):
     # one thing a reviewer opens the queue to find out. Both are None until /decide runs.
     recommendation: Optional[Recommendation] = None
     confidence: Optional[float] = None
+    # Addendum 2: the queue de-prioritises rows NPCI will reject on the merchant's behalf,
+    # which needs the rail and the code that fired.
+    rail: PaymentRail = "card"
+    urcs_reason_code: Optional[str] = None
 
 
 class DisputeDetail(BaseModel):

@@ -39,7 +39,11 @@ export function RecommendationBanner({
     <section
       className="surface overflow-hidden"
       aria-label="Recommendation"
-      style={{ boxShadow: `var(--shadow-line), inset 2px 0 0 0 var(--${copy.tone})` }}
+      style={{
+        boxShadow: `var(--shadow-line), inset 2px 0 0 0 var(--${
+          copy.tone === 'mute' ? 'fg-3' : copy.tone
+        })`,
+      }}
     >
       <div className="flex flex-wrap items-start justify-between gap-5 p-5">
         <div>
@@ -70,7 +74,11 @@ export function RecommendationBanner({
           <div className="mt-1.5">
             <Meter value={confidence} tone={copy.tone} />
           </div>
-          <p className="mt-1.5 text-[11px] text-[var(--fg-3)]">Weakest link, not average</p>
+          <p className="mt-1.5 text-[11px] text-[var(--fg-3)]">
+            {recommendation === 'NO_ACTION_NEEDED'
+              ? "NPCI's rule, not a model"
+              : 'Weakest link, not average'}
+          </p>
         </div>
       </div>
 

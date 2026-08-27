@@ -52,6 +52,24 @@ Click a CONTEST case (`disp_synthetic_0168` is a good one).
 > *substantiate* a specific enough position to act on. That took precision to 0.625 and cut
 > false-positive cost by 79%."
 
+## 2:20 — The UPI beat (45s)
+
+Filter the queue to **No action** and open one. Point at the budget strip.
+
+> "Every chargeback-AI product I looked at is built around Visa and Mastercard mechanics.
+> UPI doesn't work that way. NPCI caps disputes at 10 per customer and 5 per payer-payee
+> per 30 days, and URCS auto-rejects the overflow under CD1 and CD2 without a human ever
+> looking. So on these rails a real share of outcomes is deterministic — predictable
+> exactly, not statistically.
+>
+> This payer has burned their cap. The merchant should spend nothing here. It's a rules
+> engine, not a model — which is why the rules sit in one config block with the date I
+> verified them against NPCI's circulars, and why that date is on screen."
+
+If asked why there's no AUTO_ACCEPT: that branch depends on the beneficiary bank's TCC or
+return in the *next* settlement cycle, which this system can't see. Same instinct as
+abstaining on thin evidence.
+
 ## 2:45 — Approve, and the honest bit (45s)
 
 Scroll to the drafted representment, edit a word, click **Approve & prepare packet**.

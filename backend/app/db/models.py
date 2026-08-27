@@ -28,6 +28,7 @@ from app.models.schemas import (
     Decision,
     Dispute,
     EvidenceItem,
+    URCSForecast,
 )
 
 
@@ -58,6 +59,10 @@ class DisputeRow(Base):
     respond_by: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     evidence_bundle: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
     ground_truth_label: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    # Addendum 2. `rail` defaults so a database written before this column existed still
+    # reads back as card-rail rather than failing.
+    rail: Mapped[str] = mapped_column(String(8), nullable=False, default="card")
+    payer_ref: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     decisions: Mapped[list["DecisionRow"]] = relationship(
         back_populates="dispute",
@@ -70,7 +75,11 @@ class DisputeRow(Base):
         order_by="AuditLogRow.id",
     )
 
-    __table_args__ = (Index("ix_disputes_respond_by", "respond_by"),)
+    __table_args__ = (
+        Index("ix_disputes_respond_by", "respond_by"),
+        # The URCS cap counters filter by payer on every /decide.
+        Index("ix_disputes_payer_ref", "payer_ref"),
+    )
 
     # -- conversion ---------------------------------------------------------
 
@@ -88,6 +97,8 @@ class DisputeRow(Base):
             respond_by=dispute.respond_by,
             evidence_bundle=[e.model_dump() for e in dispute.evidence_bundle],
             ground_truth_label=dispute.ground_truth_label,
+            rail=dispute.rail,
+            payer_ref=dispute.payer_ref,
         )
 
     def to_schema(self) -> Dispute:
@@ -103,6 +114,8 @@ class DisputeRow(Base):
             respond_by=as_utc(self.respond_by),
             evidence_bundle=[EvidenceItem(**e) for e in self.evidence_bundle],
             ground_truth_label=self.ground_truth_label,
+            rail=self.rail or "card",
+            payer_ref=self.payer_ref,
         )
 
     def evidence_items(self) -> list[EvidenceItem]:
@@ -140,6 +153,11 @@ class DecisionRow(Base):
     rationale: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     decided_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
     model_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    # Addendum 2: the full URCSForecast that was in force when this decision was made.
+    # Stored on the decision rather than the audit entry because the audit entry already
+    # references a decision -- this way the forecast is available for a NO_ACTION_NEEDED
+    # case whether or not a human ever actions it.
+    urcs_forecast: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     dispute: Mapped[DisputeRow] = relationship(back_populates="decisions")
     audit_entries: Mapped[list["AuditLogRow"]] = relationship(back_populates="decision")
@@ -147,7 +165,12 @@ class DecisionRow(Base):
     __table_args__ = (Index("ix_decisions_dispute_id", "dispute_id"),)
 
     @classmethod
-    def from_schema(cls, decision: Decision, rationale: str = "") -> "DecisionRow":
+    def from_schema(
+        cls,
+        decision: Decision,
+        rationale: str = "",
+        urcs_forecast: Optional["URCSForecast"] = None,
+    ) -> "DecisionRow":
         return cls(
             dispute_id=decision.dispute_id,
             recommendation=decision.recommendation,
@@ -157,6 +180,7 @@ class DecisionRow(Base):
             rationale=rationale or None,
             decided_at=decision.decided_at,
             model_version=decision.model_version,
+            urcs_forecast=urcs_forecast.model_dump(mode="json") if urcs_forecast else None,
         )
 
     def to_schema(self) -> Decision:
