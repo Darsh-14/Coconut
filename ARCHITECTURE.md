@@ -122,9 +122,46 @@ Direction is now correct and monotonic: CONTEST fires on `contest_win` 14% > `co
 | Require every item to substantiate | coverage 13%, 1 CONTEST total | Real bundles pair one decisive item with context that legitimately substantiates ~0. |
 | `SUPPORT_FLOOR = 0.50` | recall 0.556 → 0.333 | Downgraded contextual evidence to neutral; since the rule needs *all* verdicts to be `support`, each downgrade killed a whole bundle. |
 | Substantiation cutoff at 0.005 | precision **0.800** | Tempting, but only 5 auto-CONTESTs across 182 records — ≈2 held-out. Precision from 2 samples is noise, not a result. |
+| Exhaustive threshold sweep, 1,200 configurations | best cell: accuracy 0.643 vs 0.641, precision 0.632 vs 0.625 | One record's difference across 42 auto-decisions, and the cell sits directly against a cliff — its neighbour at `floor=0.65` collapses precision to 0.490. Not an improvement; a coin landing the same way twice. |
+| Rank-normalised substantiation | F1 0.588 → **0.638**, coverage 0.214 → 0.341 | The best-looking F1 in this document. Rejected: precision fell 0.625 → 0.564 and false positives went 9 → 17, nearly doubling the cost the system exists to avoid. Rank is monotone, so it adds no information — it only moves along the tradeoff. |
 
 The last row is worth dwelling on: it produces the best-looking number in this document and
 was rejected precisely because it would not survive contact with the held-out set.
+
+### Why tuning stopped here
+
+The obvious next move is to tune the four engine thresholds harder. `eval/tune_thresholds.py`
+caches the raw signals in one inference pass and replays 1,200 configurations in seconds, so
+this was cheap to settle rather than argue about.
+
+It does not help, and the diagnosis says why. Measured on the working set, the two signals
+separate `contest_win` from everything else at:
+
+| Signal | AUC |
+|---|---|
+| Substantiation (mean over items) | **0.571** |
+| Engagement (mean over items) | 0.556 |
+| Substantiation (min over items) | 0.515 |
+
+An AUC of 0.57 is barely above chance. Thresholds choose an operating point on a curve; they
+cannot add information to one. That single number explains every result above — why the sweep
+found nothing beyond noise, why rank-normalisation bought recall by selling precision, and why
+the 0.800-precision configuration evaporated on inspection.
+
+Two distribution facts underneath it:
+
+- **Engagement is saturated.** 39% of evidence items score above 0.99 and the 25th percentile
+  is 0.004 — it is close to binary, not a gradient.
+- **Substantiation is crushed against zero.** Median 0.005, 75th percentile 0.024. In
+  `blended = 0.5·engagement + 0.5·substantiation` the second term contributes almost nothing
+  numerically, which is why `ENGAGEMENT_THRESHOLD` and `DAMNING_THRESHOLD` turned out to be
+  entirely inert in the sweep — every top configuration was identical across all five values
+  of each.
+
+The honest conclusion is that the ceiling here is the zero-shot NLI representation, not the
+decision logic wrapped around it. Raising it means changing the signal — fine-tuning on
+dispute-shaped data (out of scope, Section 16), or a probe set richer than one short
+declarative per reason code. Re-weighting what is already there cannot do it.
 
 ### Explainability
 

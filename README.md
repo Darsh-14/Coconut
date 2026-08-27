@@ -146,12 +146,21 @@ npm run dev
 
 The dev server proxies `/api/*` to the backend, so there is no base URL to configure.
 
-**The loop:** on the queue press *Assess 15* to score a batch in place → click a case →
-read the per-evidence verdicts and the highlighted sentence that drove each one → edit the
-draft → *Approve & prepare packet* → see the audit entry with the "would submit to
-Razorpay" payload → *Performance* → *Run evaluation*.
+**The app has four surfaces:**
 
-The UI ships light and dark themes; the toggle is at the foot of the sidebar.
+| | |
+|---|---|
+| **Overview** | Money at stake, what closes soonest, what is worth contesting, exposure by dispute type |
+| **Disputes** | The queue — filter by what Recourse concluded, sort by deadline or value |
+| **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
+| **Performance** | The held-out evaluation, re-runnable live |
+
+**The loop:** *Assess 25 disputes* on Overview → open a case from *Ready to contest* → read the
+per-evidence verdicts and the highlighted sentence that drove each → *Representment* tab, edit
+the draft → *Approve & prepare packet* → the *Audit* tab shows the "would submit to Razorpay"
+payload → *Performance* → *Run evaluation*.
+
+Light and dark themes both ship; the toggle is at the foot of the sidebar.
 
 ### Backing disputes with real Razorpay payments
 
@@ -195,8 +204,26 @@ seeded and reproducible, but a *different* dataset is a different experiment.
 ```bash
 cd backend
 python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
-pytest -q                              # 132 tests
+pytest -q                              # 133 tests
 ```
+
+### Tuning, and why it stopped
+
+```bash
+python eval/tune_thresholds.py --build-cache   # one inference pass over the working set
+python eval/tune_thresholds.py                 # replay 1,200 configurations in seconds
+```
+
+The sweep holds CLAUDE.md Section 10's aggregation rule fixed — that rule is specified
+literally, and moving those numbers would be tuning away the spec. It only varies the four
+constants the engine defines for itself.
+
+It finds nothing worth shipping, and says why: the two signals separate `contest_win` from
+everything else at **AUC 0.571** and **0.556**. Thresholds pick an operating point on a curve;
+they cannot add information to one. The best cell in 1,200 beats the shipped configuration by
+0.2 points of accuracy — one record out of 42 — while sitting directly against a cliff where
+precision collapses to 0.490. Details in
+[ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here).
 
 ### Results — held-out set, last real run
 

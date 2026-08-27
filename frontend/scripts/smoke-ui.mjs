@@ -1,6 +1,6 @@
 // Optional UI smoke test: drives the real app through
-//   queue -> case -> decide -> approve -> metrics
-// and screenshots each step.
+//   overview -> disputes -> case -> decide -> approve -> evaluation
+// and screenshots each step, in both themes.
 //
 // NOT part of `npm install` or the test suite: it needs Playwright plus a ~115MB browser
 // download, which would work against the repo's "clone and run in five minutes" goal.
@@ -15,95 +15,85 @@ const SHOTS = process.env.SHOTS_DIR ?? './.smoke-shots'
 const BASE = 'http://localhost:5173'
 
 const browser = await chromium.launch()
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 
 const errors = []
-page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+page.on('console', (m) => {
+  if (m.type() === 'error') errors.push(m.text())
+})
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 
-function log(...a) { console.log(...a) }
+const log = (...a) => console.log(...a)
 
-// --- 1. queue ------------------------------------------------------------
+// --- 1. overview ---------------------------------------------------------
 await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.getByText('at stake across').waitFor({ timeout: 30000 })
+log(`1. OVERVIEW   heading=${JSON.stringify(await page.locator('h1').first().innerText())}`)
+await page.screenshot({ path: `${SHOTS}/1-overview.png` })
+
+// --- 2. queue ------------------------------------------------------------
+await page.goto(`${BASE}/disputes`, { waitUntil: 'networkidle' })
 await page.waitForSelector('table tbody tr', { timeout: 30000 })
 const rowCount = await page.locator('table tbody tr').count()
-const heading = await page.locator('h1').first().innerText()
-const urgent = await page.locator('td.text-red-700').count()
-log(`1. QUEUE      heading=${JSON.stringify(heading)} rows=${rowCount} urgent(red)=${urgent}`)
-await page.screenshot({ path: `${SHOTS}/1-queue.png`, fullPage: false })
+log(`2. DISPUTES   rows=${rowCount}`)
+await page.screenshot({ path: `${SHOTS}/2-disputes.png` })
 
 // Prefer a dispute already decided CONTEST so the approve flow is exercised.
 // Fall back to the first row and decide it in the UI.
-let targetId = null
-const res = await page.request.get(`${BASE}/api/disputes`)
-const rows = await res.json()
-for (const r of rows.slice(0, 40)) {
-  const d = await page.request.get(`${BASE}/api/disputes/${r.dispute_id}`)
-  const detail = await d.json()
-  if (detail.latest_decision?.recommendation === 'CONTEST') { targetId = r.dispute_id; break }
-}
-if (!targetId) targetId = rows[0].dispute_id
-log(`   picked ${targetId}`)
+const summaries = await (await page.request.get(`${BASE}/api/disputes`)).json()
+const decided = summaries.find((r) => r.recommendation === 'CONTEST')
+const targetId = (decided ?? summaries[0]).dispute_id
 
-// --- 2. case detail ------------------------------------------------------
+// --- 3. case -------------------------------------------------------------
 await page.goto(`${BASE}/disputes/${targetId}`, { waitUntil: 'networkidle' })
-await page.waitForSelector('h1', { timeout: 20000 })
+await page.getByText(/Bank.s claim/).waitFor({ timeout: 30000 })
 
-// If not yet assessed, click the button and wait for the banner.
 const runBtn = page.getByRole('button', { name: /Run assessment/i })
 if (await runBtn.count()) {
-  log('   no decision yet -> clicking "Run assessment"')
+  log('   no standing decision; running assessment (first run loads the model)…')
   await runBtn.click()
-  await page.waitForSelector('section[aria-label="Recommendation"]', { timeout: 180000 })
+  await page.waitForSelector('section[aria-label="Recommendation"]', { timeout: 300000 })
 }
 
 const rec = await page.locator('section[aria-label="Recommendation"] h2').innerText()
 const evidenceCards = await page.locator('ol > li').count()
-const marks = await page.locator('mark').count()
-const badges = await page.locator('span:has-text("%")').count()
-log(`2. CASE       recommendation=${JSON.stringify(rec)} evidenceCards=${evidenceCards} highlightedSpans=${marks}`)
-await page.screenshot({ path: `${SHOTS}/2-case.png`, fullPage: true })
+const marks = await page.locator('mark.span').count()
+log(`3. CASE       ${targetId} rec=${JSON.stringify(rec)} evidence=${evidenceCards} spans=${marks}`)
+await page.screenshot({ path: `${SHOTS}/3-case.png`, fullPage: true })
 
-// --- 3. approve ----------------------------------------------------------
-const approve = page.getByRole('button', { name: /Approve/i }).first()
-let approved = false
+// --- 4. approve, then the audit tab --------------------------------------
+const approve = page.getByRole('button', { name: /^Approve/ }).first()
 if (await approve.count()) {
   const textarea = page.locator('textarea')
-  const hadPacket = (await textarea.count()) > 0
-  if (hadPacket) {
-    const len = (await textarea.inputValue()).length
-    log(`   drafted packet in textarea: ${len} chars`)
+  if (await textarea.count()) {
+    // Exercise the human-edit path: the edited text is what must be logged.
+    await page.getByRole('tab', { name: /Representment/ }).click()
+    await textarea.fill((await textarea.inputValue()) + '\n\nEdited during smoke test.')
   }
   await approve.click()
-  await page.waitForTimeout(2500)
-  approved = true
+  await page.getByText(/by human/).waitFor({ timeout: 60000 })
 }
-const auditEntries = await page.locator('h2:has-text("Audit trail") ~ ol > li').count()
-const wouldSubmit = await page.locator('text=Would submit to Razorpay').count()
-log(`3. APPROVE    clicked=${approved} auditEntries=${auditEntries} wouldSubmitBanner=${wouldSubmit}`)
 
-// Expand the payload so the screenshot shows it.
-const showBtn = page.getByRole('button', { name: /Show payload/i }).first()
-if (await showBtn.count()) { await showBtn.click(); await page.waitForTimeout(400) }
-await page.screenshot({ path: `${SHOTS}/3-approved.png`, fullPage: true })
+const showPayload = page.getByRole('button', { name: /Show payload/i }).first()
+if (await showPayload.count()) await showPayload.click()
+const wouldSubmit = await page.getByText('Would submit to Razorpay').count()
+log(`4. AUDIT      entries=${await page.locator('ol > li').count()} wouldSubmitLabel=${wouldSubmit}`)
+await page.screenshot({ path: `${SHOTS}/4-audit.png`, fullPage: true })
 
-// --- 4. status reflected back in the queue -------------------------------
-await page.goto(BASE, { waitUntil: 'networkidle' })
-await page.waitForSelector('table tbody tr')
-const statusCell = await page.locator(`tr:has-text("${targetId.replace('disp_synthetic_', '#')}") td:last-child`).first().innerText().catch(() => '?')
-log(`4. QUEUE AGAIN status of ${targetId} = ${JSON.stringify(statusCell.trim())}`)
-
-// --- 5. metrics ----------------------------------------------------------
+// --- 5. evaluation -------------------------------------------------------
 await page.goto(`${BASE}/metrics`, { waitUntil: 'networkidle' })
 await page.getByRole('button', { name: /Run evaluation/i }).click()
-await page.waitForSelector('table tbody tr', { timeout: 600000 })
-const stats = await page.locator('p.font-mono.text-3xl').allInnerTexts()
-const cmCells = await page.locator('table tbody tr').allInnerTexts()
-log(`5. METRICS    cards=${JSON.stringify(stats)}`)
-log(`   confusion: ${cmCells.map(s => s.replace(/\s+/g, ' ').trim()).join(' | ')}`)
+await page.getByText('Live run, just now').waitFor({ timeout: 600000 })
+log('5. EVALUATION live results rendered')
 await page.screenshot({ path: `${SHOTS}/5-metrics.png`, fullPage: true })
 
-log(`\nconsole errors: ${errors.length}`)
-errors.slice(0, 8).forEach(e => log('  ', e))
+// --- 6. dark theme -------------------------------------------------------
+await page.evaluate(() => localStorage.setItem('recourse.theme', 'dark'))
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.getByText('at stake across').waitFor({ timeout: 30000 })
+await page.screenshot({ path: `${SHOTS}/6-overview-dark.png` })
+log('6. DARK       rendered')
 
+log(`\nconsole errors: ${errors.length ? JSON.stringify(errors, null, 2) : 'none'}`)
 await browser.close()
+process.exit(errors.length ? 1 : 0)
