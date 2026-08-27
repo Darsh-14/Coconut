@@ -67,6 +67,11 @@ class DisputeRow(Base):
     # (Section 7). Set when a merchant starts the backing flow; the resulting pay_... id
     # replaces the pay_PENDING_ placeholder in payment_id once Razorpay reports it.
     razorpay_order_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # Bumped whenever the evidence bundle changes. A ClaimVerdict joins to evidence by
+    # INDEX, so mutating the bundle silently re-points every standing verdict at the wrong
+    # item -- a verdict about a courier POD suddenly labelling a chat transcript. Recording
+    # the revision on both sides makes that detectable instead of invisible.
+    evidence_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     decisions: Mapped[list["DecisionRow"]] = relationship(
         back_populates="dispute",
@@ -162,6 +167,10 @@ class DecisionRow(Base):
     # references a decision -- this way the forecast is available for a NO_ACTION_NEEDED
     # case whether or not a human ever actions it.
     urcs_forecast: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    # The dispute's evidence_revision when this decision was computed. If the dispute has
+    # moved on, the verdicts no longer describe the current bundle and must not be shown
+    # against it.
+    evidence_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     dispute: Mapped[DisputeRow] = relationship(back_populates="decisions")
     audit_entries: Mapped[list["AuditLogRow"]] = relationship(back_populates="decision")
@@ -174,6 +183,7 @@ class DecisionRow(Base):
         decision: Decision,
         rationale: str = "",
         urcs_forecast: Optional["URCSForecast"] = None,
+        evidence_revision: int = 0,
     ) -> "DecisionRow":
         return cls(
             dispute_id=decision.dispute_id,
@@ -185,6 +195,7 @@ class DecisionRow(Base):
             decided_at=decision.decided_at,
             model_version=decision.model_version,
             urcs_forecast=urcs_forecast.model_dump(mode="json") if urcs_forecast else None,
+            evidence_revision=evidence_revision,
         )
 
     def to_schema(self) -> Decision:

@@ -49,6 +49,9 @@ const REASONS: Record<string, ReasonCopy> = {
   },
 }
 
+/** The reason codes the backend accepts, for the file-a-dispute form. */
+export const REASON_CODES = Object.keys(REASONS)
+
 export function reasonCopy(code: string): ReasonCopy {
   return (
     REASONS[code] ?? {

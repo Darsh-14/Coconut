@@ -83,6 +83,22 @@ export interface EvidenceItem {
   source_ref: string | null
 }
 
+export interface DisputeCreate {
+  reason_code: string
+  claim_text: string
+  amount: number
+  phase?: DisputePhase
+  rail?: PaymentRail
+  payer_ref?: string | null
+  currency?: string
+}
+
+export interface EvidenceAdd {
+  type: EvidenceType
+  content: string
+  source_ref?: string | null
+}
+
 /** Everything the browser needs to open Razorpay Checkout. `key_id` is the publishable
  *  test key; the secret never leaves the server. */
 export interface BackingOrder {
@@ -199,6 +215,9 @@ export interface DisputeDetail {
   audit_log: AuditLogEntry[]
   status: DisputeStatus
   payment_is_real: boolean
+  /** Evidence changed after the latest decision: verdicts no longer line up with the
+   *  current bundle and must not be drawn against it. */
+  decision_is_stale: boolean
 }
 
 export interface EvalMetrics {
@@ -277,6 +296,15 @@ export const api = {
       body: JSON.stringify({ alpha, delta }),
     }),
   verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
+  createDispute: (body: DisputeCreate) =>
+    request<Dispute>('/disputes', { method: 'POST', body: JSON.stringify(body) }),
+  addEvidence: (id: string, body: EvidenceAdd) =>
+    request<Dispute>(`/disputes/${id}/evidence`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  removeEvidence: (id: string, index: number) =>
+    request<Dispute>(`/disputes/${id}/evidence/${index}`, { method: 'DELETE' }),
   createBackingOrder: (id: string) =>
     request<BackingOrder>(`/disputes/${id}/backing-order`, { method: 'POST' }),
   backingStatus: (id: string) => request<BackingStatus>(`/disputes/${id}/backing-status`),

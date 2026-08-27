@@ -20,7 +20,7 @@ synthetic dispute id. Both layers are tested.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -42,9 +42,12 @@ from app.models.schemas import (
     DisputeDetail,
     BackingOrder,
     BackingStatus,
+    DisputeCreate,
     DisputeSummary,
     EvalMetrics,
+    EvidenceAdd,
     EvidenceDocument,
+    EvidenceItem,
     URCSForecast,
 )
 from app.services.decision_aggregator import aggregate, build_decision
@@ -62,6 +65,8 @@ from app.services.conformal_calibrator import (
 from app.services.packet_generator import generate_packet
 from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.razorpay_client import (
+    MANUAL_DISPUTE_PREFIX,
+    PENDING_PAYMENT_PREFIX,
     RazorpayError,
     build_contest_payload,
     get_razorpay_client,
@@ -156,6 +161,63 @@ def list_disputes(
     return summaries[:limit]
 
 
+@router.post(
+    "/disputes",
+    response_model=Dispute,
+    status_code=status.HTTP_201_CREATED,
+    tags=["disputes"],
+)
+def create_dispute(
+    body: DisputeCreate, session: Session = Depends(get_session)
+) -> Dispute:
+    """File a dispute by hand.
+
+    Until now the queue was a fixed seed loaded from a committed JSON file -- the app could
+    only ever show what was shipped in it. This is the write path.
+
+    The id is minted here rather than accepted from the caller: it keeps ids collision-free,
+    and the disp_manual_ prefix makes provenance legible next to disp_synthetic_ at a
+    glance. Neither can reach Razorpay's dispute workflow -- may_reach_razorpay() fails
+    closed for every id, so a hand-filed dispute is no more transmissible than a seeded one.
+    """
+    now = datetime.now(timezone.utc)
+    raised_at = body.raised_at or now
+    # 14 days is a realistic issuer response window, used only when none is given.
+    respond_by = body.respond_by or (raised_at + timedelta(days=14))
+
+    latest = session.scalars(
+        select(DisputeRow.dispute_id)
+        .where(DisputeRow.dispute_id.like(f"{MANUAL_DISPUTE_PREFIX}%"))
+        .order_by(DisputeRow.dispute_id.desc())
+        .limit(1)
+    ).first()
+    next_n = (int(latest.rsplit("_", 1)[1]) + 1) if latest else 1
+    dispute_id = f"{MANUAL_DISPUTE_PREFIX}{next_n:04d}"
+
+    dispute = Dispute(
+        dispute_id=dispute_id,
+        payment_id=body.payment_id or f"{PENDING_PAYMENT_PREFIX}{next_n:04d}",
+        phase=body.phase,
+        reason_code=body.reason_code,
+        claim_text=body.claim_text,
+        amount=body.amount,
+        currency=body.currency,
+        raised_at=raised_at,
+        respond_by=respond_by,
+        evidence_bundle=body.evidence_bundle,
+        # Never set from a request: it is evaluation-only, and a public write endpoint that
+        # could set it would let whoever files a dispute shape the reported metrics.
+        ground_truth_label=None,
+        rail=body.rail,
+        payer_ref=body.payer_ref,
+    )
+
+    session.add(DisputeRow.from_schema(dispute))
+    session.commit()
+    logger.info("filed %s (%s, %s paise)", dispute_id, body.reason_code, body.amount)
+    return dispute
+
+
 @router.get("/disputes/{dispute_id}", response_model=DisputeDetail, tags=["disputes"])
 def get_dispute(dispute_id: str, session: Session = Depends(get_session)) -> DisputeDetail:
     """Full dispute, its latest decision (nullable) and its audit trail."""
@@ -168,7 +230,66 @@ def get_dispute(dispute_id: str, session: Session = Depends(get_session)) -> Dis
         audit_log=[entry.to_schema() for entry in row.audit_entries],
         status=row.computed_status(),
         payment_is_real=not is_placeholder_payment_id(row.payment_id),
+        decision_is_stale=bool(
+            latest and (latest.evidence_revision or 0) != (row.evidence_revision or 0)
+        ),
     )
+
+
+def _bump_evidence(row: DisputeRow, bundle: list[EvidenceItem]) -> None:
+    """Replace a dispute's evidence and mark every standing verdict as out of date.
+
+    ClaimVerdict.evidence_index is a positional join. Changing the bundle without bumping
+    the revision would leave the UI drawing a verdict about one item against a different
+    one -- silently, and most misleadingly exactly when a merchant has just added the
+    evidence they think will win the case.
+    """
+    row.evidence_bundle = [item.model_dump() for item in bundle]
+    row.evidence_revision = (row.evidence_revision or 0) + 1
+
+
+@router.post(
+    "/disputes/{dispute_id}/evidence",
+    response_model=Dispute,
+    status_code=status.HTTP_201_CREATED,
+    tags=["disputes"],
+)
+def add_evidence(
+    dispute_id: str, body: EvidenceAdd, session: Session = Depends(get_session)
+) -> Dispute:
+    """Attach a new piece of evidence, then re-assess to see what it changes."""
+    row = _load_dispute(session, dispute_id)
+    bundle = row.evidence_items()
+    bundle.append(
+        EvidenceItem(type=body.type, content=body.content, source_ref=body.source_ref)
+    )
+    _bump_evidence(row, bundle)
+    session.commit()
+    logger.info("evidence added to %s (%d items, rev %d)", dispute_id, len(bundle), row.evidence_revision)
+    return row.to_schema()
+
+
+@router.delete(
+    "/disputes/{dispute_id}/evidence/{index}",
+    response_model=Dispute,
+    tags=["disputes"],
+)
+def remove_evidence(
+    dispute_id: str, index: int, session: Session = Depends(get_session)
+) -> Dispute:
+    """Remove a piece of evidence -- for the merchant who attached the wrong file."""
+    row = _load_dispute(session, dispute_id)
+    bundle = row.evidence_items()
+    if not 0 <= index < len(bundle):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{dispute_id} has no evidence item at index {index}",
+        )
+    bundle.pop(index)
+    _bump_evidence(row, bundle)
+    session.commit()
+    logger.info("evidence %d removed from %s (rev %d)", index, dispute_id, row.evidence_revision)
+    return row.to_schema()
 
 
 @router.get(
@@ -264,7 +385,10 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
 
     session.add(
         DecisionRow.from_schema(
-            decision, rationale=result.rationale, urcs_forecast=result.urcs_forecast
+            decision,
+            rationale=result.rationale,
+            urcs_forecast=result.urcs_forecast,
+            evidence_revision=row.evidence_revision or 0,
         )
     )
     session.commit()

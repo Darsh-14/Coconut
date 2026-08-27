@@ -19,6 +19,7 @@ from app.services.razorpay_client import (
     build_contest_payload,
     is_placeholder_payment_id,
     is_synthetic_dispute_id,
+    may_reach_razorpay,
 )
 
 
@@ -124,20 +125,54 @@ def test_placeholder_payment_fetch_returns_none_without_calling(client):
     assert client.fetch_payment(f"{PENDING_PAYMENT_PREFIX}0001") is None
 
 
-# -- the real path still works -------------------------------------------------------
+# -- the guard fails closed ----------------------------------------------------------
+# It used to test "is this id synthetic?" and send anything else. That is an allowlist
+# written inside out: any id the system had not anticipated -- a manually filed dispute, a
+# typo, a prefix added later -- would have been treated as a genuine Razorpay dispute and
+# transmitted, against Section 2.2. These pin the inverted rule.
 
 
-def test_real_dispute_id_does_reach_the_sdk(settings):
-    """The guard must be narrow: a genuine Razorpay dispute id is still sent."""
+def test_an_unrecognised_dispute_id_is_not_sent(settings):
+    """The case that used to send. A real-looking id is still not a real dispute here."""
     client = RazorpayClient(settings=settings)
     recording = RecordingSDK()
     client._client = recording
 
     result = client.contest_dispute("disp_NkQ8vRt2mWxYz1", {"summary": "x"})
 
-    assert result.submitted is True
-    assert result.response is not None
-    assert recording.dispute.calls == [("contest", "disp_NkQ8vRt2mWxYz1", {"summary": "x"})]
+    assert result.submitted is False
+    assert result.response is None
+    assert recording.dispute.calls == [], "nothing may reach the SDK"
+    assert result.would_be_payload["body"] == {"summary": "x"}
+
+
+@pytest.mark.parametrize(
+    "dispute_id",
+    [
+        "disp_synthetic_0001",
+        "disp_manual_0001",
+        "disp_NkQ8vRt2mWxYz1",
+        "anything_at_all",
+        "",
+    ],
+)
+def test_no_dispute_id_may_reach_razorpay(dispute_id):
+    """Section 3: this system never ingests a real Razorpay dispute, so the set of ids
+    permitted to touch the live workflow is empty by construction."""
+    assert may_reach_razorpay(dispute_id) is False
+
+
+@pytest.mark.parametrize("action", ["fetch", "accept", "contest"])
+def test_every_dispute_action_is_blocked_for_a_locally_created_id(settings, action):
+    client = RazorpayClient(settings=settings)
+    recording = RecordingSDK()
+    client._client = recording
+
+    result = client._dispute_call(action, "disp_manual_0001", {"summary": "x"})
+
+    assert result.submitted is False
+    assert recording.dispute.calls == []
+    assert "locally created" in result.reason
 
 
 # -- payload construction ------------------------------------------------------------

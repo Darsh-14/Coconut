@@ -157,7 +157,9 @@ export default function CaseDetail() {
             <Segmented options={tabs} value={tab} onChange={setTab} />
             {tab === 'evidence' && (
               <div className="flex items-center gap-3">
-                <EvidenceSummary verdicts={decision?.claim_verdicts ?? []} />
+                {!detail.decision_is_stale && (
+                  <EvidenceSummary verdicts={decision?.claim_verdicts ?? []} />
+                )}
                 {decision && (
                   <Button size="sm" onClick={runDecide} disabled={busy !== null}>
                     {busy === 'deciding' ? 'Re-assessing…' : 'Re-assess'}
@@ -170,10 +172,15 @@ export default function CaseDetail() {
           <div key={tab} className="rise">
             {tab === 'evidence' && (
               <>
+                {detail.decision_is_stale && (
+                  <StaleNotice busy={busy === 'deciding'} onRun={runDecide} />
+                )}
                 <EvidenceClaimMap
                   disputeId={dispute.dispute_id}
                   evidence={dispute.evidence_bundle}
                   verdicts={decision?.claim_verdicts ?? []}
+                  stale={detail.decision_is_stale}
+                  onChanged={() => void load()}
                 />
                 {decision && <HowItWorks />}
               </>
@@ -283,6 +290,24 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
     <div>
       <dt className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">{label}</dt>
       <dd className="mt-0.5 leading-snug text-[var(--fg-2)]">{children}</dd>
+    </div>
+  )
+}
+
+/** Shown when the bundle moved after the standing decision was computed. */
+function StaleNotice({ busy, onRun }: { busy: boolean; onRun: () => void }) {
+  return (
+    <div
+      className="surface mb-2.5 flex flex-wrap items-center justify-between gap-3 p-3.5"
+      style={{ boxShadow: 'var(--shadow-line), inset 2px 0 0 0 var(--warn)' }}
+    >
+      <p className="text-[12.5px] text-[var(--fg-2)]">
+        Evidence changed after this assessment. Per-item verdicts are hidden until it runs
+        again.
+      </p>
+      <Button onClick={onRun} disabled={busy}>
+        {busy ? 'Re-assessing…' : 'Re-assess'}
+      </Button>
     </div>
   )
 }

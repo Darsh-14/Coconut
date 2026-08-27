@@ -36,6 +36,9 @@ logger = logging.getLogger("recourse.razorpay")
 
 # Synthetic dispute ids are minted by data/generate_synthetic_disputes.py with this prefix.
 SYNTHETIC_DISPUTE_PREFIX = "disp_synthetic_"
+# Disputes filed by hand through POST /disputes. Like synthetic ones these exist only
+# inside Recourse; may_reach_razorpay() blocks both, and everything else, from the network.
+MANUAL_DISPUTE_PREFIX = "disp_manual_"
 # Placeholder payment ids, before phase-2 backfill.
 PENDING_PAYMENT_PREFIX = "pay_PENDING_"
 
@@ -43,8 +46,30 @@ DisputeAction = Literal["fetch", "accept", "contest"]
 
 
 def is_synthetic_dispute_id(dispute_id: str) -> bool:
-    """True when the dispute exists only inside Recourse and not on Razorpay's side."""
+    """True when the id was minted by the synthetic dataset generator."""
     return dispute_id.startswith(SYNTHETIC_DISPUTE_PREFIX)
+
+
+def may_reach_razorpay(dispute_id: str) -> bool:
+    """Whether a dispute-side call for this id is allowed to touch the network.
+
+    FAILS CLOSED, deliberately.
+
+    This check used to ask "does the id start with disp_synthetic_?" and send anything
+    else. That is an allowlist written inside out: any id the system had not anticipated --
+    a manually filed dispute, a typo, a prefix added later -- would have been treated as a
+    genuine Razorpay dispute and transmitted. Section 2.2 makes never touching the live
+    dispute workflow a hard constraint, and a guard that depends on nobody ever inventing a
+    new prefix is not a guard.
+
+    So the question is inverted: a call is permitted only for an id this module can
+    positively identify as a real Razorpay dispute. Section 3 states that this system never
+    ingests real Razorpay dispute objects -- Razorpay's test mode cannot fabricate a
+    chargeback -- so that set is empty by construction, and this returns False for
+    everything. It is written as a function rather than `return False` so that the day a
+    real ingestion path exists, there is exactly one place to state what qualifies.
+    """
+    return False
 
 
 def is_placeholder_payment_id(payment_id: str) -> bool:
@@ -201,9 +226,10 @@ class RazorpayClient:
             "body": payload,
         }
 
-        if is_synthetic_dispute_id(dispute_id):
+        if not may_reach_razorpay(dispute_id):
+            kind = "synthetic" if is_synthetic_dispute_id(dispute_id) else "locally created"
             reason = (
-                f"{dispute_id} is synthetic and does not exist on Razorpay's side; "
+                f"{dispute_id} is {kind} and does not exist on Razorpay's side; "
                 "logging the payload instead of sending it (CLAUDE.md Section 7)."
             )
             logger.info("dispute.%s WOULD SEND (not sent): %s | %s", action, would_be, reason)
@@ -283,6 +309,7 @@ def build_contest_payload(
 
 
 __all__ = [
+    "MANUAL_DISPUTE_PREFIX",
     "PENDING_PAYMENT_PREFIX",
     "SYNTHETIC_DISPUTE_PREFIX",
     "DisputeCallResult",
@@ -292,4 +319,5 @@ __all__ = [
     "get_razorpay_client",
     "is_placeholder_payment_id",
     "is_synthetic_dispute_id",
+    "may_reach_razorpay",
 ]

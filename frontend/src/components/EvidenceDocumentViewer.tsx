@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import {
   api,
   type ClaimVerdict,
   type EvidenceDocument,
   type EvidenceDocumentKind,
 } from '../api/client'
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from './Dialog'
 import { Badge, Button, Skeleton } from './ui'
 
 /**
@@ -39,7 +39,6 @@ export function EvidenceDocumentViewer({
 }) {
   const [doc, setDoc] = useState<EvidenceDocument | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let live = true
@@ -54,50 +53,8 @@ export function EvidenceDocumentViewer({
     }
   }, [disputeId, index])
 
-  // Escape closes, and the page behind must not scroll while a record is open.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    closeRef.current?.focus()
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = previous
-    }
-  }, [onClose])
-
-  const stop = useCallback((e: React.MouseEvent) => e.stopPropagation(), [])
-
-  // Rendered through a portal, deliberately. `position: fixed` is resolved against the
-  // nearest ancestor that establishes a containing block, and any ancestor carrying a
-  // transform does so -- including one whose animation merely *ends* at `transform: none`,
-  // because fill-mode: both retains the computed identity matrix rather than the keyword.
-  // The case page wraps its tab panel in `.rise`, which did exactly that and clipped this
-  // dialog to the evidence column. A portal to <body> makes the dialog independent of
-  // wherever it happens to be mounted.
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-      style={{
-        // Opaque enough that dense page content behind cannot compete with the record.
-        background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
-        backdropFilter: 'saturate(140%) blur(6px)',
-        WebkitBackdropFilter: 'saturate(140%) blur(6px)',
-      }}
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="evidence-doc-title"
-        onClick={stop}
-        className="rise flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-card)]"
-        style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-pop)' }}
-      >
+  return (
+    <Dialog labelledBy="evidence-doc-title" onClose={onClose}>
         {error ? (
           <div className="p-5">
             <p className="text-[13px] text-[var(--risk)]">{error}</p>
@@ -113,35 +70,15 @@ export function EvidenceDocumentViewer({
           </div>
         ) : (
           <>
-            <header
-              className="flex shrink-0 items-start justify-between gap-4 border-b p-5"
-              style={{ borderColor: 'var(--line)' }}
-            >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2
-                    id="evidence-doc-title"
-                    className="truncate text-[15px]"
-                    style={{ fontVariationSettings: "'wght' 590" }}
-                  >
-                    {doc.title}
-                  </h2>
-                  <Badge>{KIND_LABEL[doc.kind]}</Badge>
-                </div>
-                <p className="mt-1 text-[12px] text-[var(--fg-3)]">{doc.system_of_record}</p>
-              </div>
-              <button
-                ref={closeRef}
-                type="button"
-                onClick={onClose}
-                aria-label="Close record"
-                className="focus-ring shrink-0 rounded-[var(--radius-inner)] px-2 py-1 text-[18px] leading-none text-[var(--fg-3)] transition hover:text-[var(--fg)]"
-              >
-                &times;
-              </button>
-            </header>
+            <DialogHeader
+              id="evidence-doc-title"
+              title={doc.title}
+              sub={doc.system_of_record}
+              onClose={onClose}
+              aside={<Badge>{KIND_LABEL[doc.kind]}</Badge>}
+            />
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <DialogBody>
             <div className="p-5">
               <DocumentBody doc={doc} span={verdict?.highlighted_span ?? null} />
             </div>
@@ -168,12 +105,9 @@ export function EvidenceDocumentViewer({
                 )
               })}
             </dl>
-            </div>
+            </DialogBody>
 
-            <footer
-              className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t p-4"
-              style={{ borderColor: 'var(--line)', background: 'var(--surface-2)' }}
-            >
+            <DialogFooter>
               <p className="max-w-md text-[11px] leading-relaxed text-[var(--fg-3)]">
                 {doc.synthetic_notice}
               </p>
@@ -185,12 +119,10 @@ export function EvidenceDocumentViewer({
               >
                 Download
               </a>
-            </footer>
+            </DialogFooter>
           </>
         )}
-      </div>
-    </div>,
-    document.body,
+    </Dialog>
   )
 }
 

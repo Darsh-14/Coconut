@@ -33,6 +33,15 @@ export function useDisputes() {
   const [batch, setBatch] = useState<BatchProgress | null>(null)
   const cancelled = useRef(false)
 
+  const refresh = useCallback(async () => {
+    try {
+      setRows(await api.listDisputes())
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }, [])
+
   useEffect(() => {
     let live = true
     api
@@ -121,6 +130,7 @@ export function useDisputes() {
     batch,
     assessNext,
     stopBatch,
+    refresh,
     loading: !rows && !error,
   }
 }

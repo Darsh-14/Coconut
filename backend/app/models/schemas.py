@@ -301,6 +301,63 @@ class DisputeDetail(BaseModel):
     audit_log: list[AuditLogEntry] = []
     status: DisputeStatus
     payment_is_real: bool
+    # True when the evidence bundle changed after the latest decision was computed. The
+    # verdicts join to evidence by index, so a stale decision must not be drawn against the
+    # current bundle -- the UI shows the recommendation but withholds the per-item verdicts.
+    decision_is_stale: bool = False
+
+
+class DisputeCreate(BaseModel):
+    """POST /disputes -- file a dispute by hand.
+
+    Deliberately NOT the full Dispute model. `dispute_id` is minted by the server so ids
+    stay collision-free and their provenance is legible, and `ground_truth_label` is absent
+    entirely: it is an evaluation-only field, and letting it in through a public write
+    endpoint would allow the metrics to be shaped by whoever files a dispute. That is
+    exactly the kind of dishonest number this project is positioned against.
+    """
+
+    phase: DisputePhase = "chargeback"
+    reason_code: str
+    claim_text: str = Field(min_length=10)
+    amount: int = Field(gt=0, description="Paise")
+    currency: str = "INR"
+    rail: PaymentRail = "card"
+    payer_ref: Optional[str] = None
+    payment_id: Optional[str] = None
+    raised_at: Optional[datetime] = None
+    respond_by: Optional[datetime] = None
+    evidence_bundle: list[EvidenceItem] = []
+
+    @field_validator("reason_code")
+    @classmethod
+    def reason_code_must_be_known(cls, v: str) -> str:
+        if v not in KNOWN_REASON_CODES:
+            raise ValueError(
+                f"unknown reason_code {v!r}; expected one of {sorted(KNOWN_REASON_CODES)}"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def deadline_must_follow_the_claim(self) -> "DisputeCreate":
+        if self.raised_at and self.respond_by and self.respond_by <= self.raised_at:
+            raise ValueError("respond_by must be after raised_at")
+        return self
+
+
+class EvidenceAdd(BaseModel):
+    """POST /disputes/{id}/evidence -- attach evidence to an existing case."""
+
+    type: EvidenceType
+    content: str = Field(min_length=1)
+    source_ref: Optional[str] = None
+
+    @field_validator("content")
+    @classmethod
+    def content_must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("evidence content must not be empty")
+        return v
 
 
 class BackingOrder(BaseModel):
@@ -342,6 +399,8 @@ __all__ = [
     "KNOWN_REASON_CODES",
     "AuditLogEntry",
     "BackingOrder",
+    "DisputeCreate",
+    "EvidenceAdd",
     "BackingStatus",
     "ClaimVerdict",
     "Decision",

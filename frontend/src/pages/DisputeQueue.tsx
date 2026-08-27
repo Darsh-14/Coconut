@@ -8,6 +8,7 @@ import {
 } from '../api/client'
 import { phaseCopy, railCopy, reasonCopy, RECOMMENDATIONS, statusLabel } from '../lib/labels'
 import { useDisputes } from '../lib/useDisputes'
+import { NewDisputeDialog } from '../components/NewDisputeDialog'
 import {
   Badge,
   Button,
@@ -25,7 +26,8 @@ type SortKey = 'deadline' | 'amount'
 
 export default function DisputeQueue() {
   const navigate = useNavigate()
-  const { rows, error, stats, batch, assessNext, stopBatch, loading } = useDisputes()
+  const { rows, error, stats, batch, assessNext, stopBatch, refresh, loading } = useDisputes()
+  const [filing, setFiling] = useState(false)
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortKey>('deadline')
 
@@ -58,6 +60,16 @@ export default function DisputeQueue() {
 
   return (
     <div>
+      {filing && (
+        <NewDisputeDialog
+          onClose={() => setFiling(false)}
+          onFiled={(id) => {
+            setFiling(false)
+            void refresh()
+            navigate(`/disputes/${id}`)
+          }}
+        />
+      )}
       <PageHeader
         title="Disputes"
         sub={`${stats.total} open. Contesting costs ₹1,500 a case, win or lose.`}
@@ -82,14 +94,17 @@ export default function DisputeQueue() {
               </button>
             </div>
           ) : (
-            stats.unassessed > 0 && (
-              <div className="flex gap-2">
-                <Button variant="primary" onClick={() => assessNext(15)}>
-                  Assess 15
-                </Button>
-                <Button onClick={() => assessNext(50)}>Assess 50</Button>
-              </div>
-            )
+            <div className="flex gap-2">
+              {stats.unassessed > 0 && (
+                <>
+                  <Button onClick={() => assessNext(15)}>Assess 15</Button>
+                  <Button onClick={() => assessNext(50)}>Assess 50</Button>
+                </>
+              )}
+              <Button variant="primary" onClick={() => setFiling(true)}>
+                File a dispute
+              </Button>
+            </div>
           )
         }
       />
