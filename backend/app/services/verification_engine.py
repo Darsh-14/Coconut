@@ -408,6 +408,29 @@ def get_verification_engine() -> VerificationEngine:
     return _engine
 
 
+def model_is_loaded() -> bool:
+    """Whether the cross-encoder is in memory and ready to score."""
+    return _engine is not None and _engine._model is not None
+
+
+def warm_up() -> None:
+    """Load the model and run one throwaway prediction.
+
+    The first /decide used to pay the whole ~15s load, which the UI had to apologise for
+    mid-interaction. Called on a background thread at startup so the process serves
+    immediately and the cost lands before anyone clicks rather than during their click.
+
+    Failure here is not fatal: a warm-up that cannot reach the model hub must leave the app
+    running, so the first real request retries the load and surfaces the error there.
+    """
+    try:
+        engine = get_verification_engine()
+        engine.model.predict([("warm up", "warm up")])
+        logger.info("NLI cross-encoder warmed up")
+    except Exception as exc:  # noqa: BLE001 -- warm-up must never stop the app booting
+        logger.warning("model warm-up failed (%s); it will load on first use", exc)
+
+
 __all__ = [
     "DAMNING_THRESHOLD",
     "ENGAGEMENT_THRESHOLD",
@@ -417,6 +440,8 @@ __all__ = [
     "IDX_ENTAILMENT",
     "IDX_NEUTRAL",
     "MODEL_NAME",
+    "model_is_loaded",
+    "warm_up",
     "NLI_LABELS",
     "NLI_TO_VERDICT",
     "SUBSTANTIATION_PROBES",

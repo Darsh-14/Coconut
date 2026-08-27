@@ -262,4 +262,35 @@ class AuditLogRow(Base):
         )
 
 
-__all__ = ["AuditLogRow", "DecisionRow", "DisputeRow", "as_utc", "utcnow"]
+class CalibrationRow(Base):
+    """The risk budget an operator chose, and the threshold it calibrated to.
+
+    Held in the database rather than only in process memory. The threshold decides every
+    recommendation the system makes, so a restart silently reverting it to a built-in
+    default would change the product's behaviour with nothing in the record to say why --
+    and the operator who set a 40% budget last week would have no way to know it had gone.
+
+    Append-only: each calibration is a row, and the newest wins. A decision already records
+    calibrated_threshold_used, so together these make any past recommendation replayable.
+    """
+
+    __tablename__ = "calibrations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    alpha: Mapped[float] = mapped_column(nullable=False)
+    delta: Mapped[float] = mapped_column(nullable=False)
+    # None means the budget was not achievable on the calibration set. That is a real
+    # outcome worth persisting, not an error: it makes the system defer every case.
+    threshold: Mapped[Optional[float]] = mapped_column(nullable=True)
+    calibration_set_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
+
+
+__all__ = [
+    "AuditLogRow",
+    "CalibrationRow",
+    "DecisionRow",
+    "DisputeRow",
+    "as_utc",
+    "utcnow",
+]

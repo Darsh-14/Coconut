@@ -1,0 +1,40 @@
+# Keep the build context small and the image clean.
+#
+# Without this, `docker build` ships the whole working tree to the daemon — including
+# .venv and node_modules, which are hundreds of megabytes and are rebuilt inside the image
+# anyway — and `COPY backend/` would bake the developer's recourse.db into the image, so
+# every container would start with one person's local decisions and audit trail instead of
+# seeding itself.
+
+# Dependencies — reinstalled in the image
+.venv/
+venv/
+**/node_modules/
+**/__pycache__/
+**/*.py[cod]
+
+# Local state that must never be baked in
+.env
+*.db
+*.db-journal
+**/.conformal_scores.json
+**/.signal_cache.json
+
+# Build output — the image builds its own
+frontend/dist/
+**/.smoke-shots/
+**/.evidence-shots/
+
+# Repo and tooling
+.git/
+.gitignore
+.github/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+*.log
+
+# Docs are not needed at runtime
+docs/
+*.md
+!README.md

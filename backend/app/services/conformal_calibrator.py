@@ -215,12 +215,49 @@ def calibration_pairs(cache: dict) -> list[tuple[float, str]]:
     ]
 
 
-def bootstrap_from_cache(alpha: float = DEFAULT_ALPHA, delta: float = DEFAULT_DELTA) -> None:
+def last_persisted_budget() -> Optional[tuple[float, float]]:
+    """The (alpha, delta) an operator last calibrated to, if any.
+
+    Read at startup so a restart resumes the budget that was actually in force rather than
+    reverting to DEFAULT_ALPHA. Imported lazily and failure-tolerant: the calibrator is
+    also used by offline scripts that have no database, and a missing table must degrade
+    to the default rather than stop the process booting.
+    """
+    try:
+        from sqlalchemy import select
+
+        from app.db.database import session_scope
+        from app.db.models import CalibrationRow
+
+        with session_scope() as session:
+            row = session.scalars(
+                select(CalibrationRow).order_by(CalibrationRow.id.desc()).limit(1)
+            ).first()
+            return (row.alpha, row.delta) if row else None
+    except Exception:  # noqa: BLE001 -- any storage problem falls back to the default
+        logger.warning("could not read the last calibration; using the default budget")
+        return None
+
+
+def bootstrap_from_cache(
+    alpha: Optional[float] = None, delta: Optional[float] = None
+) -> None:
     """Calibrate at startup so the app boots with a working threshold.
 
     Without this every case would defer to a human until somebody moved the slider, which
     would look like the product is broken rather than cautious.
+
+    Resumes the last persisted budget when there is one, so the threshold that decides
+    every recommendation survives a restart.
     """
+    if alpha is None or delta is None:
+        persisted = last_persisted_budget()
+        if persisted:
+            alpha, delta = persisted
+            logger.info("resuming persisted risk budget alpha=%.2f delta=%.2f", alpha, delta)
+        else:
+            alpha, delta = DEFAULT_ALPHA, DEFAULT_DELTA
+
     cache = load_scores()
     if not cache:
         logger.warning(
@@ -246,6 +283,7 @@ __all__ = [
     "guarantee_statement",
     "has_calibrated",
     "hoeffding_slack",
+    "last_persisted_budget",
     "load_scores",
     "set_active_threshold",
     "smallest_achievable_alpha",

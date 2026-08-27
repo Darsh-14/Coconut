@@ -24,6 +24,7 @@ from app.config import BACKEND_ROOT
 from app.db.database import init_db, session_scope
 from app.db.models import AuditLogRow, DecisionRow, DisputeRow
 from app.models.schemas import Dispute
+from app.services.razorpay_client import is_placeholder_payment_id
 
 logger = logging.getLogger("recourse.seed")
 
@@ -89,7 +90,15 @@ def seed(reset: bool = False, rebase: bool = True) -> int:
             if rebase:
                 row.raised_at = dispute.raised_at
                 row.respond_by = dispute.respond_by
-            if row.payment_id != dispute.payment_id:
+            # Never overwrite a real payment id with the JSON's placeholder. A merchant
+            # can now attach a genuine test-mode payment through Checkout, which writes
+            # pay_... onto the row while the committed dataset still says pay_PENDING_.
+            # Repointing blindly would quietly undo that -- and re-seeding is exactly what
+            # you do after a backfill, so it would have been undone at the worst moment.
+            if row.payment_id != dispute.payment_id and not (
+                is_placeholder_payment_id(dispute.payment_id)
+                and not is_placeholder_payment_id(row.payment_id)
+            ):
                 logger.info(
                     "%s payment_id %s -> %s", row.dispute_id, row.payment_id, dispute.payment_id
                 )
@@ -102,6 +111,23 @@ def seed(reset: bool = False, rebase: bool = True) -> int:
     print(f"  seeded {added} new dispute(s), repointed {repointed} payment_id(s); "
           f"{total} total in the queue")
     return total or 0
+
+
+def seed_if_empty() -> int:
+    """Populate an empty database on first start, and otherwise do nothing.
+
+    Called at startup so a fresh clone or container shows a working queue instead of an
+    empty page. Deliberately conditional on the table being empty rather than idempotent
+    re-seeding: a full seed() also rebases timestamps and repoints payment ids from the
+    committed JSON, which is right after a backfill and wrong on every ordinary restart.
+    """
+    init_db()
+    with session_scope() as session:
+        count = session.scalar(select(func.count()).select_from(DisputeRow)) or 0
+    if count:
+        return count
+    logger.info("empty database; seeding the working set")
+    return seed()
 
 
 def main() -> int:

@@ -8,10 +8,13 @@ Run from the ``backend/`` directory:
 from __future__ import annotations
 
 import logging
+import os
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import ConfigError, get_settings
 
@@ -45,6 +48,15 @@ async def lifespan(app: FastAPI):
 
     init_db()
 
+    # A fresh clone or container starts with an empty file; an empty queue reads as a
+    # broken app rather than a new one. No-ops once anything is in the database.
+    from app.db.seed import seed_if_empty
+
+    try:
+        seed_if_empty()
+    except Exception as exc:  # noqa: BLE001 -- an unseeded app still runs
+        logger.warning("could not seed the database at startup: %s", exc)
+
     # Calibrate from the cached scores so the app boots with a working threshold. Without
     # this the aggregator has no calibrated lambda and defers every case, which looks like
     # a broken product rather than a cautious one.
@@ -52,8 +64,21 @@ async def lifespan(app: FastAPI):
 
     bootstrap_from_cache()
 
+    # Load the model off the request path. The first /decide used to pay the whole ~15s
+    # load mid-interaction, which the UI had to apologise for. A daemon thread so a slow
+    # or unreachable model hub delays nothing and blocks no shutdown; /health reports
+    # whether it has finished.
+    if os.getenv("RECOURSE_SKIP_WARMUP") != "1":
+        threading.Thread(target=_warm_up_model, name="model-warmup", daemon=True).start()
+
     yield
     logger.info("Recourse shutting down")
+
+
+def _warm_up_model() -> None:
+    from app.services.verification_engine import warm_up
+
+    warm_up()
 
 
 app = FastAPI(
@@ -88,6 +113,10 @@ def health() -> dict:
     is the only way it can boot at all.
     """
     settings = get_settings()
+    from app.services.conformal_calibrator import active_state
+    from app.services.verification_engine import model_is_loaded
+
+    calibration = active_state()
     return {
         "status": "ok",
         "version": APP_VERSION,
@@ -95,7 +124,45 @@ def health() -> dict:
         "razorpay_key_id_prefix": settings.razorpay_key_id[:14],
         "anthropic_configured": settings.anthropic_configured,
         "auto_submit_to_razorpay": False,
+        "database": _database_health(),
+        "model_loaded": model_is_loaded(),
+        "calibrated": bool(calibration.get("calibrated")),
+        "calibrated_threshold": calibration.get("threshold"),
+        "risk_budget_alpha": calibration.get("alpha"),
     }
+
+
+def _database_health() -> str:
+    """Cheapest possible proof the database is actually reachable, not just configured."""
+    try:
+        from sqlalchemy import text
+
+        from app.db.database import engine
+
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return "ok"
+    except Exception as exc:  # noqa: BLE001
+        logger.error("database health check failed: %s", exc)
+        return "unreachable"
+
+
+@app.get("/ready", tags=["ops"])
+def ready() -> JSONResponse:
+    """Readiness, as distinct from liveness.
+
+    /health answers "is this process up". This answers "can it actually decide a case
+    right now" -- which is a different question while the model is still loading, and the
+    one a load balancer or a deploy script should gate on. 503 until the model is in
+    memory, so a rollout does not send traffic into a fifteen-second stall.
+    """
+    from app.services.verification_engine import model_is_loaded
+
+    loaded = model_is_loaded()
+    return JSONResponse(
+        status_code=200 if loaded else 503,
+        content={"ready": loaded, "model_loaded": loaded, "database": _database_health()},
+    )
 
 
 __all__ = ["app", "ConfigError"]

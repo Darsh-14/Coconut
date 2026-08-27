@@ -312,3 +312,103 @@ def test_rebase_handles_an_empty_set():
     from app.db.seed import rebase_dates
 
     assert rebase_dates([]) == []
+
+
+# -- seeding and upgrades -----------------------------------------------------------------
+
+
+def test_re_seeding_cannot_revert_a_real_payment_to_its_placeholder(session, monkeypatch):
+    """A merchant can attach a genuine test-mode payment through Checkout, which writes
+    pay_... onto the row while the committed dataset still says pay_PENDING_. Re-seeding is
+    exactly what you run after a backfill, so a blind repoint would undo that at the worst
+    possible moment."""
+    from app.db import seed as seed_module
+
+    dispute = make_dispute("disp_synthetic_7001")
+    row = DisputeRow.from_schema(dispute)
+    row.payment_id = "pay_REALTESTMODE01"
+    session.add(row)
+    session.commit()
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def fake_scope():
+        yield session
+
+    monkeypatch.setattr(seed_module, "session_scope", fake_scope)
+    monkeypatch.setattr(seed_module, "init_db", lambda: None)
+    monkeypatch.setattr(seed_module, "load_working_set", lambda: [dispute])
+
+    seed_module.seed(rebase=False)
+
+    assert session.get(DisputeRow, "disp_synthetic_7001").payment_id == "pay_REALTESTMODE01"
+
+
+def test_a_real_payment_in_the_dataset_still_repoints_a_placeholder(session, monkeypatch):
+    """The guard must be narrow: the backfill's whole job is to promote a real id."""
+    from contextlib import contextmanager
+
+    from app.db import seed as seed_module
+
+    dispute = make_dispute("disp_synthetic_7002").model_copy(
+        update={"payment_id": "pay_FROMBACKFILL"}
+    )
+    session.add(DisputeRow.from_schema(make_dispute("disp_synthetic_7002")))
+    session.commit()
+
+    @contextmanager
+    def fake_scope():
+        yield session
+
+    monkeypatch.setattr(seed_module, "session_scope", fake_scope)
+    monkeypatch.setattr(seed_module, "init_db", lambda: None)
+    monkeypatch.setattr(seed_module, "load_working_set", lambda: [dispute])
+
+    seed_module.seed(rebase=False)
+
+    assert session.get(DisputeRow, "disp_synthetic_7002").payment_id == "pay_FROMBACKFILL"
+
+
+def test_a_missing_column_is_added_without_dropping_the_database(tmp_path):
+    """create_all never ALTERs an existing table, so every added column used to stale the
+    database and the remedy was deleting it -- discarding every decision and audit entry."""
+    from sqlalchemy import Column, Integer, MetaData, Table, create_engine, inspect, text
+
+    db = tmp_path / "drift.db"
+    engine = create_engine(f"sqlite:///{db.as_posix()}", future=True)
+
+    # A table as it existed before a column was added.
+    old = MetaData()
+    Table("widgets", old, Column("id", Integer, primary_key=True))
+    old.create_all(engine)
+    with engine.begin() as c:
+        c.execute(text("INSERT INTO widgets (id) VALUES (1)"))
+
+    # The same table as the models now declare it.
+    new = MetaData()
+    Table(
+        "widgets",
+        new,
+        Column("id", Integer, primary_key=True),
+        Column("added_later", Integer, nullable=True),
+    )
+
+    from app.db import database as db_module
+
+    original_engine, original_base = db_module.engine, db_module.Base
+    try:
+        db_module.engine = engine
+
+        class FakeBase:
+            metadata = new
+
+        db_module.Base = FakeBase
+        db_module._add_missing_columns()
+    finally:
+        db_module.engine, db_module.Base = original_engine, original_base
+
+    assert "added_later" in {c["name"] for c in inspect(engine).get_columns("widgets")}
+    with engine.connect() as c:
+        assert c.execute(text("SELECT COUNT(*) FROM widgets")).scalar() == 1, "row survived"
+    engine.dispose()

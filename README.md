@@ -245,6 +245,45 @@ First run downloads the NLI model (~750MB) from Hugging Face and caches it.
 
 ---
 
+## Running it in one command (Docker)
+
+```bash
+cp .env.example .env      # add your rzp_test_ keys
+docker compose up --build # -> http://localhost:8000
+```
+
+One image, one process, one port: the frontend is built in a Node stage and served by
+FastAPI alongside the API. There is no CORS hop and no second terminal.
+
+The API lives under `/api` there, which is the prefix the frontend already calls in
+development, so the same build works in both places without a base-URL variable. The two
+are composed rather than merged for a specific reason: the API owns `/disputes` and the
+frontend routes on the same path, so a merged app would serve JSON to anyone who pasted a
+case URL into their browser. See `backend/app/server.py`.
+
+The NLI model (~750MB) is **not** baked into the image — it downloads on first start into a
+named volume, so it is fetched once rather than per container, and you can always tell which
+weights are running. Expect the first boot to take a few minutes; `/ready` returns 503 until
+the model is in memory, and the container's healthcheck waits on it.
+
+An empty database seeds itself on first start, so the queue is populated without a separate
+step. Both the database and the model cache live in named volumes and survive
+`docker compose down`.
+
+> **Not verified on this machine.** Docker is not installed on the machine this was built
+> on, so the compose file and Dockerfile are written but have never been built. The
+> single-origin server they run (`uvicorn app.server:site`) *is* verified — see below. If
+> the build needs a fix, that is where to look first.
+
+To run that same single-origin server without Docker:
+
+```bash
+cd frontend && npm run build
+cd ../backend && uvicorn app.server:site --port 8000   # -> http://localhost:8000
+```
+
+---
+
 ## Running it
 
 Two terminals.

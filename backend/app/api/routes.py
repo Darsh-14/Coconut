@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.db.database import get_session
-from app.db.models import AuditLogRow, DecisionRow, DisputeRow
+from app.db.models import AuditLogRow, CalibrationRow, DecisionRow, DisputeRow
 from app.models.schemas import (
     ApproveRequest,
     CalibrateRequest,
@@ -676,7 +676,9 @@ def _calibration_pairs(cache: dict) -> list[tuple[float, str]]:
 
 
 @router.post("/calibrate", response_model=CalibrationResult, tags=["calibration"])
-def calibrate(body: CalibrateRequest) -> CalibrationResult:
+def calibrate(
+    body: CalibrateRequest, session: Session = Depends(get_session)
+) -> CalibrationResult:
     """Calibrate the decision threshold to a stated maximum false-positive rate.
 
     Replays the threshold search over cached scores, so this is instant regardless of how
@@ -695,6 +697,19 @@ def calibrate(body: CalibrateRequest) -> CalibrationResult:
     pairs = _calibration_pairs(cache)
     lam = calibrate_threshold(pairs, body.alpha, body.delta)
     set_active_threshold(lam, body.alpha, body.delta)
+
+    # Persisted so a restart does not silently revert the operator's budget to a built-in
+    # default. The threshold decides every recommendation, so losing it changes what the
+    # product does with nothing in the record to explain why.
+    session.add(
+        CalibrationRow(
+            alpha=body.alpha,
+            delta=body.delta,
+            threshold=lam,
+            calibration_set_size=len(pairs),
+        )
+    )
+    session.commit()
 
     r_hat, n_lam = (None, 0) if lam is None else empirical_fp_rate(pairs, lam)
     floor = smallest_achievable_alpha(pairs, body.delta)
