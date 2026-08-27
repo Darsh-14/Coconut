@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -41,9 +42,11 @@ from app.models.schemas import (
     DisputeDetail,
     DisputeSummary,
     EvalMetrics,
+    EvidenceDocument,
     URCSForecast,
 )
 from app.services.decision_aggregator import aggregate, build_decision
+from app.services.evidence_documents import render_document
 from app.services.conformal_calibrator import (
     active_state,
     calibrate_threshold,
@@ -177,6 +180,46 @@ def urcs_forecast(dispute_id: str, session: Session = Depends(get_session)) -> U
     """
     dispute = _load_dispute(session, dispute_id).to_schema()
     return forecast_urcs_disposition(dispute, _payer_history(session, dispute))
+
+
+@router.get(
+    "/disputes/{dispute_id}/evidence/{index}/document",
+    response_model=EvidenceDocument,
+    tags=["disputes"],
+)
+def evidence_document(
+    dispute_id: str, index: int, session: Session = Depends(get_session)
+) -> EvidenceDocument:
+    """Open the record behind an evidence item's source_ref.
+
+    The bundle's `source_ref` values used to be dangling strings. This resolves one to a
+    document whose body is the evidence content verbatim -- see
+    services/evidence_documents.py for why nothing may be added to it.
+    """
+    row = _load_dispute(session, dispute_id)
+    items = row.evidence_items()
+    if not 0 <= index < len(items):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{dispute_id} has no evidence item at index {index}",
+        )
+    return render_document(row.to_schema(), index, items[index])
+
+
+@router.get("/disputes/{dispute_id}/evidence/{index}/download", tags=["disputes"])
+def evidence_download(
+    dispute_id: str, index: int, session: Session = Depends(get_session)
+) -> PlainTextResponse:
+    """The same record as a downloadable text file, for handing to an acquirer or auditor."""
+    doc = evidence_document(dispute_id, index, session)
+    lines = [doc.title, "=" * len(doc.title), ""]
+    lines += [f"{f.label}: {f.value}" for f in doc.fields]
+    lines += ["", doc.body, "", "--", doc.synthetic_notice]
+    filename = f"{doc.source_ref or f'evidence_{index}'}.txt".replace("/", "_")
+    return PlainTextResponse(
+        "\n".join(lines),
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post(

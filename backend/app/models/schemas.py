@@ -72,6 +72,46 @@ class EvidenceItem(BaseModel):
         return v
 
 
+# One kind per EvidenceType, so a document can never disagree with the type shown on the
+# case page and counted by the Section 10 distinct-types rule.
+EvidenceDocumentKind = Literal[
+    "proof_of_delivery",
+    "support_transcript",
+    "order_record",
+    "device_report",
+    "generic",
+]
+
+
+class EvidenceField(BaseModel):
+    """One provenance row on a rendered evidence document."""
+
+    label: str
+    value: str
+
+
+class EvidenceDocument(BaseModel):
+    """An evidence item rendered as the record its source_ref implies.
+
+    `body` is the evidence content reproduced verbatim -- nothing is added to it (see
+    services/evidence_documents.py). `content_hash` is the SHA-256 of exactly the text the
+    verification engine scored, so the document and the verdict are provably about the
+    same bytes.
+    """
+
+    dispute_id: str
+    evidence_index: int
+    source_ref: Optional[str] = None
+    kind: EvidenceDocumentKind
+    title: str
+    system_of_record: str
+    fields: list[EvidenceField]
+    body: str
+    body_format: Literal["text", "transcript", "csv"]
+    content_hash: str
+    synthetic_notice: str
+
+
 class Dispute(BaseModel):
     dispute_id: str
     payment_id: str  # links to a REAL test-mode Razorpay payment (Section 7)
@@ -278,6 +318,8 @@ __all__ = [
     "Dispute",
     "DisputePhase",
     "EvalMetrics",
+    "EvidenceDocument",
+    "EvidenceField",
     "EvidenceItem",
     "EvidenceType",
     "GroundTruthLabel",

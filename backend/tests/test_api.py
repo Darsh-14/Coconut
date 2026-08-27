@@ -298,3 +298,59 @@ def test_evaluate_returns_sane_metrics(client):
 
     expected_coverage = (metrics["n_evaluated"] - cm["flagged_human"]) / metrics["n_evaluated"]
     assert metrics["coverage"] == pytest.approx(expected_coverage, abs=1e-4)
+
+
+# --- evidence documents -----------------------------------------------------------------
+# The bundle's source_ref values used to resolve to nothing. These pin that they now open,
+# and that opening one cannot become a way to show text the engine never scored.
+
+
+def test_evidence_document_opens_the_record_behind_a_source_ref(client):
+    response = client.get("/disputes/disp_synthetic_9001/evidence/0/document")
+    assert response.status_code == 200
+
+    doc = response.json()
+    assert doc["source_ref"] == "pod_9001"
+    assert doc["kind"] == "proof_of_delivery"
+    assert doc["evidence_index"] == 0
+    assert doc["system_of_record"]
+
+
+def test_document_body_matches_the_evidence_the_engine_scored(client):
+    detail = client.get("/disputes/disp_synthetic_9001").json()
+    scored = detail["dispute"]["evidence_bundle"][0]["content"]
+
+    doc = client.get("/disputes/disp_synthetic_9001/evidence/0/document").json()
+    assert doc["body"] == scored, "the document must not reword or extend the evidence"
+
+
+def test_document_hash_is_verifiable_by_the_reader(client):
+    import hashlib
+
+    doc = client.get("/disputes/disp_synthetic_9001/evidence/0/document").json()
+    assert doc["content_hash"] == hashlib.sha256(doc["body"].encode("utf-8")).hexdigest()
+
+
+def test_evidence_without_a_source_ref_still_opens(client):
+    response = client.get("/disputes/disp_synthetic_9002/evidence/0/document")
+    assert response.status_code == 200
+    assert response.json()["source_ref"] is None
+
+
+def test_out_of_range_evidence_index_is_404_not_500(client):
+    assert client.get("/disputes/disp_synthetic_9001/evidence/99/document").status_code == 404
+
+
+def test_unknown_dispute_evidence_is_404(client):
+    assert client.get("/disputes/disp_nope/evidence/0/document").status_code == 404
+
+
+def test_evidence_downloads_as_an_attachment(client):
+    response = client.get("/disputes/disp_synthetic_9001/evidence/0/download")
+    assert response.status_code == 200
+    assert "attachment" in response.headers["content-disposition"]
+    assert "pod_9001.txt" in response.headers["content-disposition"]
+
+    body = response.text
+    assert "The recipient signed for the parcel" in body
+    assert "Synthetic record" in body, "an exported record must carry its own disclaimer"

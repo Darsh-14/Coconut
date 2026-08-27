@@ -170,6 +170,7 @@ export default function CaseDetail() {
             {tab === 'evidence' && (
               <>
                 <EvidenceClaimMap
+                  disputeId={dispute.dispute_id}
                   evidence={dispute.evidence_bundle}
                   verdicts={decision?.claim_verdicts ?? []}
                 />

@@ -83,6 +83,33 @@ export interface EvidenceItem {
   source_ref: string | null
 }
 
+export type EvidenceDocumentKind =
+  | 'proof_of_delivery'
+  | 'support_transcript'
+  | 'order_record'
+  | 'device_report'
+  | 'generic'
+
+export interface EvidenceField {
+  label: string
+  value: string
+}
+
+/** An evidence item rendered as the record its source_ref implies. `body` is verbatim. */
+export interface EvidenceDocument {
+  dispute_id: string
+  evidence_index: number
+  source_ref: string | null
+  kind: EvidenceDocumentKind
+  title: string
+  system_of_record: string
+  fields: EvidenceField[]
+  body: string
+  body_format: 'text' | 'transcript' | 'csv'
+  content_hash: string
+  synthetic_notice: string
+}
+
 export interface Dispute {
   dispute_id: string
   payment_id: string
@@ -228,6 +255,10 @@ export const api = {
       body: JSON.stringify({ alpha, delta }),
     }),
   verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
+  evidenceDocument: (id: string, index: number) =>
+    request<EvidenceDocument>(`/disputes/${id}/evidence/${index}/document`),
+  evidenceDownloadUrl: (id: string, index: number) =>
+    `/api/disputes/${id}/evidence/${index}/download`,
 }
 
 // --- formatting helpers -------------------------------------------------------------

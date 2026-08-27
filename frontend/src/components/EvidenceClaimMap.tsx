@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import type { ClaimVerdict, EvidenceItem } from '../api/client'
+import { EvidenceDocumentViewer } from './EvidenceDocumentViewer'
 import { evidenceLabel, VERDICTS } from '../lib/labels'
 import { Meter } from './ui'
 import { VerdictBadge } from './ConfidenceBadge'
@@ -24,15 +26,20 @@ function HighlightedText({ content, span }: { content: string; span: string | nu
 }
 
 export function EvidenceClaimMap({
+  disputeId,
   evidence,
   verdicts,
 }: {
+  disputeId: string
   evidence: EvidenceItem[]
   verdicts: ClaimVerdict[]
 }) {
   const byIndex = new Map(verdicts.map((v) => [v.evidence_index, v]))
+  // Which record is open, by bundle index. null = none.
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
+    <>
     <ol className="space-y-2.5">
       {evidence.map((item, index) => {
         const verdict = byIndex.get(index)
@@ -58,14 +65,15 @@ export function EvidenceClaimMap({
                     >
                       {evidenceLabel(item.type)}
                     </span>
-                    {item.source_ref && (
-                      <code
-                        className="num rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] text-[var(--fg-3)]"
-                        title="Cited in the representment"
-                      >
-                        {item.source_ref}
-                      </code>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setOpenIndex(index)}
+                      title="Open the record behind this evidence"
+                      className="focus-ring num rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[11px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {item.source_ref ?? 'open record'}
+                    </button>
                   </div>
 
                   {verdict ? (
@@ -99,6 +107,16 @@ export function EvidenceClaimMap({
         )
       })}
     </ol>
+
+    {openIndex !== null && (
+      <EvidenceDocumentViewer
+        disputeId={disputeId}
+        index={openIndex}
+        verdict={byIndex.get(openIndex)}
+        onClose={() => setOpenIndex(null)}
+      />
+    )}
+    </>
   )
 }
 

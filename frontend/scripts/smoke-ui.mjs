@@ -61,6 +61,39 @@ const marks = await page.locator('mark.span').count()
 log(`3. CASE       ${targetId} rec=${JSON.stringify(rec)} evidence=${evidenceCards} spans=${marks}`)
 await page.screenshot({ path: `${SHOTS}/3-case.png`, fullPage: true })
 
+// --- 3b. evidence records ------------------------------------------------
+// Every source_ref must open the record behind it, and that record must reproduce the
+// evidence verbatim -- the hash is what makes "verbatim" checkable rather than asserted.
+const refChips = page.locator('button[title="Open the record behind this evidence"]')
+const refCount = await refChips.count()
+let recordsOk = 0
+for (let i = 0; i < refCount; i++) {
+  await refChips.nth(i).click()
+  const dialog = page.locator('[role="dialog"]')
+  await dialog.waitFor({ timeout: 15000 })
+  await page.waitForFunction(
+    () => !document.querySelector('[role="dialog"] .skeleton'),
+    undefined,
+    { timeout: 15000 },
+  )
+  const doc = await page.evaluate(
+    async ([id, idx]) => (await fetch(`/api/disputes/${id}/evidence/${idx}/document`)).json(),
+    [targetId, i],
+  )
+  const shown = await dialog.innerText()
+  const digest = [...new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(doc.body)),
+  )]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  if (shown.includes(doc.body) && doc.content_hash === digest) recordsOk++
+  if (i === 0) await page.screenshot({ path: `${SHOTS}/3b-record.png` })
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'detached', timeout: 5000 })
+}
+log(`3b. RECORDS   ${recordsOk}/${refCount} source_refs open and hash-verify`)
+if (recordsOk !== refCount) errors.push(`only ${recordsOk}/${refCount} evidence records verified`)
+
 // --- 4. approve, then the audit tab --------------------------------------
 const approve = page.getByRole('button', { name: /^Approve/ }).first()
 if (await approve.count()) {
