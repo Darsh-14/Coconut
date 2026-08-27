@@ -24,6 +24,7 @@ The dispute method signatures below were read from the installed package
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
@@ -242,6 +243,24 @@ class RazorpayClient:
         return self._dispute_call("contest", dispute_id, payload)
 
 
+_client_lock = threading.Lock()
+_client_singleton: Optional["RazorpayClient"] = None
+
+
+def get_razorpay_client() -> "RazorpayClient":
+    """One shared client per process, built lazily.
+
+    Lazy because constructing it reads settings, and settings hard-fail on a non-test key
+    -- which must surface at startup via config validation, not on an unrelated import.
+    Locked because FastAPI serves sync endpoints from a threadpool.
+    """
+    global _client_singleton
+    with _client_lock:
+        if _client_singleton is None:
+            _client_singleton = RazorpayClient()
+        return _client_singleton
+
+
 def build_contest_payload(
     *, dispute_id: str, amount_paise: int, packet_text: str, evidence_refs: list[str]
 ) -> dict[str, Any]:
@@ -270,6 +289,7 @@ __all__ = [
     "RazorpayClient",
     "RazorpayError",
     "build_contest_payload",
+    "get_razorpay_client",
     "is_placeholder_payment_id",
     "is_synthetic_dispute_id",
 ]

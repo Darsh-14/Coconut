@@ -56,11 +56,52 @@ def _enable_sqlite_foreign_keys(dbapi_connection, _record) -> None:
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
 
 
+def _add_missing_columns() -> None:
+    """Add columns the ORM declares but the existing database file lacks.
+
+    `create_all` only creates missing TABLES -- it will not alter one that already exists.
+    So every time a column was added to a model, the running database silently went stale
+    and the fix was to delete recourse.db, which also threw away every decision and audit
+    entry recorded against it. For an app that argues its audit trail is the point, losing
+    the audit trail to a schema change is not an acceptable upgrade path.
+
+    This closes that gap for the only schema change SQLite handles cheaply and safely:
+    adding a nullable/defaulted column. Anything harder -- dropping a column, changing a
+    type, adding a constraint -- is deliberately NOT attempted here; it needs a real
+    migration tool, and silently half-doing it would be worse than failing loudly.
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+
+    inspector = sa_inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+
+    with engine.begin() as connection:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existing_tables:
+                continue  # create_all just made it; it is already current
+            present = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in present:
+                    continue
+                if not (column.nullable or column.default is not None or column.server_default):
+                    logger.error(
+                        "column %s.%s is missing and is NOT NULL without a default; "
+                        "this needs a manual migration",
+                        table.name,
+                        column.name,
+                    )
+                    continue
+                ddl = f"ALTER TABLE {table.name} ADD COLUMN {column.name} {column.type.compile(engine.dialect)}"
+                connection.execute(text(ddl))
+                logger.warning("migrated: added %s.%s", table.name, column.name)
+
+
 def init_db() -> None:
-    """Create any missing tables. Safe to call repeatedly."""
+    """Create any missing tables and columns. Safe to call repeatedly."""
     from app.db import models  # noqa: F401  -- registers models on Base.metadata
 
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
     logger.info("database ready at %s", engine.url)
 
 

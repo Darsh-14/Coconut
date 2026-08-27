@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, countdownTo, formatInr, parseApiDate, type DisputeDetail } from '../api/client'
 import { AuditTrail } from '../components/AuditTrail'
+import { BackingPayment } from '../components/BackingPayment'
 import { EvidenceClaimMap, EvidenceSummary } from '../components/EvidenceClaimMap'
 import { PhaseBadge, RecommendationBanner, StatusBadge } from '../components/ConfidenceBadge'
 import { UrcsBudgetStrip } from '../components/UrcsBudgetStrip'
@@ -220,13 +221,28 @@ export default function CaseDetail() {
               <Fact label="Stage">{phaseCopy(dispute.phase).meaning}</Fact>
               <Fact label="Payment">
                 <span className="num">{dispute.payment_id}</span>
-                {detail.payment_is_real && (
+                {detail.payment_is_real ? (
                   <span className="ml-1.5 text-[var(--win)]">real</span>
+                ) : (
+                  <span className="ml-1.5 text-[var(--fg-3)]">placeholder</span>
                 )}
               </Fact>
               <Fact label="Wins on">{reason.wins}</Fact>
             </dl>
           </Surface>
+
+          {!detail.payment_is_real && (
+            <Surface className="p-4">
+              <p className="mb-2.5 text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+                Backing payment
+              </p>
+              <BackingPayment
+                disputeId={dispute.dispute_id}
+                amount={dispute.amount}
+                onAttached={() => void load()}
+              />
+            </Surface>
+          )}
 
           {decision && (
             <Surface className="p-4">

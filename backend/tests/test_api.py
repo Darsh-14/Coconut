@@ -27,6 +27,11 @@ from app.main import app
 from app.models.schemas import Dispute, EvidenceItem
 
 
+# Set by the client fixture so tests can reset rows directly. The database is
+# module-scoped, so backing tests must not depend on the order they run in.
+_session_factory = None
+
+
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
     db_path = tmp_path_factory.mktemp("api") / "test.db"
@@ -42,6 +47,8 @@ def client(tmp_path_factory):
             session.close()
 
     app.dependency_overrides[get_session] = override_session
+    global _session_factory
+    _session_factory = factory
 
     with factory() as session:
         for dispute in _seed_disputes():
@@ -354,3 +361,148 @@ def test_evidence_downloads_as_an_attachment(client):
     body = response.text
     assert "The recipient signed for the parcel" in body
     assert "Synthetic record" in body, "an exported record must carry its own disclaimer"
+
+
+# --- backing a dispute with a real test-mode payment -------------------------------------
+# Razorpay is stubbed here: the suite must not make network calls, and the behaviour worth
+# pinning is ours -- when we do and do not claim a payment is real.
+
+
+class FakeRazorpay:
+    """Stands in for RazorpayClient, recording what it was asked to do."""
+
+    def __init__(self, payments=None, order_status="created"):
+        self.payments = payments or []
+        self.order_status = order_status
+        self.created_orders = []
+
+    def create_backing_order(self, amount_paise, receipt):
+        order_id = f"order_FAKE{len(self.created_orders)}"
+        self.created_orders.append((order_id, amount_paise, receipt))
+        return {"id": order_id, "amount": amount_paise, "currency": "INR",
+                "status": self.order_status}
+
+    def fetch_order(self, order_id):
+        return {"id": order_id, "amount": 249900, "currency": "INR",
+                "status": self.order_status}
+
+    def fetch_order_payments(self, order_id):
+        return self.payments
+
+
+@pytest.fixture
+def unbacked_dispute():
+    """Return disp_synthetic_9002 to its unbacked state before and after each test.
+
+    The database is module-scoped, so without this a test that promotes a payment would
+    silently change what later tests see -- and the failure would look like a bug in the
+    endpoint rather than in the fixtures.
+    """
+    dispute_id = "disp_synthetic_9002"
+
+    def reset():
+        with _session_factory() as session:
+            row = session.get(DisputeRow, dispute_id)
+            row.payment_id = "pay_PENDING_9002"
+            row.razorpay_order_id = None
+            session.commit()
+
+    reset()
+    yield dispute_id
+    reset()
+
+
+@pytest.fixture
+def fake_razorpay(monkeypatch):
+    def install(**kwargs):
+        fake = FakeRazorpay(**kwargs)
+        monkeypatch.setattr("app.api.routes.get_razorpay_client", lambda: fake)
+        return fake
+
+    return install
+
+
+def test_backing_order_is_created_for_a_placeholder_payment(client, fake_razorpay, unbacked_dispute):
+    fake = fake_razorpay()
+    response = client.post("/disputes/disp_synthetic_9002/backing-order")
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["order_id"].startswith("order_")
+    assert body["reused"] is False
+    assert len(fake.created_orders) == 1
+
+
+def test_backing_order_exposes_only_the_publishable_key(client, fake_razorpay, unbacked_dispute):
+    """The secret must never reach the browser. Asserted against the raw response body,
+    not just the parsed keys, so it cannot leak inside some other field."""
+    import json
+
+    from app.config import get_settings
+
+    fake_razorpay()
+    response = client.post("/disputes/disp_synthetic_9002/backing-order")
+    body = response.json()
+
+    assert body["key_id"].startswith("rzp_test_")
+    assert body["key_id"] == get_settings().razorpay_key_id
+    assert get_settings().razorpay_key_secret not in response.text
+    assert "secret" not in json.dumps(body).lower()
+
+
+def test_a_second_request_reuses_the_existing_order(client, fake_razorpay, unbacked_dispute):
+    """Otherwise every button press litters the Razorpay account with a new order."""
+    fake = fake_razorpay()
+    client.post("/disputes/disp_synthetic_9002/backing-order")
+    second = client.post("/disputes/disp_synthetic_9002/backing-order").json()
+    assert second["reused"] is True
+    assert len(fake.created_orders) == 1
+
+
+def test_an_already_backed_dispute_refuses_a_new_order(client, fake_razorpay):
+    fake_razorpay()
+    response = client.post("/disputes/disp_synthetic_9001/backing-order")
+    assert response.status_code == 409
+
+
+def test_status_reports_real_for_a_dispute_that_already_has_one(client, fake_razorpay):
+    fake_razorpay()
+    body = client.get("/disputes/disp_synthetic_9001/backing-status").json()
+    assert body["payment_is_real"] is True
+    assert body["payment_id"] == "pay_TUSjwsBKtOQpWj"
+
+
+def test_no_payment_is_claimed_before_checkout_completes(client, fake_razorpay, unbacked_dispute):
+    fake_razorpay(payments=[])
+    client.post("/disputes/disp_synthetic_9002/backing-order")
+    body = client.get("/disputes/disp_synthetic_9002/backing-status").json()
+    assert body["payment_is_real"] is False
+    assert body["payment_id"].startswith("pay_PENDING_")
+
+
+def test_a_failed_payment_attempt_is_never_promoted(client, fake_razorpay, unbacked_dispute):
+    """A dead id on the dispute would make the 'real payment' claim false -- which is the
+    one thing this whole flow exists to make true."""
+    fake_razorpay(payments=[{"id": "pay_FAILED1", "status": "failed"}])
+    client.post("/disputes/disp_synthetic_9002/backing-order")
+    body = client.get("/disputes/disp_synthetic_9002/backing-status").json()
+    assert body["payment_is_real"] is False
+    assert body["payments_seen"] == 1
+    assert "pay_FAILED1" not in body["payment_id"]
+
+
+@pytest.mark.parametrize("state", ["captured", "authorized"])
+def test_a_completed_payment_is_promoted_onto_the_dispute(client, fake_razorpay, unbacked_dispute, state):
+    fake_razorpay(payments=[{"id": f"pay_REAL_{state}", "status": state}])
+    client.post("/disputes/disp_synthetic_9002/backing-order")
+
+    body = client.get("/disputes/disp_synthetic_9002/backing-status").json()
+    assert body["payment_is_real"] is True
+    assert body["payment_id"] == f"pay_REAL_{state}"
+
+    # and it sticks, on the dispute itself
+    detail = client.get("/disputes/disp_synthetic_9002").json()
+    assert detail["dispute"]["payment_id"] == f"pay_REAL_{state}"
+    assert detail["payment_is_real"] is True
+
+

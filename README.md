@@ -283,21 +283,47 @@ Light and dark themes both ship; the toggle is at the foot of the sidebar.
 
 ### Backing disputes with real Razorpay payments
 
+Section 7 wants each dispute's `payment_id` to point at a genuine test-mode payment. Most
+seeded disputes still carry a `pay_PENDING_` placeholder, and the reason is worth stating
+plainly rather than hiding: **Razorpay exposes no endpoint that fabricates a payment.**
+Orders are creatable over the API; a payment only comes into existence when someone
+completes a Checkout interaction. Server-to-server payment creation
+(`payment.createUpi`, `payment.createPaymentJson`) returns 404 on a standard test account,
+so there is no API-only route to a real `pay_...` id.
+
+The app therefore does the part software can do and stops where a person is required --
+the same shape as the approve flow. **Open any dispute whose payment reads `placeholder`
+and click "Attach a real test payment":**
+
+1. A real test-mode order is created against your account (visible in the Razorpay
+   dashboard) and stored on the dispute.
+2. Razorpay Checkout opens in test mode, branded, for the dispute's amount.
+3. Pay with **UPI and the test VPA `success@razorpay`**. The generic
+   `4111 1111 1111 1111` card is treated as *international* and Indian test accounts
+   reject it.
+4. The backend reads the payment id back **off the order via the Razorpay API** -- not
+   from the browser callback -- and promotes it onto the dispute. The case page relabels
+   the payment `real`.
+
+Only `captured` or `authorized` payments are promoted. A failed or abandoned attempt is
+never attached, because a dead id on the dispute would make the "backed by a real payment"
+claim false -- the one thing this flow exists to make true.
+
+Repeat pressing is safe: an existing order is reused rather than creating a new one each
+time, and a dispute that is already backed refuses a second order with a 409.
+
+**There is deliberately no script that completes checkouts in bulk.** Razorpay's checkout
+is protected by a captcha, and automating past it would mean circumventing a
+bot-protection control on someone else's production infrastructure. Backing is a
+deliberate, per-dispute act.
+
+The older batch tooling still exists for creating orders and payment links ahead of time:
+
 ```bash
 cd backend
 python data/backfill_razorpay_backing.py --limit 12 --with-payment-links
-python data/verify_razorpay_backing.py     # checks all three acceptance criteria
-```
-
-This creates **real test-mode orders** via the Razorpay API. Razorpay has no API to
-fabricate a *payment*, so to get a real `pay_...` id, open one of the printed payment links
-and complete it. Use **UPI with the test VPA `success@razorpay`** — the generic
-`4111 1111 1111 1111` card is treated as *international* and Indian test accounts reject it.
-Then:
-
-```bash
 python data/backfill_razorpay_backing.py --refresh-payments-only
-python -m app.db.seed          # repoints the queue at the real payment id
+python data/verify_razorpay_backing.py     # checks all three acceptance criteria
 ```
 
 ---

@@ -83,6 +83,28 @@ export interface EvidenceItem {
   source_ref: string | null
 }
 
+/** Everything the browser needs to open Razorpay Checkout. `key_id` is the publishable
+ *  test key; the secret never leaves the server. */
+export interface BackingOrder {
+  dispute_id: string
+  order_id: string
+  amount: number
+  currency: string
+  key_id: string
+  description: string
+  reused: boolean
+}
+
+export interface BackingStatus {
+  dispute_id: string
+  payment_id: string
+  payment_is_real: boolean
+  order_id: string | null
+  order_status: string | null
+  payments_seen: number
+  message: string
+}
+
 export type EvidenceDocumentKind =
   | 'proof_of_delivery'
   | 'support_transcript'
@@ -255,6 +277,9 @@ export const api = {
       body: JSON.stringify({ alpha, delta }),
     }),
   verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
+  createBackingOrder: (id: string) =>
+    request<BackingOrder>(`/disputes/${id}/backing-order`, { method: 'POST' }),
+  backingStatus: (id: string) => request<BackingStatus>(`/disputes/${id}/backing-status`),
   evidenceDocument: (id: string, index: number) =>
     request<EvidenceDocument>(`/disputes/${id}/evidence/${index}/document`),
   evidenceDownloadUrl: (id: string, index: number) =>

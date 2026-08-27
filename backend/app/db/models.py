@@ -63,6 +63,10 @@ class DisputeRow(Base):
     # reads back as card-rail rather than failing.
     rail: Mapped[str] = mapped_column(String(8), nullable=False, default="card")
     payer_ref: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # The real test-mode order created to back this dispute with a genuine payment
+    # (Section 7). Set when a merchant starts the backing flow; the resulting pay_... id
+    # replaces the pay_PENDING_ placeholder in payment_id once Razorpay reports it.
+    razorpay_order_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     decisions: Mapped[list["DecisionRow"]] = relationship(
         back_populates="dispute",

@@ -303,6 +303,34 @@ class DisputeDetail(BaseModel):
     payment_is_real: bool
 
 
+class BackingOrder(BaseModel):
+    """Everything the browser needs to open Razorpay Checkout for a dispute.
+
+    `key_id` is the PUBLISHABLE test-mode key, which is designed to be embedded in a page.
+    The secret never leaves the server and must never be added to this model.
+    """
+
+    dispute_id: str
+    order_id: str
+    amount: int  # paise
+    currency: str
+    key_id: str
+    description: str
+    reused: bool  # True when an order already existed for this dispute
+
+
+class BackingStatus(BaseModel):
+    """Whether a dispute is backed by a genuine test-mode payment yet."""
+
+    dispute_id: str
+    payment_id: str
+    payment_is_real: bool
+    order_id: Optional[str] = None
+    order_status: Optional[str] = None
+    payments_seen: int = 0
+    message: str
+
+
 class ApproveRequest(BaseModel):
     """POST /disputes/{dispute_id}/approve."""
 
@@ -313,6 +341,8 @@ class ApproveRequest(BaseModel):
 __all__ = [
     "KNOWN_REASON_CODES",
     "AuditLogEntry",
+    "BackingOrder",
+    "BackingStatus",
     "ClaimVerdict",
     "Decision",
     "Dispute",

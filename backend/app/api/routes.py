@@ -40,6 +40,8 @@ from app.models.schemas import (
     Decision,
     Dispute,
     DisputeDetail,
+    BackingOrder,
+    BackingStatus,
     DisputeSummary,
     EvalMetrics,
     EvidenceDocument,
@@ -60,7 +62,9 @@ from app.services.conformal_calibrator import (
 from app.services.packet_generator import generate_packet
 from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.razorpay_client import (
+    RazorpayError,
     build_contest_payload,
+    get_razorpay_client,
     is_placeholder_payment_id,
 )
 from app.services.verification_engine import get_verification_engine
@@ -351,6 +355,156 @@ def approve(
         bool(entry.would_be_razorpay_payload),
     )
     return entry.to_schema()
+
+
+# --- backing a dispute with a real test-mode payment (Section 7) -----------------------
+# Section 7 requires each dispute's payment_id to reference a REAL test-mode payment, and
+# 181 of 182 seeded disputes still carry a pay_PENDING_ placeholder. The reason is not
+# laziness: Razorpay exposes no endpoint that fabricates a payment. Orders are creatable
+# over the API; payments only come into existence when someone completes a Checkout
+# interaction, and this account has server-to-server payment creation disabled (both
+# payment.createUpi and payment.createPaymentJson return 404), so there is no API-only
+# route to a genuine pay_... id.
+#
+# These two endpoints implement the route that does exist, which is also the one a real
+# merchant integration uses: create a real order, let Razorpay Checkout collect a test
+# payment against it in the browser, then read the resulting payment id back off the order
+# and promote it into the dispute. A human completes the payment. That is by design, not a
+# gap -- and it is the same "a human acts, the system records" shape as /approve.
+
+
+@router.post(
+    "/disputes/{dispute_id}/backing-order",
+    response_model=BackingOrder,
+    tags=["disputes"],
+)
+def create_backing_order(
+    dispute_id: str, session: Session = Depends(get_session)
+) -> BackingOrder:
+    """Create (or reuse) a real test-mode order to back this dispute."""
+    row = _load_dispute(session, dispute_id)
+
+    if not is_placeholder_payment_id(row.payment_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{dispute_id} is already backed by real payment {row.payment_id}.",
+        )
+
+    settings = get_settings()
+    client = get_razorpay_client()
+
+    # Reuse an order already created for this dispute rather than littering the account
+    # with one per button press.
+    if row.razorpay_order_id:
+        try:
+            order = client.fetch_order(row.razorpay_order_id)
+            return BackingOrder(
+                dispute_id=dispute_id,
+                order_id=order["id"],
+                amount=order["amount"],
+                currency=order["currency"],
+                key_id=settings.razorpay_key_id,
+                description=f"Recourse backing for {dispute_id}",
+                reused=True,
+            )
+        except RazorpayError:
+            logger.warning(
+                "stored order %s for %s no longer resolves; creating a new one",
+                row.razorpay_order_id,
+                dispute_id,
+            )
+
+    order = client.create_backing_order(row.amount, receipt=dispute_id[:40])
+    row.razorpay_order_id = order["id"]
+    session.commit()
+
+    return BackingOrder(
+        dispute_id=dispute_id,
+        order_id=order["id"],
+        amount=order["amount"],
+        currency=order["currency"],
+        key_id=settings.razorpay_key_id,
+        description=f"Recourse backing for {dispute_id}",
+        reused=False,
+    )
+
+
+@router.get(
+    "/disputes/{dispute_id}/backing-status",
+    response_model=BackingStatus,
+    tags=["disputes"],
+)
+def backing_status(
+    dispute_id: str, session: Session = Depends(get_session)
+) -> BackingStatus:
+    """Check the backing order for a completed payment, and promote it if there is one.
+
+    Called after Checkout reports success, and safe to poll: promotion is idempotent
+    because a dispute whose payment_id is already real short-circuits at the top.
+    """
+    row = _load_dispute(session, dispute_id)
+
+    if not is_placeholder_payment_id(row.payment_id):
+        return BackingStatus(
+            dispute_id=dispute_id,
+            payment_id=row.payment_id,
+            payment_is_real=True,
+            order_id=row.razorpay_order_id,
+            message=f"Backed by real test-mode payment {row.payment_id}.",
+        )
+
+    if not row.razorpay_order_id:
+        return BackingStatus(
+            dispute_id=dispute_id,
+            payment_id=row.payment_id,
+            payment_is_real=False,
+            message="No backing order yet. Start one to attach a real test payment.",
+        )
+
+    client = get_razorpay_client()
+    try:
+        order = client.fetch_order(row.razorpay_order_id)
+        payments = client.fetch_order_payments(row.razorpay_order_id)
+    except RazorpayError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
+
+    # Only a payment Razorpay actually holds money against counts. An attempt that failed
+    # or was abandoned must not be promoted -- that would put a dead id on the dispute and
+    # make the "real payment" claim false, which is the one thing this flow exists to make
+    # true.
+    usable = [p for p in payments if p.get("status") in {"captured", "authorized"}]
+
+    if not usable:
+        return BackingStatus(
+            dispute_id=dispute_id,
+            payment_id=row.payment_id,
+            payment_is_real=False,
+            order_id=row.razorpay_order_id,
+            order_status=order.get("status"),
+            payments_seen=len(payments),
+            message=(
+                "Order is live but no completed payment yet. "
+                "Finish the test checkout to attach one."
+            ),
+        )
+
+    promoted = usable[0]["id"]
+    previous = row.payment_id
+    row.payment_id = promoted
+    session.commit()
+    logger.info("promoted %s: %s -> real payment %s", dispute_id, previous, promoted)
+
+    return BackingStatus(
+        dispute_id=dispute_id,
+        payment_id=promoted,
+        payment_is_real=True,
+        order_id=row.razorpay_order_id,
+        order_status=order.get("status"),
+        payments_seen=len(payments),
+        message=f"Attached real test-mode payment {promoted}.",
+    )
 
 
 # --- conformal risk control (Addendum 3) ----------------------------------------------
