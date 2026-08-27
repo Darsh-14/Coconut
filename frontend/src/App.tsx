@@ -1,13 +1,66 @@
-import { BarChart3, House, ListFilter, Moon, Sun } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { BarChart3, House, ListFilter, LogOut } from 'lucide-react'
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { Mark, ThemeToggle } from './components/ThemeToggle'
+import { paths } from './lib/routes'
+import { DEMO_MERCHANT, currentSession, isSignedIn, signOut } from './lib/session'
 import CaseDetail from './pages/CaseDetail'
 import DisputeQueue from './pages/DisputeQueue'
+import Landing from './pages/Landing'
+import Login from './pages/Login'
 import MetricsDashboard from './pages/MetricsDashboard'
 import Overview from './pages/Overview'
 
+/**
+ * Two shells, not one.
+ *
+ * The landing and sign-in pages render bare — no sidebar, no app chrome — because they
+ * are the product's front door and are seen before anyone has a queue to navigate. The
+ * dashboard lives under /app behind that door. Everything inside it kept the paths it had,
+ * only prefixed, and those prefixes come from lib/routes so the move was one edit.
+ */
 export default function App() {
+  return (
+    <Routes>
+      <Route path={paths.landing} element={<Landing />} />
+      <Route path={paths.login} element={<Login />} />
+      <Route
+        path="/app/*"
+        element={
+          <RequireSession>
+            <AppShell />
+          </RequireSession>
+        }
+      />
+      <Route path="*" element={<BareNotFound />} />
+    </Routes>
+  )
+}
+
+/**
+ * Sends an unauthenticated visitor to the front door, remembering where they were headed
+ * so a pasted case link survives the round trip.
+ *
+ * Worth being precise about what this is: a UI convenience, not a security boundary. No
+ * API route is protected, and the session is a localStorage flag with no server component
+ * — see lib/session.ts for why that is deliberate rather than unfinished.
+ */
+function RequireSession({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  if (!isSignedIn()) {
+    return (
+      <Navigate
+        to={paths.login}
+        state={{ from: location.pathname + location.search }}
+        replace
+      />
+    )
+  }
+  return <>{children}</>
+}
+
+function AppShell() {
+  const location = useLocation()
   return (
     <div className="flex min-h-full">
       <Sidebar />
@@ -16,14 +69,14 @@ export default function App() {
         <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
           {/* Keyed on the route so recovering from a crash on one page does not leave the
               boundary latched shut when you navigate to another. */}
-          <ErrorBoundary key={useLocation().pathname}>
-          <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/disputes" element={<DisputeQueue />} />
-            <Route path="/disputes/:disputeId" element={<CaseDetail />} />
-            <Route path="/metrics" element={<MetricsDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ErrorBoundary key={location.pathname}>
+            <Routes>
+              <Route index element={<Overview />} />
+              <Route path="disputes" element={<DisputeQueue />} />
+              <Route path="disputes/:disputeId" element={<CaseDetail />} />
+              <Route path="metrics" element={<MetricsDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </ErrorBoundary>
         </div>
       </main>
@@ -44,7 +97,7 @@ function Sidebar() {
       style={{ borderColor: 'var(--line)' }}
     >
       <div>
-        <NavLink to="/" className="mb-7 flex items-center gap-2.5 px-2">
+        <NavLink to={paths.overview} className="focus-ring mb-7 flex items-center gap-2.5 rounded px-2">
           <Mark />
           <span className="leading-none">
             <span
@@ -60,13 +113,19 @@ function Sidebar() {
         </NavLink>
 
         <nav className="space-y-0.5">
-          <NavItem to="/" icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
+          <NavItem to={paths.overview} icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Overview
           </NavItem>
-          <NavItem to="/disputes" icon={<ListFilter size={16} strokeWidth={1.6} aria-hidden="true" />}>
+          <NavItem
+            to={paths.disputes}
+            icon={<ListFilter size={16} strokeWidth={1.6} aria-hidden="true" />}
+          >
             Disputes
           </NavItem>
-          <NavItem to="/metrics" icon={<BarChart3 size={16} strokeWidth={1.6} aria-hidden="true" />}>
+          <NavItem
+            to={paths.metrics}
+            icon={<BarChart3 size={16} strokeWidth={1.6} aria-hidden="true" />}
+          >
             Performance
           </NavItem>
         </nav>
@@ -74,7 +133,11 @@ function Sidebar() {
 
       <div className="space-y-4">
         <Guardrails />
-        <ThemeToggle />
+        <div className="space-y-0.5">
+          <ThemeToggle />
+          <SignOut />
+        </div>
+        <SignedInAs />
       </div>
     </aside>
   )
@@ -92,8 +155,8 @@ function MobileBar() {
       style={{ borderColor: 'var(--line)' }}
     >
       <div className="flex items-center justify-between gap-3">
-        <NavLink to="/" className="flex shrink-0 items-center gap-2">
-          <Mark />
+        <NavLink to={paths.overview} className="focus-ring flex shrink-0 items-center gap-2 rounded">
+          <Mark size={28} />
           <span
             className="text-[14px] tracking-[-0.02em]"
             style={{ fontVariationSettings: "'wght' 600" }}
@@ -101,13 +164,16 @@ function MobileBar() {
             Recourse
           </span>
         </NavLink>
-        <ThemeToggle compact />
+        <div className="flex items-center gap-1">
+          <ThemeToggle compact />
+          <SignOut compact />
+        </div>
       </div>
 
       <nav className="mt-2.5 flex gap-1 overflow-x-auto">
-        <MobileTab to="/">Overview</MobileTab>
-        <MobileTab to="/disputes">Disputes</MobileTab>
-        <MobileTab to="/metrics">Performance</MobileTab>
+        <MobileTab to={paths.overview}>Overview</MobileTab>
+        <MobileTab to={paths.disputes}>Disputes</MobileTab>
+        <MobileTab to={paths.metrics}>Performance</MobileTab>
       </nav>
     </div>
   )
@@ -117,9 +183,9 @@ function MobileTab({ to, children }: { to: string; children: React.ReactNode }) 
   return (
     <NavLink
       to={to}
-      end={to === '/'}
+      end={to === paths.overview}
       className={({ isActive }) =>
-        `pressable shrink-0 rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] ${
+        `pressable focus-ring shrink-0 rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] ${
           isActive
             ? 'bg-[var(--fg)] text-[var(--bg)]'
             : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)]'
@@ -144,9 +210,9 @@ function NavItem({
   return (
     <NavLink
       to={to}
-      end={to === '/'}
+      end={to === paths.overview}
       className={({ isActive }) =>
-        `pressable flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] ${
+        `pressable focus-ring flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] ${
           isActive
             ? 'bg-[var(--surface-3)] text-[var(--fg)]'
             : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]'
@@ -186,60 +252,36 @@ function Guardrails() {
   )
 }
 
-function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'dark')
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('recourse.theme', theme)
-  }, [theme])
-
-  const isDark = theme === 'dark'
+function SignOut({ compact = false }: { compact?: boolean }) {
+  const navigate = useNavigate()
   return (
     <button
       type="button"
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className={`pressable flex items-center gap-2.5 rounded-[var(--radius-control)] text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)] ${
+      onClick={() => {
+        signOut()
+        navigate(paths.landing, { replace: true })
+      }}
+      className={`pressable focus-ring flex items-center gap-2.5 rounded-[var(--radius-control)] text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)] ${
         compact ? 'p-2' : 'w-full px-2.5 py-2'
       }`}
       style={{ fontVariationSettings: "'wght' 510" }}
-      aria-label="Toggle colour theme"
+      aria-label="Sign out"
     >
-      <span className="text-[var(--fg-3)]">{isDark ? <Sun size={16} strokeWidth={1.6} aria-hidden="true" /> : <Moon size={16} strokeWidth={1.6} aria-hidden="true" />}</span>
-      {!compact && (isDark ? 'Light' : 'Dark')}
+      <span className="text-[var(--fg-3)]">
+        <LogOut size={16} strokeWidth={1.6} aria-hidden="true" />
+      </span>
+      {!compact && 'Sign out'}
     </button>
   )
 }
 
-// --- marks ----------------------------------------------------------------------------
-
-function Mark() {
+function SignedInAs() {
+  const session = currentSession()
   return (
-    <span
-      className="grid size-8 shrink-0 place-items-center rounded-[9px]"
-      style={{
-        background: 'linear-gradient(160deg, var(--fg) 0%, color-mix(in srgb, var(--fg) 78%, var(--accent)) 100%)',
-        color: 'var(--bg)',
-      }}
-    >
-      {/* Bespoke on purpose: the mark is the product's identity, not a UI affordance,
-          so it is not something to source from an icon set. */}
-      <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" aria-hidden="true">
-        <path
-          d="M12 3.2l6.8 2.9v5.2c0 4-2.8 7.4-6.8 8.7-4-1.3-6.8-4.7-6.8-8.7V6.1L12 3.2z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M9.2 12.1l2.1 2.1 4.1-4.3"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
+    <p className="px-2.5 text-[10.5px] leading-snug text-[var(--fg-3)]">
+      {session?.merchant ?? DEMO_MERCHANT}
+      <span className="mt-0.5 block opacity-70">Demo merchant · no account system</span>
+    </p>
   )
 }
 
@@ -250,11 +292,30 @@ function NotFound() {
         Page not found
       </h1>
       <NavLink
-        to="/"
-        className="mt-3 inline-block text-[13px] text-[var(--accent)] hover:underline"
+        to={paths.overview}
+        className="focus-ring mt-3 inline-block rounded text-[13px] text-[var(--accent)] hover:underline"
       >
         Back to overview
       </NavLink>
+    </div>
+  )
+}
+
+/** Outside the shell: an unknown top-level path has no sidebar to sit beside. */
+function BareNotFound() {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6" style={{ background: 'var(--bg)' }}>
+      <div className="surface max-w-sm p-8 text-center">
+        <h1 className="text-[15px]" style={{ fontVariationSettings: "'wght' 590" }}>
+          Page not found
+        </h1>
+        <NavLink
+          to={paths.landing}
+          className="focus-ring mt-3 inline-block rounded text-[13px] text-[var(--accent)] hover:underline"
+        >
+          Back to the front page
+        </NavLink>
+      </div>
     </div>
   )
 }

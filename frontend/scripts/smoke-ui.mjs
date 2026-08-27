@@ -15,7 +15,18 @@ const SHOTS = process.env.SHOTS_DIR ?? './.smoke-shots'
 const BASE = 'http://localhost:5173'
 
 const browser = await chromium.launch()
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+
+// The dashboard now sits behind a front door (pages/Login.tsx), so every page these
+// scripts open needs a session in localStorage or it lands on /login instead. The gate is
+// a UI convenience with no server component -- see lib/session.ts -- so seeding it here is
+// exactly what a signed-in reviewer's browser holds, not a bypass of anything.
+const SESSION = JSON.stringify({ merchant: 'Kettle & Grain', at: new Date().toISOString() })
+async function newPage(opts) {
+  const p = await browser.newPage(opts)
+  await p.addInitScript((s) => localStorage.setItem('recourse.session', s), SESSION)
+  return p
+}
+const page = await newPage({ viewport: { width: 1440, height: 1000 } })
 
 const errors = []
 page.on('console', (m) => {
@@ -26,13 +37,13 @@ page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 const log = (...a) => console.log(...a)
 
 // --- 1. overview ---------------------------------------------------------
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
 log(`1. OVERVIEW   heading=${JSON.stringify(await page.locator('h1').first().innerText())}`)
 await page.screenshot({ path: `${SHOTS}/1-overview.png` })
 
 // --- 2. queue ------------------------------------------------------------
-await page.goto(`${BASE}/disputes`, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/app/disputes`, { waitUntil: 'networkidle' })
 await page.waitForSelector('table tbody tr', { timeout: 30000 })
 const rowCount = await page.locator('table tbody tr').count()
 log(`2. DISPUTES   rows=${rowCount}`)
@@ -45,7 +56,7 @@ const decided = summaries.find((r) => r.recommendation === 'CONTEST')
 const targetId = (decided ?? summaries[0]).dispute_id
 
 // --- 3. case -------------------------------------------------------------
-await page.goto(`${BASE}/disputes/${targetId}`, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/app/disputes/${targetId}`, { waitUntil: 'networkidle' })
 await page.getByText(/Bank.s claim/).waitFor({ timeout: 30000 })
 
 const runBtn = page.getByRole('button', { name: /Run assessment/i })
@@ -119,7 +130,7 @@ log(`4. AUDIT      entries=${await page.locator('ol > li').count()} wouldSubmitL
 await page.screenshot({ path: `${SHOTS}/4-audit.png`, fullPage: true })
 
 // --- 5. evaluation -------------------------------------------------------
-await page.goto(`${BASE}/metrics`, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/app/metrics`, { waitUntil: 'networkidle' })
 await page.getByRole('button', { name: /Run evaluation/i }).click()
 await page.getByText('Live run, just now').waitFor({ timeout: 600000 })
 log('5. EVALUATION live results rendered')
@@ -127,7 +138,7 @@ await page.screenshot({ path: `${SHOTS}/5-metrics.png`, fullPage: true })
 
 // --- 6. dark theme -------------------------------------------------------
 await page.evaluate(() => localStorage.setItem('recourse.theme', 'dark'))
-await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
 await page.screenshot({ path: `${SHOTS}/6-overview-dark.png` })
 log('6. DARK       rendered')

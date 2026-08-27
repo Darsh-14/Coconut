@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { paths } from '../lib/routes'
 import { useNavigate } from 'react-router-dom'
 import {
   countdownTo,
@@ -128,7 +129,7 @@ export default function Overview() {
             <Panel
               title="Closing soonest"
               hint={stats.urgent ? `${stats.urgent} under 48h` : undefined}
-              onAll={() => navigate('/disputes')}
+              onAll={() => navigate(paths.disputes)}
               loading={loading}
               empty="Nothing urgent."
             >
@@ -143,7 +144,7 @@ export default function Overview() {
                     right={
                       <span className="num text-[12.5px] text-[var(--risk)]">{c.label}</span>
                     }
-                    onClick={() => navigate(`/disputes/${r.dispute_id}`)}
+                    onClick={() => navigate(paths.dispute(r.dispute_id))}
                   />
                 )
               })}
@@ -152,7 +153,7 @@ export default function Overview() {
             <Panel
               title="Ready to contest"
               hint={stats.contestCount ? `${stats.contestCount} cases` : undefined}
-              onAll={() => navigate('/disputes')}
+              onAll={() => navigate(paths.disputes)}
               loading={loading}
               empty={
                 stats.assessed
@@ -175,7 +176,7 @@ export default function Overview() {
                     </span>
                   }
                   right={<span className="num text-[12.5px]">{formatInr(r.amount)}</span>}
-                  onClick={() => navigate(`/disputes/${r.dispute_id}`)}
+                  onClick={() => navigate(paths.dispute(r.dispute_id))}
                 />
               ))}
             </Panel>
@@ -183,7 +184,7 @@ export default function Overview() {
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <ExposureByReason rows={rows ?? []} loading={loading} />
-            <ModelCard onOpen={() => navigate('/metrics')} />
+            <ModelCard onOpen={() => navigate(paths.metrics)} />
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { paths } from '../lib/routes'
 import { Link, useParams } from 'react-router-dom'
 import { api, countdownTo, formatInr, parseApiDate, type DisputeDetail } from '../api/client'
 import { AuditTrail } from '../components/AuditTrail'
@@ -496,7 +497,7 @@ function CaseSkeleton() {
 function BackLink() {
   return (
     <Link
-      to="/disputes"
+      to={paths.disputes}
       className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
     >
       <span aria-hidden="true">&larr;</span> Disputes

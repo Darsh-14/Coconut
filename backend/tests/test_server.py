@@ -72,11 +72,25 @@ def test_the_api_is_reachable_under_its_prefix(client):
 @pytest.mark.skipif(not FRONTEND_DIST.is_dir(), reason="no frontend build")
 @pytest.mark.parametrize(
     "path",
-    ["/", "/disputes", "/disputes/disp_synthetic_0004", "/metrics", "/anything-unknown"],
+    [
+        "/",                                     # landing
+        "/login",                                # front door
+        "/app",                                  # dashboard root
+        "/app/disputes",
+        "/app/disputes/disp_synthetic_0004",     # the pasted-case-URL case
+        "/app/metrics",
+        "/disputes",                             # pre-/app link someone may still hold
+        "/anything-unknown",
+    ],
 )
 def test_client_routes_serve_the_app_shell_not_json(client, path):
-    """The collision this whole module exists to avoid: /disputes is both an API route and
-    a client route, so a merged app would have served JSON to someone pasting a case URL."""
+    """The collision this whole module exists to avoid: a merged app would have served JSON
+    to someone pasting a case URL into their browser.
+
+    Moving the dashboard under /app shrank that surface -- no client route now shares a
+    path with an API route -- but the property still has to hold, including for the old
+    top-level /disputes URL, which must reach the app shell (and then the SPA's own
+    not-found) rather than 404 at the server."""
     response = client.get(path)
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")

@@ -1,4 +1,5 @@
 import { AlertTriangle, Inbox, SearchX } from 'lucide-react'
+import { paths } from '../lib/routes'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -82,7 +83,7 @@ export default function DisputeQueue() {
           onFiled={(id) => {
             setFiling(false)
             void refresh()
-            navigate(`/disputes/${id}`)
+            navigate(paths.dispute(id))
           }}
         />
       )}
@@ -204,7 +205,7 @@ export default function DisputeQueue() {
                   return (
                     <tr
                       key={row.dispute_id}
-                      onClick={() => navigate(`/disputes/${row.dispute_id}`)}
+                      onClick={() => navigate(paths.dispute(row.dispute_id))}
                       className={`cursor-pointer transition-colors duration-[160ms] hover:bg-[var(--surface-2)] ${
                         noAction ? 'opacity-55' : ''
                       }`}
@@ -215,7 +216,7 @@ export default function DisputeQueue() {
                             navigation -- was unreachable by keyboard entirely, and
                             middle-click to open a case in a new tab did nothing. */}
                         <Link
-                          to={`/disputes/${row.dispute_id}`}
+                          to={paths.dispute(row.dispute_id)}
                           onClick={(e) => e.stopPropagation()}
                           aria-label={`Open ${reason.short}, ${formatInr(row.amount)}, case ${row.dispute_id}`}
                           className="focus-ring num rounded text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"

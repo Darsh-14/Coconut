@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { paths } from '../lib/routes'
 
 /**
  * Catches a render-time crash and shows something recoverable.
@@ -53,7 +54,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
               Try again
             </button>
             <a
-              href="/"
+              href={paths.overview}
               className="focus-ring pressable rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] text-[var(--fg-2)]"
               style={{ boxShadow: 'var(--shadow-line)' }}
             >

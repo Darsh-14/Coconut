@@ -17,9 +17,15 @@ the NLI model (~15s cold), and `/evaluate` takes about a minute.
 > The expensive mistake isn't failing to contest. It's contesting badly. So the question
 > isn't 'do we have delivery proof' — it's 'do we have *good enough* delivery proof'."
 
-## 0:30 — The queue (45s)
+## 0:30 — The front page, then the queue (45s)
 
-Open http://localhost:5173
+Open http://localhost:5173. That is the landing page — scroll once, so the held-out numbers
+and the *what it deliberately doesn't do* block land, then **Open the dashboard** and sign
+in. The fields are pre-filled; it is one click.
+
+> "Everything I'm about to claim is already on that page, limitations included. And the
+> sign-in is a front door, not an account system — it says so on itself. Single-merchant
+> demo; authentication was out of scope on purpose."
 
 - 182 disputes, ₹10L in dispute, response countdowns, urgent ones in red.
 - Press **Assess 15**. Rows fill in live: the split bar shows most land in *Unclear*.
@@ -89,14 +95,15 @@ the live one is a verification rather than a reveal. While it runs:
 > "This is the held-out 30%, untouched during development. Real inference, not a cached
 > number — that's why it takes a minute."
 
-When it lands: 62.5 / 62.5 / 62.5, coverage 21.5%, ₹4,500.
+When it lands: 69.2 / 75.0 / 72.0, coverage 29.1%, ₹6,000.
 
-> "Coverage of 21% means it declines to decide on four cases in five. That's the product,
+> "Coverage of 29% means it declines to decide on seven cases in ten. That's the product,
 > not a shortfall — it says 'I don't know' instead of guessing.
 >
-> The number I actually care about isn't 0.625. It's that the working set I tuned on scored
-> 0.625 and coverage 0.214, and the held-out set scored 0.625 and 0.215. It generalised
-> instead of fitting noise."
+> The number I actually care about isn't the precision. It's that at the thresholds I
+> hand-tuned, the working set scored 0.625 and coverage 0.214 and the held-out set scored
+> 0.625 and 0.215 — it generalised instead of fitting noise. Calibration then beat that
+> operating point, 0.625 to 0.692, without ever seeing the held-out data."
 
 ## 4:30 — Close (30s)
 
@@ -113,6 +120,8 @@ When it lands: 62.5 / 62.5 / 62.5, coverage 21.5%, ₹4,500.
 
 | Symptom | Do this |
 |---|---|
+| Landed on a marketing page | That's the landing page — **Open the dashboard**, top right |
+| Bounced to a sign-in screen | Expected. Pre-filled; click **Continue to dashboard** |
 | Queue empty | `cd backend && python -m app.db.seed` |
 | "Cannot reach the backend" | Backend isn't running, or something else holds :8000 |
 | First `/decide` hangs | Model downloading. Warm it up before demoing |

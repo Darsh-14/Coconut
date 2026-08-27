@@ -304,10 +304,23 @@ npm run dev
 
 The dev server proxies `/api/*` to the backend, so there is no base URL to configure.
 
-**The app has four surfaces:**
+**The front door.** `/` is a landing page — the thesis, the measured numbers and the
+limitations, for someone arriving with no context. The dashboard lives under `/app`, behind
+a sign-in screen at `/login`.
+
+That sign-in is a front door, not an account system, and the card says so on itself.
+CLAUDE.md Section 16 puts authentication out of scope — this is a single-merchant demo — and
+a reviewer who meets a credential wall holding no credentials is worse off than one who
+meets no wall at all. So the fields are pre-filled, any value continues, nothing is checked
+or stored, and **no API route is protected by it**. Treat it as product framing, not
+security.
+
+**The app has six surfaces:**
 
 | | |
 |---|---|
+| **Landing** (`/`) | What this is, what it measured, and what it deliberately will not do |
+| **Sign in** (`/login`) | The front door. Pre-filled; any credentials continue |
 | **Overview** | Money at stake, what closes soonest, what is worth contesting, exposure by dispute type |
 | **Disputes** | The queue — filter by what Recourse concluded, sort by deadline or value |
 | **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
@@ -318,7 +331,19 @@ per-evidence verdicts and the highlighted sentence that drove each → *Represen
 the draft → *Approve & prepare packet* → the *Audit* tab shows the "would submit to Razorpay"
 payload → *Performance* → *Run evaluation*.
 
-Light and dark themes both ship; the toggle is at the foot of the sidebar.
+Light and dark themes both ship; the toggle is at the foot of the sidebar, and on the
+landing and sign-in pages in the header.
+
+**Optional UI checks.** Three Playwright scripts, none part of `npm install` or the test
+suite — they need a ~115MB browser download, which would work against the five-minute clone
+goal. With both servers running:
+
+```bash
+npm i -D playwright && npx playwright install chromium
+node scripts/smoke-ui.mjs      # the decision loop, end to end, in both themes
+node scripts/a11y-ui.mjs       # keyboard reachability and responsive boundaries
+node scripts/landing-ui.mjs    # the landing page, the sign-in gate, and the /app routing
+```
 
 ### Backing disputes with real Razorpay payments
 
@@ -482,24 +507,28 @@ recommends.
 | Flagged to human | 51 | routed to a person instead of guessed |
 | URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
 
-**How to read these.** Coverage of 0.215 means the system auto-decides about a fifth of the
-queue and hands back the rest. That is the intended behaviour, not a shortfall — the
-product thesis is that a copilot which says "I don't know" on 79% of cases and is right
-about 5 in 8 of the rest is more useful than one that guesses confidently on everything.
+**How to read these.** Coverage of 0.291 means the system auto-decides a little under a
+third of the queue and hands the rest back. That is the intended behaviour, not a
+shortfall — the product thesis is that a copilot which declines to decide on seven cases
+in ten, and is right on roughly seven of every ten it does decide, is more useful than one
+that guesses confidently on everything.
 
-**The number that actually validates the work** is not 0.625 but its agreement with the
-working set. Every threshold was tuned on `synthetic_disputes.json`; the held-out set was
-opened once, at the end:
+**The number that actually validates the work** is not the precision but its agreement out
+of sample. That check is stated below against the *hand-picked* Section 10 thresholds,
+because those are the ones that were tuned: every threshold was fitted on
+`synthetic_disputes.json`, and the held-out set was opened once, at the end.
 
-| | Working set (tuned on) | Held-out (never seen) |
+| At the hand-picked thresholds | Working set (tuned on) | Held-out (never seen) |
 |---|---|---|
 | Precision | 0.625 | 0.625 |
 | Coverage | 0.214 | 0.215 |
 | Recall | 0.556 | 0.625 |
 
 Near-identical out of sample means the design generalised rather than being fitted to
-noise. For contrast, the naive single-signal engine scored **0.481** precision on the same
-working set.
+noise. Calibration then improved on that operating point — 0.625 → 0.692 precision, 0.215
+→ 0.291 coverage — without ever being tuned on the held-out data, which is the comparison
+in [Name your risk budget](#name-your-risk-budget-not-a-threshold) above. For contrast, the
+naive single-signal engine scored **0.481** precision on the same working set.
 
 ---
 

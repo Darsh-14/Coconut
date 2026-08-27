@@ -31,8 +31,9 @@ Three deliberate choices, each with a reason:
    verdict or confidence.
 2. **The aggregation rule is a plain conditional, not a model.** A merchant has to be able
    to read why the system said what it said; a judge has to be able to check it.
-3. **The system abstains.** 79% of the held-out set goes to a human. Coverage is reported
-   as a first-class metric rather than hidden.
+3. **The system abstains.** 71% of the held-out set is never auto-decided — 51 of 79 go
+   to a human, and 5 more are resolved by NPCI's own rules before the merchant is
+   involved. Coverage is reported as a first-class metric rather than hidden.
 
 If asked why not Gemini/Claude for the verdict: cost and determinism at eval scale, plus
 the fact that the decision needs to be auditable and reproducible — not a stylistic
@@ -146,7 +147,7 @@ abstaining on thin evidence.
 
 ## What to avoid claiming
 
-- Don't call the metrics good. 0.625 precision at 21.5% coverage is honest and defensible
+- Don't call the metrics good. 0.692 precision at 29.1% coverage is honest and defensible
   for zero-shot; overselling it invites a harder question than the number does.
 - Don't imply the disputes are real. Lead with that limitation — it reads as rigour.
 - Don't claim return-risk scoring or abuse-ring detection are built. Say the core
@@ -154,6 +155,6 @@ abstaining on thin evidence.
 
 ## Closing line
 
-> "It says 'I don't know' on four cases in five. That's the feature. The number I care
-> about isn't 0.625 precision — it's that the set I tuned on and the set I'd never seen
+> "It says 'I don't know' on seven cases in ten. That's the feature. The number I care
+> about isn't the precision — it's that the set I tuned on and the set I'd never seen
 > scored within a tenth of a percent of each other."
