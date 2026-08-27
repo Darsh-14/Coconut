@@ -343,7 +343,12 @@ npm i -D playwright && npx playwright install chromium
 node scripts/smoke-ui.mjs      # the decision loop, end to end, in both themes
 node scripts/a11y-ui.mjs       # keyboard reachability and responsive boundaries
 node scripts/landing-ui.mjs    # the landing page, the sign-in gate, and the /app routing
+node scripts/capture-shots.mjs # regenerate the landing page's product screenshots
 ```
+
+The landing page's screenshots are photographs of the running app in both themes, not
+mockups. Re-run `capture-shots.mjs` after any visible dashboard change — `landing-ui.mjs`
+checks they load, but nothing can check they are still current.
 
 ### Backing disputes with real Razorpay payments
 

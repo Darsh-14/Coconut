@@ -39,10 +39,64 @@ check(await page.locator('h1').first().isVisible(), 'landing h1 renders')
 console.log('        h1:', (await page.locator('h1').first().innerText()).replace(/\s+/g, ' '))
 check(!(await page.locator('aside').count()), 'landing has no dashboard sidebar')
 
-// the measured numbers must be the real ones
+// The landing figures must match the last evaluation run. Recall and F1 came off the page
+// when the copy was tightened, so they are no longer asserted -- but the confusion matrix
+// is on the page, and it is a stricter guard than the ratios were: the counts have to
+// agree with each other as well as with the run.
 const body = await page.locator('body').innerText()
-for (const n of ['0.692', '0.750', '0.720', '0.291', '79'])
-  check(body.includes(n), `landing shows measured ${n}`)
+for (const [n, what] of [
+  ['0.692', 'precision'],
+  ['0.291', 'coverage'],
+  ['79', 'held-out record count'],
+  ['0.481', 'naive-engine baseline'],
+  ['6,000', 'false-positive cost'],
+])
+  check(body.includes(n), `landing shows the measured ${what} (${n})`)
+
+// Read the matrix out of the table structurally rather than regexing the page text: the
+// hero contains the word "OTP", which a naive /TP\s+9/ would happily match.
+const matrix = await page.evaluate(() => {
+  const table = [...document.querySelectorAll('table')].find((t) =>
+    t.textContent.includes('deferred rather than guessed'),
+  )
+  if (!table) return null
+  return [...table.querySelectorAll('tbody tr')].map((tr) =>
+    [...tr.children].slice(0, 2).map((cell) => cell.textContent.trim()),
+  )
+})
+check(matrix !== null, 'the confusion matrix table is present')
+for (const [k, v] of [['TP', '9'], ['FP', '4'], ['FN', '3'], ['TN', '7'], ['Human', '51'], ['URCS', '5']])
+  check(
+    Boolean(matrix?.some((row) => row[0] === k && row[1] === v)),
+    `confusion matrix ${k} = ${v}`,
+  )
+
+// Scroll the whole page: the screenshots below the fold are lazy, and the reveal only
+// resolves as content comes within the fold.
+await page.evaluate(async () => {
+  for (let y = 0; y < document.body.scrollHeight; y += 500) {
+    window.scrollTo(0, y)
+    await new Promise((r) => setTimeout(r, 40))
+  }
+})
+await page.waitForTimeout(700)
+
+// Nothing may be left invisible. An earlier IntersectionObserver version stranded 4 of 37
+// elements after a single instant jump -- blank bands, permanently, for that visitor.
+const stranded = await page.evaluate(
+  () => [...document.querySelectorAll('.reveal')].filter((e) => getComputedStyle(e).opacity !== '1').length,
+)
+check(stranded === 0, `no revealed element is left invisible (${stranded} stranded)`)
+
+// The product screenshots are real files; a 404 renders as a broken image, not an error.
+const shots = await page.evaluate(() =>
+  [...document.querySelectorAll('img[src^="/shots/"]')]
+    .filter((i) => getComputedStyle(i).display !== 'none')
+    .map((i) => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })),
+)
+check(shots.length === 3, `three product screenshots are shown (${shots.length})`)
+check(shots.every((s) => s.ok), 'every product screenshot loaded', JSON.stringify(shots.filter((s) => !s.ok)))
+await page.evaluate(() => window.scrollTo(0, 0))
 
 // section arrangement, in order
 const heads = await page.locator('main h2').allInnerTexts()

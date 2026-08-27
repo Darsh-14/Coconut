@@ -1,7 +1,5 @@
 import {
   ArrowRight,
-  BookOpen,
-  Boxes,
   ClipboardCheck,
   Cpu,
   FileSearch,
@@ -14,6 +12,7 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Mark, ThemeToggle } from '../components/ThemeToggle'
 import { HEADLINE } from '../lib/headline'
@@ -23,305 +22,208 @@ import { isSignedIn } from '../lib/session'
 /**
  * The public front page.
  *
- * ARRANGEMENT
- * -----------
- * Modelled on razorpay.com's own section order, at the user's direction: sticky nav with
- * auth actions on the right, a hero whose subhead states breadth rather than a slogan, a
- * trust line immediately under it, a plain "what this is" explainer, grouped capability
- * card grids, a two-item spotlight for the genuinely novel work, a solutions table, a
- * developer section carrying a real curl sample, measured numbers, an FAQ, and a footer
- * with the legal/provenance details.
+ * ARRANGEMENT — modelled on razorpay.com's section order at the user's direction: sticky
+ * nav with the auth actions right, a hero stating breadth rather than a slogan, a trust
+ * line under it, a product shot, grouped capability cards, alternating feature bands, a
+ * solutions table, a developer section with a real curl, measured numbers, FAQ, footer.
+ * Structure only — none of Razorpay's brand, palette, copy or imagery is reproduced.
  *
- * Borrowed as structure only. None of Razorpay's brand, palette, copy or imagery is
- * reproduced — the page renders entirely in this product's own tokens, and every claim on
- * it is about this repo.
+ * COPY — every block here is deliberately short. The first version carried three-sentence
+ * bodies on twelve cards and paragraph-length FAQ answers, and read as filler. A card that
+ * needs three sentences is a card whose title is not doing its job.
  *
- * WHY IT EXISTS
- * -------------
- * The dashboard opens on "₹10L at stake across 182 disputes" — precise and useful once you
- * know the product, meaningless before it. Someone arriving cold needs the thesis, the
- * guardrails and the measured numbers first.
- *
- * The limitations sit on the page rather than behind a link, deliberately. The argument
- * this project makes is that a dispute copilot which abstains on what it cannot settle
- * beats one that guesses confidently; a front page that oversold its own results would
- * undercut that argument on the way in.
+ * IMAGERY — the three screenshots are the running application, captured from the seeded
+ * database in both themes. Not mockups: nothing here depicts a feature that does not
+ * exist, and the figures inside the images match the figures printed beside them.
  */
 export default function Landing() {
   const entry = isSignedIn() ? paths.overview : paths.login
+  const root = useReveal<HTMLDivElement>()
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <div ref={root} className="min-h-screen" style={{ background: 'var(--bg)' }}>
       <Nav entry={entry} />
 
       <main>
         {/* --- hero ---------------------------------------------------------------- */}
         <Band>
-          <div className="grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr] lg:items-center">
-            <div>
-            <p
-              className="text-[11.5px] tracking-[0.06em] text-[var(--fg-3)]"
-              style={{ fontVariationSettings: "'wght' 540" }}
-            >
-              RAZORPAY AI BUILDATHON · TRACK 2 — AI RISK MANAGER
-            </p>
-            <h1
-              className="mt-4 max-w-[19ch] text-[38px] leading-[1.06] tracking-[-0.035em] sm:text-[56px]"
-              style={{ fontVariationSettings: "'wght' 620" }}
-            >
-              Chargeback defence that knows when it doesn&rsquo;t know.
-            </h1>
-            <p className="mt-5 max-w-[62ch] text-[15.5px] leading-relaxed text-[var(--fg-2)]">
-              Recourse ingests a payment dispute, checks every piece of evidence against the
-              specific claim the bank is making, recommends contest or accept with a
-              confidence score and a full audit trail, drafts the representment, forecasts
-              what India&rsquo;s UPI rails will do on their own — and when the evidence
-              genuinely doesn&rsquo;t settle the question, says so instead of guessing.
-            </p>
+          <div className="grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+            <div className="reveal">
+              <p className="w-semi text-[11px] tracking-[0.08em] text-[var(--fg-3)]">
+                TRACK 2 — AI RISK MANAGER
+              </p>
+              <h1 className="w-display mt-5 max-w-[16ch] text-[42px] leading-[1.02] sm:text-[60px]">
+                Know which chargebacks are worth fighting.
+              </h1>
+              <p className="mt-6 max-w-[46ch] text-[16px] leading-[1.55] text-[var(--fg-2)]">
+                Recourse checks every piece of evidence against the bank&rsquo;s actual
+                claim, recommends contest or accept, and abstains when the evidence
+                doesn&rsquo;t settle it.
+              </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                to={entry}
-                className="pressable focus-ring inline-flex items-center gap-2 rounded-[var(--radius-control)] px-4 py-2.5 text-[13.5px]"
-                style={{
-                  background: 'var(--accent)',
-                  color: 'var(--accent-fg)',
-                  fontVariationSettings: "'wght' 550",
-                }}
-              >
-                Open the dashboard
-                <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
-              </Link>
-              <a
-                href="#how"
-                className="pressable focus-ring inline-flex items-center rounded-[var(--radius-control)] border px-4 py-2.5 text-[13.5px] text-[var(--fg-2)] transition hover:text-[var(--fg)]"
-                style={{ borderColor: 'var(--line-strong)', fontVariationSettings: "'wght' 520" }}
-              >
-                How it works
-              </a>
+              <div className="mt-8 flex flex-wrap items-center gap-2.5">
+                <Primary to={entry}>Open the dashboard</Primary>
+                <Secondary href="#how">How it works</Secondary>
+              </div>
+
+              <p className="mt-10 text-[12.5px] text-[var(--fg-3)]">
+                <span className="num text-[var(--fg-2)]">{HEADLINE.precision}</span> precision
+                on <span className="num text-[var(--fg-2)]">{HEADLINE.nEvaluated}</span>{' '}
+                held-out disputes it had never seen.
+              </p>
             </div>
 
-            {/* Razorpay's "Used by 1,50,000+ businesses" slot. The honest equivalent here
-                is not a customer count — it is the held-out measurement. */}
-            <p className="mt-9 text-[12.5px] leading-relaxed text-[var(--fg-3)]">
-              Evaluated on <span className="num text-[var(--fg-2)]">{HEADLINE.nEvaluated}</span>{' '}
-              held-out disputes it had never seen —{' '}
-              <span className="num text-[var(--fg-2)]">{HEADLINE.precision}</span> precision at{' '}
-              <span className="num text-[var(--fg-2)]">{HEADLINE.coverage}</span> coverage, with
-              the remainder deferred to a human rather than guessed.
-            </p>
+            <div className="reveal">
+              <VerdictPreview />
             </div>
-
-            {/* Not an illustration. This is the product's own output for a case in the
-                seeded set, carrying the same numbers as the curl sample further down --
-                including the 0.50 overall confidence, which is the MINIMUM of the two
-                verdicts rather than their average. */}
-            <VerdictPreview />
           </div>
         </Band>
 
-        {/* --- what it does -------------------------------------------------------- */}
+        {/* --- the product, immediately -------------------------------------------- */}
         <Band tinted>
-          <Section
-            title="What Recourse does"
-            sub="The whole loop, in one paragraph."
-          >
-            <div className="grid gap-8 lg:grid-cols-[1.35fr_1fr]">
-              <div className="space-y-4 text-[13.5px] leading-relaxed text-[var(--fg-2)]">
-                <p>
-                  A merchant receives a chargeback. Contesting it costs roughly ₹1,500 in fees
-                  and staff time, so below a certain ticket size merchants simply concede —
-                  and when they do fight, they often fight cases they were always going to
-                  lose, and pay twice.
-                </p>
-                <p>
-                  <span className="text-[var(--fg)]" style={{ fontVariationSettings: "'wght' 560" }}>
-                    So the expensive mistake is not failing to contest. It is contesting one
-                    you were going to lose.
-                  </span>{' '}
-                  That reframes the objective: this system optimises precision on the cases it
-                  decides and abstains on the rest, rather than maximising the number of
-                  disputes it fights.
-                </p>
-                <p>
-                  The hard part is that &ldquo;do we have delivery proof&rdquo; and &ldquo;do
-                  we have <em>good</em> delivery proof&rdquo; look nearly identical to a
-                  language model. A strong proof and a useless one both contradict
-                  &ldquo;it never arrived&rdquo;. Closing that gap is the entire engineering
-                  problem, and it is why the verification engine asks two questions per
-                  evidence item rather than one.
-                </p>
-              </div>
-
-              <ul className="space-y-3">
-                {[
-                  ['Decision made locally', 'An NLI cross-encoder, not an LLM call'],
-                  ['Confidence is the minimum', 'Not the average — a chain is as strong as its weakest link'],
-                  ['Threshold is calibrated', 'You name a risk budget; it derives the threshold'],
-                  ['UPI rails modelled', 'NPCI caps and URCS auto-disposition, from the circulars'],
-                  ['Every decision replayable', 'Persisted with the threshold that produced it'],
-                  ['A human always approves', 'Nothing is ever submitted automatically'],
-                ].map(([t, d]) => (
-                  <li key={t} className="flex gap-2.5">
-                    <span
-                      className="mt-[6px] size-1.5 shrink-0 rounded-full"
-                      style={{ background: 'var(--win)' }}
-                    />
-                    <span>
-                      <span
-                        className="block text-[13px]"
-                        style={{ fontVariationSettings: "'wght' 550" }}
-                      >
-                        {t}
-                      </span>
-                      <span className="mt-0.5 block text-[12px] text-[var(--fg-3)]">{d}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Section>
+          <div className="py-14">
+            <Shot name="queue" alt="The Recourse dispute queue" priority />
+            <p className="reveal mt-4 text-[12.5px] text-[var(--fg-3)]">
+              The queue, filtered by what Recourse concluded. Deadlines in red; cases
+              NPCI&rsquo;s own rules will resolve are pushed down.
+            </p>
+          </div>
         </Band>
 
-        {/* --- capabilities, grouped ------------------------------------------------ */}
-        <Band id="how">
-          <Section
-            title={<>What&rsquo;s inside</>}
-            sub="Grouped the way the pipeline actually runs."
-          >
+        {/* --- numbers ------------------------------------------------------------- */}
+        <Band>
+          <div className="grid gap-8 py-14 sm:grid-cols-3">
+            <Stat value={HEADLINE.precision} label="precision" tone="var(--win)" />
+            <Stat value={HEADLINE.coverage} label="auto-decided" tone="var(--warn)" />
+            <Stat value={String(HEADLINE.nEvaluated)} label="held-out records" />
+          </div>
+        </Band>
+
+        {/* --- capabilities -------------------------------------------------------- */}
+        <Band id="how" tinted>
+          <Section title="What&rsquo;s inside">
             <Group label="Decide">
-              <Card
-                icon={<Cpu size={16} strokeWidth={1.7} />}
-                title="Verification engine"
-                body="Two signals per evidence item — does it engage the claim, and does it substantiate a position specific enough to act on. Local, deterministic, free to run at evaluation scale."
-              />
-              <Card
-                icon={<Scale size={16} strokeWidth={1.7} />}
-                title="Decision aggregator"
-                body="A plain readable conditional, not a model. Overall confidence is the minimum across the verdicts that drove the decision, never the average."
-              />
-              <Card
-                icon={<Gauge size={16} strokeWidth={1.7} />}
-                title="Conformal calibration"
-                body="Thresholds are derived from a stated risk budget with a finite-sample bound, rather than picked by hand and defended after the fact."
-              />
-              <Card
-                icon={<FileSearch size={16} strokeWidth={1.7} />}
-                title="Span-level explainability"
-                body="The sentence inside each evidence item that actually drove its verdict, highlighted inline — so a merchant can see why, not just what."
-              />
+              <Card icon={<Cpu size={16} strokeWidth={1.7} />} title="Verification engine">
+                Two signals per item: does it engage the claim, does it substantiate.
+              </Card>
+              <Card icon={<Scale size={16} strokeWidth={1.7} />} title="Decision aggregator">
+                A readable conditional. Confidence is the minimum, never the average.
+              </Card>
+              <Card icon={<Gauge size={16} strokeWidth={1.7} />} title="Conformal calibration">
+                Thresholds derived from a risk budget, not picked by hand.
+              </Card>
+              <Card icon={<FileSearch size={16} strokeWidth={1.7} />} title="Span explainability">
+                The exact sentence that drove each verdict, highlighted inline.
+              </Card>
             </Group>
 
             <Group label="India-native rails" cols={3}>
-              <Card
-                icon={<Landmark size={16} strokeWidth={1.7} />}
-                title="URCS disposition forecast"
-                body="Predicts whether NPCI's system will auto-reject a UPI dispute before it ever reaches the merchant, and under which code."
-              />
-              <Card
-                icon={<Wallet size={16} strokeWidth={1.7} />}
-                title="Dispute budget counters"
-                body="Rolling 30-day counts against the 10-per-customer and 5-per-payer-payee caps, shown as a budget the payer is spending down."
-              />
-              <Card
-                icon={<ShieldCheck size={16} strokeWidth={1.7} />}
-                title="Dated rule provenance"
-                body="Every cap and code lives in one config block carrying the date it was verified against NPCI's circulars. That date is on screen, not buried."
-              />
+              <Card icon={<Landmark size={16} strokeWidth={1.7} />} title="URCS forecast">
+                Predicts NPCI auto-rejection before a dispute reaches you.
+              </Card>
+              <Card icon={<Wallet size={16} strokeWidth={1.7} />} title="Dispute budget">
+                Rolling 30-day counts against the CD1 and CD2 caps.
+              </Card>
+              <Card icon={<ShieldCheck size={16} strokeWidth={1.7} />} title="Dated provenance">
+                Every rule carries the date it was checked against the circulars.
+              </Card>
             </Group>
 
             <Group label="Operate">
-              <Card
-                icon={<ListChecks size={16} strokeWidth={1.7} />}
-                title="Dispute queue"
-                body="Deadline countdowns, rail badges, recommendation split, and cases URCS will resolve on their own visually de-prioritised."
-              />
-              <Card
-                icon={<PenLine size={16} strokeWidth={1.7} />}
-                title="Representment drafting"
-                body="Provider-pluggable prose generation that rewrites a decision the engine already made. It cannot change a verdict, a recommendation or a confidence."
-              />
-              <Card
-                icon={<ClipboardCheck size={16} strokeWidth={1.7} />}
-                title="Audit trail"
-                body="Every decision, approval, edit and withdrawal, with the exact payload that would have gone to Razorpay stored beside it and labelled as not sent."
-              />
-              <Card
-                icon={<Radio size={16} strokeWidth={1.7} />}
-                title="Signed webhook intake"
-                body="Razorpay events verified against the raw request body before parsing. Fails closed with no secret configured, and never ingests dispute events."
-              />
+              <Card icon={<ListChecks size={16} strokeWidth={1.7} />} title="Dispute queue">
+                Deadlines, rails, and what the engine concluded.
+              </Card>
+              <Card icon={<PenLine size={16} strokeWidth={1.7} />} title="Representment drafting">
+                Rewrites prose for a decision already made. Cannot change it.
+              </Card>
+              <Card icon={<ClipboardCheck size={16} strokeWidth={1.7} />} title="Audit trail">
+                Every decision replayable, with the payload that was never sent.
+              </Card>
+              <Card icon={<Radio size={16} strokeWidth={1.7} />} title="Signed webhooks">
+                Verified against the raw body. Fails closed without a secret.
+              </Card>
             </Group>
           </Section>
         </Band>
 
-        {/* --- spotlight ------------------------------------------------------------ */}
-        <Band tinted>
-          <Section
-            title="The two things nobody else builds"
-            sub="Checked against Justt, Chargeflow, Riskified, Kount and Shopify's own dispute tooling."
+        {/* --- feature: the dial ---------------------------------------------------- */}
+        <Band>
+          <Feature
+            eyebrow="CONFORMAL RISK CONTROL"
+            title="Name a risk budget, not a threshold"
+            shot="metrics"
+            alt="The risk budget dial showing calibrated threshold, coverage and observed false-positive rate"
           >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Spotlight
-                icon={<Gauge size={18} strokeWidth={1.7} />}
-                eyebrow="METHODOLOGICAL"
-                title="Name a risk budget, not a threshold"
-                body="Tell the system the maximum false-positive rate you will tolerate on disputes it contests automatically. It calibrates its own confidence threshold against a held-out calibration split using conformal risk control, then reports what that budget costs you in coverage — or tells you the budget is not achievable on this data rather than quietly falling back to a default."
-                note="Conformal risk control is established in drug discovery and medical AI. As far as I can find, nobody has applied it to payment disputes."
-              />
-              <Spotlight
-                icon={<Landmark size={18} strokeWidth={1.7} />}
-                eyebrow="DOMAIN"
-                title="UPI outcomes are deterministic, so predict them exactly"
-                body="Every commercial chargeback product is architected around Visa and Mastercard mechanics, because that is where their market is. UPI does not work that way: NPCI caps disputes at 10 per customer and 5 per payer-payee per 30 days, and URCS auto-rejects the overflow under CD1 and CD2 with no human ever looking. Recourse forecasts that from the rules and tells the merchant to spend nothing."
-                note="It is a rules engine, not a model — which is exactly why it is fully explainable and why the rules carry a verification date."
-              />
-            </div>
-          </Section>
+            <p>
+              Say the most false positives you&rsquo;ll accept. It calibrates its own
+              threshold and tells you what that costs in coverage.
+            </p>
+            <p>
+              When a budget isn&rsquo;t achievable, it says so instead of falling back to a
+              default.
+            </p>
+          </Feature>
         </Band>
 
-        {/* --- outcomes table ------------------------------------------------------- */}
-        <Band>
-          <Section
-            title="Where a case can land"
-            sub="Four outcomes, each with a rule you can read."
+        {/* --- feature: UPI --------------------------------------------------------- */}
+        <Band tinted>
+          <Feature
+            eyebrow="UPI RAILS"
+            title="Some disputes resolve without you"
+            shot="case"
+            alt="A case showing the NPCI dispute budget, the recommendation and its confidence"
+            flip
           >
-            <div className="surface overflow-x-auto">
-              <table className="w-full min-w-[46rem] text-left text-[12.5px]">
+            <p>
+              NPCI caps disputes at 10 per customer and 5 per payer-payee every 30 days.
+              URCS auto-rejects the overflow — no human involved.
+            </p>
+            <p>
+              Recourse forecasts that from the rules and tells you not to spend the
+              representment fee.
+            </p>
+          </Feature>
+        </Band>
+
+        {/* --- outcomes ------------------------------------------------------------- */}
+        <Band>
+          <Section title="Four outcomes, each with a rule you can read">
+            <div className="reveal surface overflow-x-auto">
+              <table className="w-full min-w-[42rem] text-left text-[12.5px]">
                 <thead
                   className="border-b text-[11px] tracking-[0.03em] text-[var(--fg-3)]"
                   style={{ borderColor: 'var(--line)' }}
                 >
                   <tr>
                     <th className="px-4 py-3 font-normal">Outcome</th>
-                    <th className="px-4 py-3 font-normal">What triggers it</th>
-                    <th className="px-4 py-3 font-normal">What the merchant does</th>
+                    <th className="px-4 py-3 font-normal">Trigger</th>
+                    <th className="px-4 py-3 font-normal">You do</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: 'var(--line)' }}>
                   <Row
                     tone="var(--win)"
                     name="CONTEST"
-                    trigger="Every verdict supports, confidence clears the calibrated threshold, and at least two distinct evidence types back it."
-                    action="Review the drafted representment, edit it, approve it."
+                    trigger="All verdicts support, above the calibrated threshold, two evidence types or more."
+                    action="Edit the draft, approve it."
                   />
                   <Row
                     tone="var(--risk)"
                     name="ACCEPT"
-                    trigger="Some evidence item contradicts the merchant's own position at or above the calibrated threshold."
-                    action="Concede. Spending the representment fee here loses twice."
+                    trigger="Evidence contradicts your own position at or above the threshold."
+                    action="Concede. Fighting loses twice."
                   />
                   <Row
                     tone="var(--warn)"
                     name="NEEDS_HUMAN_REVIEW"
-                    trigger="Anything else — including the case where the requested risk budget is not achievable at all."
-                    action="A person decides. This is roughly seven cases in ten, by design."
+                    trigger="Anything else — including a risk budget this data cannot support."
+                    action="Decide it yourself. Seven cases in ten."
                   />
                   <Row
                     tone="var(--fg-3)"
                     name="NO_ACTION_NEEDED"
-                    trigger="URCS is forecast to auto-reject the dispute under CD1 or CD2 before it reaches the merchant."
-                    action="Nothing. The rails resolve it without you."
+                    trigger="URCS is forecast to auto-reject under CD1 or CD2."
+                    action="Nothing."
                   />
                 </tbody>
               </table>
@@ -331,73 +233,57 @@ export default function Landing() {
 
         {/* --- developers ----------------------------------------------------------- */}
         <Band tinted id="developers">
-          <Section
-            title="For developers"
-            sub="Every screen in the dashboard is this API and nothing else."
-          >
-            <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-              <div>
-                <ul className="space-y-2">
-                  {[
-                    ['GET', '/disputes', 'the queue, with search and paging'],
-                    ['GET', '/disputes/{id}', 'full case, decision and audit trail'],
-                    ['POST', '/disputes/{id}/decide', 'run the engine, persist a Decision'],
-                    ['POST', '/disputes/{id}/approve', 'human approval; builds the payload'],
-                    ['GET', '/disputes/{id}/urcs-forecast', 'NPCI cap forecast for UPI rails'],
-                    ['POST', '/calibrate', 'derive a threshold from a risk budget'],
-                    ['GET', '/verify-guarantee', 'check the budget held on the test split'],
-                    ['POST', '/evaluate', 'held-out precision, recall, F1, coverage'],
-                  ].map(([m, p, d]) => (
-                    <li key={p} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                      <span
-                        className="num shrink-0 text-[10.5px]"
-                        style={{ color: m === 'GET' ? 'var(--win)' : 'var(--accent)' }}
-                      >
-                        {m}
-                      </span>
-                      <code className="num text-[12px] text-[var(--fg)]">{p}</code>
-                      <span className="text-[11.5px] text-[var(--fg-3)]">{d}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="mt-5 text-[12px] leading-relaxed text-[var(--fg-3)]">
-                  Interactive reference at <code className="num">/api/docs</code> when the
-                  server is running. Schemas are Pydantic v2 and the frontend types mirror
-                  them one to one.
-                </p>
-              </div>
+          <Section title="For developers" sub="Every screen is this API and nothing else.">
+            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+              <ul className="reveal space-y-2.5">
+                {[
+                  ['GET', '/disputes', 'the queue'],
+                  ['GET', '/disputes/{id}', 'case, decision, audit trail'],
+                  ['POST', '/disputes/{id}/decide', 'run the engine'],
+                  ['POST', '/disputes/{id}/approve', 'human approval'],
+                  ['GET', '/disputes/{id}/urcs-forecast', 'NPCI cap forecast'],
+                  ['POST', '/calibrate', 'threshold from a risk budget'],
+                  ['GET', '/verify-guarantee', 'did the budget hold'],
+                  ['POST', '/evaluate', 'held-out metrics'],
+                ].map(([method, path, note]) => (
+                  <li key={path} className="flex flex-wrap items-baseline gap-x-2.5">
+                    <span
+                      className="num w-[2.6rem] shrink-0 text-[10px]"
+                      style={{ color: method === 'GET' ? 'var(--win)' : 'var(--accent)' }}
+                    >
+                      {method}
+                    </span>
+                    <code className="num text-[12px] text-[var(--fg)]">{path}</code>
+                    <span className="text-[11.5px] text-[var(--fg-3)]">{note}</span>
+                  </li>
+                ))}
+              </ul>
 
-              <div>
+              <div className="reveal">
                 <div
                   className="overflow-x-auto rounded-[var(--radius-card)] border p-4"
                   style={{ borderColor: 'var(--line)', background: 'var(--surface-solid)' }}
                 >
-                  <pre className="num text-[11.5px] leading-relaxed text-[var(--fg-2)]">
-{`# decide a case, then read back what it concluded
-curl -X POST http://localhost:8000/disputes/disp_synthetic_0168/decide
+                  <pre className="num text-[11.5px] leading-[1.7] text-[var(--fg-2)]">
+{`$ curl -X POST localhost:8000/disputes/disp_synthetic_0168/decide
 
 {
-  "dispute_id": "disp_synthetic_0168",
   "recommendation": "CONTEST",
   "confidence": 0.50,
   "calibrated_threshold_used": 0.72,
   "claim_verdicts": [
-    {
-      "evidence_index": 0,
+    { "evidence_index": 0,
       "label": "support",
       "confidence": 0.50,
-      "highlighted_span": "OTP captured at delivery, ID
-                           matching the KYC record"
-    }
+      "highlighted_span": "OTP captured at delivery" }
   ],
   "model_version": "cross-encoder/nli-deberta-v3-base"
 }`}
                   </pre>
                 </div>
-                <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-                  Note <code className="num">calibrated_threshold_used</code>: a decision is
-                  only reproducible if you know which threshold produced it, so it is
-                  persisted with the decision rather than inferred later.
+                <p className="mt-3 text-[11.5px] text-[var(--fg-3)]">
+                  The threshold is stored with the decision — otherwise it isn&rsquo;t
+                  reproducible.
                 </p>
               </div>
             </div>
@@ -407,63 +293,49 @@ curl -X POST http://localhost:8000/disputes/disp_synthetic_0168/decide
         {/* --- measured ------------------------------------------------------------- */}
         <Band>
           <Section
-            title="Measured, on data it had never seen"
-            sub={`${HEADLINE.nEvaluated} held-out records, untouched during development · run ${HEADLINE.measuredOn}`}
+            title="Measured on data it had never seen"
+            sub={`${HEADLINE.nEvaluated} held-out records · ${HEADLINE.measuredOn}`}
           >
-            <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
-              <Figure value={HEADLINE.precision} label="precision" tone="var(--win)" />
-              <Figure value={HEADLINE.recall} label="recall" />
-              <Figure value={HEADLINE.f1} label="F1" />
-              <Figure
-                value={HEADLINE.coverage}
-                label="coverage — the rest defers to a human"
-                tone="var(--warn)"
-              />
-            </div>
-
-            <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-              <div className="surface overflow-x-auto">
+            <div className="grid gap-10 lg:grid-cols-2">
+              <div className="reveal surface overflow-hidden">
                 <table className="w-full text-left text-[12.5px]">
                   <tbody className="divide-y" style={{ borderColor: 'var(--line)' }}>
                     {[
-                      ['TP', 9, 'model CONTEST, truth contest_win'],
-                      ['FP', 4, 'model CONTEST, truth loss / should accept'],
-                      ['FN', 3, 'model ACCEPT, truth contest_win'],
-                      ['TN', 7, 'model ACCEPT, truth loss / should accept'],
-                      ['Human', 51, 'routed to a person instead of guessed'],
-                      ['URCS', 5, 'over an NPCI cap — excluded from precision'],
-                    ].map(([k, n, d]) => (
-                      <tr key={String(k)}>
-                        <td className="num px-4 py-2.5 text-[var(--fg-3)]">{k}</td>
-                        <td className="num px-2 py-2.5 text-[var(--fg)]">{n}</td>
-                        <td className="px-4 py-2.5 text-[11.5px] text-[var(--fg-3)]">{d}</td>
+                      ['TP', 9, 'CONTEST, and it was winnable'],
+                      ['FP', 4, 'CONTEST, and it was not'],
+                      ['FN', 3, 'ACCEPT, but it was winnable'],
+                      ['TN', 7, 'ACCEPT, correctly'],
+                      ['Human', 51, 'deferred rather than guessed'],
+                      ['URCS', 5, 'resolved by NPCI rules'],
+                    ].map(([key, count, meaning]) => (
+                      <tr key={String(key)}>
+                        <td className="num px-4 py-2.5 text-[var(--fg-3)]">{key}</td>
+                        <td className="num px-2 py-2.5 text-[var(--fg)]">{count}</td>
+                        <td className="px-4 py-2.5 text-[11.5px] text-[var(--fg-3)]">
+                          {meaning}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="space-y-4 text-[13px] leading-relaxed text-[var(--fg-2)]">
+              <div className="reveal space-y-4 text-[13px] leading-[1.65] text-[var(--fg-2)]">
                 <p>
-                  Coverage of{' '}
-                  <span className="num">{HEADLINE.coverage}</span> means Recourse declines to
-                  decide on roughly seven cases in ten. That is the product, not a shortfall
-                  — a copilot that says &ldquo;I don&rsquo;t know&rdquo; on the cases it
-                  cannot settle, and is right on roughly seven of every ten it does decide, is more useful
-                  than one that guesses confidently on everything.
+                  It declines to decide on seven cases in ten. That&rsquo;s the product, not
+                  a shortfall.
                 </p>
                 <p>
-                  <span className="text-[var(--fg)]" style={{ fontVariationSettings: "'wght' 560" }}>
-                    The number that actually validates the work is not the precision.
+                  <span className="w-semi text-[var(--fg)]">
+                    The number that validates the work isn&rsquo;t the precision.
                   </span>{' '}
-                  It is that every threshold was tuned on the working set, the held-out set
-                  was opened once at the end, and the two scored within a whisker of each
-                  other. It generalised rather than fitting noise. The naive single-signal
-                  version of the same engine scored <span className="num">0.481</span> —
-                  worse than a coin flip, and inverted.
+                  It&rsquo;s that the set every threshold was tuned on and the set opened
+                  once, at the end, scored within a whisker of each other. The naive
+                  single-signal engine scored <span className="num">0.481</span> — worse
+                  than a coin flip, and inverted.
                 </p>
                 <p className="text-[12px] text-[var(--fg-3)]">
-                  False-positive cost estimate at this operating point: ₹
+                  False-positive cost at this operating point: ₹
                   {HEADLINE.falsePositiveCostInr.toLocaleString('en-IN')}.
                 </p>
               </div>
@@ -473,49 +345,33 @@ curl -X POST http://localhost:8000/disputes/disp_synthetic_0168/decide
 
         {/* --- faq ------------------------------------------------------------------ */}
         <Band tinted id="faq">
-          <Section title="Questions you should ask" sub="Answered plainly, including the awkward ones.">
-            <div className="grid gap-x-10 lg:grid-cols-2">
+          <Section title="Questions you should ask">
+            <div className="reveal grid gap-x-12 lg:grid-cols-2">
               <Faq q="Are these real Razorpay disputes?">
-                No, and the distinction is kept sharp everywhere in the code. Razorpay&rsquo;s
-                test mode has no mechanism to fabricate a chargeback on demand, so there is no
-                real disputable transaction to build against. The dispute records — claim
-                text, evidence bundle, ground-truth label — are generated. The{' '}
-                <code className="num">payment_id</code> underneath a dispute <em>can</em> be a
-                real test-mode Razorpay payment, and committed records are.
+                No. Test mode cannot fabricate a chargeback, so the dispute records are
+                generated. The payment underneath one is a real test-mode payment.
               </Faq>
-              <Faq q="Does it ever submit anything to Razorpay or a bank?">
-                Never, and it cannot be configured to. On approval it builds the exact payload
-                it would send, stores it in the audit log labelled &ldquo;would submit to
-                Razorpay&rdquo;, and stops. That is enforced in two independent places, both
-                covered by tests that fail loudly if either regresses.
+              <Faq q="Does it ever submit to Razorpay or a bank?">
+                Never. It builds the payload, logs it as &ldquo;would submit&rdquo;, and
+                stops. Enforced in two places, tested in both.
               </Faq>
-              <Faq q="Why not use an LLM to make the decision?">
-                Cost, determinism and auditability. The decision runs a local NLI
-                cross-encoder: reproducible by anyone who clones the repo, free to run
-                thousands of times during evaluation, no rate limits, same answer every time.
-                A language model only rewrites prose after the verdict already exists, and
-                cannot alter a recommendation, a verdict or a confidence.
+              <Faq q="Why isn't the decision an LLM?">
+                Determinism and cost. A local cross-encoder gives the same answer every time
+                and is free at evaluation scale. An LLM only rewrites prose afterwards.
               </Faq>
-              <Faq q="Is the sign-in screen real authentication?">
-                No, deliberately. This is a single-merchant demo, so an account system would
-                be scope without signal — and a reviewer meeting a credential wall with no
-                credentials is worse than no sign-in at all. Any credentials continue, nothing
-                is checked or stored, and no API route is protected by it. The sign-in card
-                says so itself.
+              <Faq q="Is the sign-in real authentication?">
+                No, deliberately — single-merchant demo. Any credentials continue, nothing is
+                stored, and no API route is protected by it.
               </Faq>
-              <Faq q="What does the conformal guarantee actually promise?">
-                That with probability at least 1&nbsp;&minus;&nbsp;δ over the draw of the
-                calibration set, the false-positive rate among disputes auto-contested is at
-                most α — assuming calibration and deployment data are exchangeable. Nothing
-                more. It says nothing about recall or money recovered.
+              <Faq q="What does the guarantee promise?">
+                That the false-positive rate among auto-contested disputes stays under your
+                budget, assuming calibration and live data are exchangeable. Nothing about
+                recall.
               </Faq>
-              <Faq q="What did calibration reveal that you would rather it hadn't?">
-                That the tightest budget this data supports is around 72%, which is not a
-                useful promise. The method is correct; the confidence score underneath it has
-                too little dynamic range for a threshold to bite on — the same ceiling found
-                three separate ways. Calibration did not fix the model. It made the
-                model&rsquo;s limits impossible to hide, and still beat hand-picked thresholds
-                out of sample.
+              <Faq q="What did calibration reveal?">
+                That the tightest budget this data supports is about 72% — not a useful
+                promise. It didn&rsquo;t fix the model; it made the ceiling impossible to
+                hide.
               </Faq>
             </div>
           </Section>
@@ -523,29 +379,16 @@ curl -X POST http://localhost:8000/disputes/disp_synthetic_0168/decide
 
         {/* --- cta ------------------------------------------------------------------ */}
         <Band>
-          <div className="py-16 text-center">
-            <h2
-              className="text-[26px] tracking-[-0.03em]"
-              style={{ fontVariationSettings: "'wght' 600" }}
-            >
-              See it decide a real case.
-            </h2>
-            <p className="mx-auto mt-3 max-w-[46ch] text-[13.5px] leading-relaxed text-[var(--fg-2)]">
-              182 disputes are seeded and waiting. Open one, watch it verify each piece of
-              evidence against the claim, and approve a representment it drafted.
+          <div className="reveal py-20 text-center">
+            <h2 className="w-display text-[30px] leading-tight">See it decide a real case.</h2>
+            <p className="mx-auto mt-3 max-w-[38ch] text-[13.5px] text-[var(--fg-2)]">
+              182 disputes are seeded and waiting.
             </p>
-            <Link
-              to={entry}
-              className="pressable focus-ring mt-7 inline-flex items-center gap-2 rounded-[var(--radius-control)] px-5 py-3 text-[14px]"
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--accent-fg)',
-                fontVariationSettings: "'wght' 550",
-              }}
-            >
-              Open the dashboard
-              <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
-            </Link>
+            <div className="mt-7 flex justify-center">
+              <Primary to={entry} large>
+                Open the dashboard
+              </Primary>
+            </div>
           </div>
         </Band>
       </main>
@@ -555,45 +398,103 @@ curl -X POST http://localhost:8000/disputes/disp_synthetic_0168/decide
   )
 }
 
+/* -- motion ------------------------------------------------------------------------ */
+
+/**
+ * Reveals `.reveal` elements as they come within the fold: 200ms, 10px, 35ms stagger.
+ *
+ * A rAF-throttled scroll sweep rather than an IntersectionObserver, and that is a fix
+ * rather than a preference. An observer only fires when an intersection ratio *changes*.
+ * Jump the page instantly — the End key, or the #developers and #faq anchors in this
+ * page's own nav — and a skipped element goes from "not intersecting, below" to "not
+ * intersecting, above" without ever crossing a threshold. The callback never runs for it,
+ * so it stays invisible for the rest of the session, and the visitor who scrolls back up
+ * finds blank bands. Measured: 4 of 37 elements stranded after a single jump to the
+ * bottom.
+ *
+ * A sweep asks a different question — "is this above the fold yet?" — which cannot be
+ * skipped, because it is evaluated against wherever the page actually is now.
+ *
+ * The hidden state lives behind [data-reveal='on'], set in a layout effect before paint.
+ * If that never runs, nothing is ever hidden and the page degrades to static rather than
+ * to blank. Under prefers-reduced-motion the CSS block is skipped entirely.
+ */
+function useReveal<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.dataset.reveal = 'on'
+  }, [])
+
+  useEffect(() => {
+    const root = ref.current
+    if (!root) return
+
+    const pending = new Set(root.querySelectorAll<HTMLElement>('.reveal'))
+    let frame = 0
+
+    const teardown = () => {
+      window.removeEventListener('scroll', request)
+      window.removeEventListener('resize', request)
+      if (frame) cancelAnimationFrame(frame)
+      frame = 0
+    }
+
+    const sweep = () => {
+      frame = 0
+      const fold = window.innerHeight * 0.94
+      let staggered = 0
+      pending.forEach((el) => {
+        if (el.getBoundingClientRect().top >= fold) return
+        el.style.transitionDelay = `${Math.min(staggered++, 4) * 35}ms`
+        el.classList.add('shown')
+        pending.delete(el)
+      })
+      if (pending.size === 0) teardown()
+    }
+
+    function request() {
+      if (!frame) frame = requestAnimationFrame(sweep)
+    }
+
+    window.addEventListener('scroll', request, { passive: true })
+    window.addEventListener('resize', request, { passive: true })
+    sweep()
+    return teardown
+  }, [])
+
+  return ref
+}
+
 /* -- layout ------------------------------------------------------------------------ */
 
 function Nav({ entry }: { entry: string }) {
   return (
     <header className="material sticky top-0 z-30 border-b" style={{ borderColor: 'var(--line)' }}>
-      <div className="mx-auto flex max-w-[72rem] items-center justify-between gap-4 px-5 py-3 sm:px-8">
+      <div className="mx-auto flex h-14 max-w-[72rem] items-center justify-between gap-4 px-5 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <Mark size={28} />
-          <span
-            className="text-[14.5px] tracking-[-0.02em]"
-            style={{ fontVariationSettings: "'wght' 600" }}
-          >
-            Recourse
-          </span>
+          <Mark size={26} />
+          <span className="w-bold text-[14.5px] tracking-[-0.02em]">Recourse</span>
         </div>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          <NavAnchor href="#how">How it works</NavAnchor>
+        <nav className="hidden items-center gap-0.5 md:flex">
+          <NavAnchor href="#how">Product</NavAnchor>
           <NavAnchor href="#developers">Developers</NavAnchor>
           <NavAnchor href="#faq">FAQ</NavAnchor>
         </nav>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <ThemeToggle compact />
           <Link
             to={paths.login}
-            className="pressable focus-ring hidden rounded-[var(--radius-control)] px-3 py-1.5 text-[13px] text-[var(--fg-2)] transition hover:text-[var(--fg)] sm:inline-flex"
-            style={{ fontVariationSettings: "'wght' 520" }}
+            className="pressable focus-ring w-med hidden rounded-[var(--radius-control)] px-3 py-1.5 text-[13px] text-[var(--fg-2)] transition-colors hover:text-[var(--fg)] sm:inline-flex"
           >
             Sign in
           </Link>
           <Link
             to={entry}
-            className="pressable focus-ring rounded-[var(--radius-control)] px-3.5 py-1.5 text-[13px]"
-            style={{
-              background: 'var(--fg)',
-              color: 'var(--bg)',
-              fontVariationSettings: "'wght' 540",
-            }}
+            className="pressable focus-ring w-med rounded-[var(--radius-control)] px-3.5 py-1.5 text-[13px]"
+            style={{ background: 'var(--fg)', color: 'var(--bg)' }}
           >
             Open dashboard
           </Link>
@@ -607,15 +508,48 @@ function NavAnchor({ href, children }: { href: string; children: React.ReactNode
   return (
     <a
       href={href}
-      className="focus-ring rounded-[var(--radius-control)] px-2.5 py-1.5 text-[13px] text-[var(--fg-2)] transition hover:text-[var(--fg)]"
-      style={{ fontVariationSettings: "'wght' 510" }}
+      className="focus-ring w-med rounded-[var(--radius-control)] px-3 py-1.5 text-[13px] text-[var(--fg-2)] transition-colors hover:text-[var(--fg)]"
     >
       {children}
     </a>
   )
 }
 
-/** A full-bleed band so alternating sections read as distinct slabs, as on razorpay.com. */
+function Primary({
+  to,
+  large = false,
+  children,
+}: {
+  to: string
+  large?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Link
+      to={to}
+      className={`pressable focus-ring w-med inline-flex items-center gap-2 rounded-[var(--radius-control)] ${
+        large ? 'px-5 py-3 text-[14px]' : 'px-4 py-2.5 text-[13.5px]'
+      }`}
+      style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
+    >
+      {children}
+      <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
+    </Link>
+  )
+}
+
+function Secondary({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="pressable focus-ring w-med inline-flex items-center rounded-[var(--radius-control)] border px-4 py-2.5 text-[13.5px] text-[var(--fg-2)] transition-colors hover:text-[var(--fg)]"
+      style={{ borderColor: 'var(--line-strong)' }}
+    >
+      {children}
+    </a>
+  )
+}
+
 function Band({
   children,
   tinted = false,
@@ -628,7 +562,7 @@ function Band({
   return (
     <div
       id={id}
-      className={id ? 'scroll-mt-16 border-t' : 'border-t'}
+      className={`border-t ${id ? 'scroll-mt-14' : ''}`}
       style={{
         borderColor: 'var(--line)',
         background: tinted ? 'var(--surface-2)' : 'transparent',
@@ -649,16 +583,85 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="py-14 sm:py-18">
-      <h2
-        className="text-[21px] tracking-[-0.025em]"
-        style={{ fontVariationSettings: "'wght' 600" }}
-      >
-        {title}
-      </h2>
-      {sub && <p className="mt-1.5 text-[13px] text-[var(--fg-3)]">{sub}</p>}
-      <div className="mt-8">{children}</div>
+    <section className="py-16">
+      <div className="reveal">
+        <h2 className="w-display max-w-[24ch] text-[24px] leading-tight">{title}</h2>
+        {sub && <p className="mt-2 text-[13px] text-[var(--fg-3)]">{sub}</p>}
+      </div>
+      <div className="mt-9">{children}</div>
     </section>
+  )
+}
+
+/** Alternating text/screenshot row — the shape razorpay.com uses for its feature bands. */
+function Feature({
+  eyebrow,
+  title,
+  shot,
+  alt,
+  flip = false,
+  children,
+}: {
+  eyebrow: string
+  title: string
+  shot: string
+  alt: string
+  flip?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="grid items-center gap-10 py-16 lg:grid-cols-[0.85fr_1.15fr]">
+      <div className={`reveal ${flip ? 'lg:order-2' : ''}`}>
+        <p className="w-semi text-[10.5px] tracking-[0.07em] text-[var(--accent)]">{eyebrow}</p>
+        <h2 className="w-display mt-3 max-w-[16ch] text-[26px] leading-[1.12]">{title}</h2>
+        <div className="mt-4 space-y-3 text-[13.5px] leading-[1.6] text-[var(--fg-2)]">
+          {children}
+        </div>
+      </div>
+      <div className={flip ? 'lg:order-1' : ''}>
+        <Shot name={shot} alt={alt} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A screenshot of the running app, shipped once per theme. Both sit in the DOM and CSS
+ * hides the mismatched one (see index.css) — a dark screenshot on a light page is the
+ * clearest possible tell that an image was pasted in rather than taken from the product.
+ * Dimensions are explicit so the image reserves its space and nothing below it jumps.
+ */
+function Shot({ name, alt, priority = false }: { name: string; alt: string; priority?: boolean }) {
+  const common = {
+    width: 1485,
+    height: 915,
+    alt,
+    loading: priority ? ('eager' as const) : ('lazy' as const),
+    decoding: 'async' as const,
+    className: 'block w-full rounded-[var(--radius-card)]',
+    style: { boxShadow: 'var(--shadow-pop)' },
+  }
+  return (
+    <div className="reveal">
+      <img {...common} data-shot="dark" src={`/shots/${name}-dark.png`} />
+      <img {...common} data-shot="light" src={`/shots/${name}-light.png`} />
+    </div>
+  )
+}
+
+/* -- pieces ------------------------------------------------------------------------ */
+
+function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
+  return (
+    <div className="reveal">
+      <div
+        className="num text-[42px] leading-none tracking-[-0.04em]"
+        style={{ color: tone ?? 'var(--fg)' }}
+      >
+        {value}
+      </div>
+      <div className="mt-2.5 text-[12.5px] text-[var(--fg-3)]">{label}</div>
+    </div>
   )
 }
 
@@ -672,12 +675,8 @@ function Group({
   children: React.ReactNode
 }) {
   return (
-    <div className="mb-9 last:mb-0">
-      <h3
-        className="mb-3 flex items-center gap-2 text-[11px] tracking-[0.05em] text-[var(--fg-3)]"
-        style={{ fontVariationSettings: "'wght' 560" }}
-      >
-        <Boxes size={13} strokeWidth={1.7} aria-hidden="true" />
+    <div className="mb-10 last:mb-0">
+      <h3 className="reveal w-semi mb-3.5 text-[10.5px] tracking-[0.07em] text-[var(--fg-3)]">
         {label.toUpperCase()}
       </h3>
       <div
@@ -689,65 +688,20 @@ function Group({
   )
 }
 
-/* -- pieces ------------------------------------------------------------------------ */
-
 function Card({
   icon,
   title,
-  body,
+  children,
 }: {
   icon: React.ReactNode
   title: string
-  body: string
+  children: React.ReactNode
 }) {
   return (
-    <div className="surface p-4">
-      <span className="text-[var(--fg-2)]">{icon}</span>
-      <h4 className="mt-2.5 text-[13px] tracking-[-0.01em]" style={{ fontVariationSettings: "'wght' 560" }}>
-        {title}
-      </h4>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--fg-3)]">{body}</p>
-    </div>
-  )
-}
-
-function Spotlight({
-  icon,
-  eyebrow,
-  title,
-  body,
-  note,
-}: {
-  icon: React.ReactNode
-  eyebrow: string
-  title: string
-  body: string
-  note: string
-}) {
-  return (
-    <div className="surface flex flex-col p-6">
-      <div className="flex items-center gap-2.5">
-        <span className="text-[var(--accent)]">{icon}</span>
-        <span
-          className="text-[10.5px] tracking-[0.06em] text-[var(--fg-3)]"
-          style={{ fontVariationSettings: "'wght' 560" }}
-        >
-          {eyebrow}
-        </span>
-      </div>
-      <h3
-        className="mt-3.5 text-[16px] leading-snug tracking-[-0.02em]"
-        style={{ fontVariationSettings: "'wght' 580" }}
-      >
-        {title}
-      </h3>
-      <p className="mt-2.5 flex-1 text-[12.5px] leading-relaxed text-[var(--fg-2)]">{body}</p>
-      <p
-        className="mt-4 border-t pt-3.5 text-[12px] leading-relaxed text-[var(--fg-3)]"
-        style={{ borderColor: 'var(--line)' }}
-      >
-        {note}
-      </p>
+    <div className="reveal surface p-4">
+      <span className="text-[var(--fg-3)]">{icon}</span>
+      <h4 className="w-semi mt-3 text-[13px]">{title}</h4>
+      <p className="mt-1.5 text-[12px] leading-[1.55] text-[var(--fg-3)]">{children}</p>
     </div>
   )
 }
@@ -768,7 +722,7 @@ function Row({
       <td className="px-4 py-3.5 align-top">
         <span className="flex items-center gap-2">
           <span className="size-1.5 shrink-0 rounded-full" style={{ background: tone }} />
-          <span className="num text-[11.5px]" style={{ color: tone }}>
+          <span className="num text-[11px]" style={{ color: tone }}>
             {name}
           </span>
         </span>
@@ -779,29 +733,145 @@ function Row({
   )
 }
 
-function Figure({ value, label, tone }: { value: string; label: string; tone?: string }) {
+/** Native details/summary: keyboard operable and correctly announced, with no JS. */
+function Faq({ q, children }: { q: string; children: React.ReactNode }) {
+  return (
+    <details className="group border-b py-4" style={{ borderColor: 'var(--line)' }}>
+      <summary className="focus-ring w-semi flex cursor-pointer list-none items-start justify-between gap-4 rounded text-[13.5px]">
+        {q}
+        <span
+          className="mt-0.5 shrink-0 text-[var(--fg-3)] transition-transform duration-200 group-open:rotate-45"
+          aria-hidden="true"
+        >
+          +
+        </span>
+      </summary>
+      <p className="mt-2.5 max-w-[46ch] text-[12.5px] leading-[1.6] text-[var(--fg-2)]">
+        {children}
+      </p>
+    </details>
+  )
+}
+
+function Footer({ entry }: { entry: string }) {
+  return (
+    <footer className="border-t" style={{ borderColor: 'var(--line)' }}>
+      <div className="mx-auto max-w-[72rem] px-5 py-12 sm:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <Mark size={24} />
+              <span className="w-semi text-[13.5px]">Recourse</span>
+            </div>
+            <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
+              Explainable chargeback defence.
+              <br />
+              Razorpay AI Buildathon, Track 2.
+            </p>
+          </div>
+
+          <FooterCol
+            title="Product"
+            items={[
+              ['Overview', '#how'],
+              ['Developers', '#developers'],
+              ['FAQ', '#faq'],
+            ]}
+          />
+
+          <FooterList
+            title="Stack"
+            items={[
+              'FastAPI · Pydantic · SQLAlchemy',
+              'nli-deberta-v3-base',
+              'React · Vite · Tailwind',
+              'razorpay, test mode only',
+            ]}
+          />
+
+          <div>
+            <h3 className="w-semi text-[10.5px] tracking-[0.07em] text-[var(--fg-3)]">
+              GUARDRAILS
+            </h3>
+            <ul className="mt-3.5 space-y-2 text-[11.5px] text-[var(--fg-3)]">
+              {[
+                ['Test-mode keys enforced at startup', 'var(--win)'],
+                ['Dispute records are synthetic', 'var(--fg-3)'],
+                ['Never auto-submits', 'var(--warn)'],
+                ['Defence only', 'var(--win)'],
+              ].map(([label, tone]) => (
+                <li key={label} className="flex items-start gap-2">
+                  <span
+                    className="mt-[5px] size-1 shrink-0 rounded-full"
+                    style={{ background: tone }}
+                  />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div
+          className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t pt-6 text-[11.5px] text-[var(--fg-3)]"
+          style={{ borderColor: 'var(--line)' }}
+        >
+          <span>Dispute records are synthetic. Backing payments are real, in test mode.</span>
+          <Link
+            to={entry}
+            className="focus-ring inline-flex items-center gap-1.5 rounded transition-colors hover:text-[var(--fg)]"
+          >
+            Open dashboard
+            <ArrowRight size={13} strokeWidth={1.8} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+function FooterCol({ title, items }: { title: string; items: string[][] }) {
   return (
     <div>
-      <div
-        className="num text-[34px] leading-none tracking-[-0.03em]"
-        style={{ color: tone ?? 'var(--fg)', fontVariationSettings: "'wght' 560" }}
-      >
-        {value}
-      </div>
-      <div className="mt-2 text-[12px] leading-snug text-[var(--fg-3)]">{label}</div>
+      <h3 className="w-semi text-[10.5px] tracking-[0.07em] text-[var(--fg-3)]">
+        {title.toUpperCase()}
+      </h3>
+      <ul className="mt-3.5 space-y-2">
+        {items.map(([label, href]) => (
+          <li key={label}>
+            <a
+              href={href}
+              className="focus-ring rounded text-[11.5px] text-[var(--fg-3)] transition-colors hover:text-[var(--fg)]"
+            >
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function FooterList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h3 className="w-semi text-[10.5px] tracking-[0.07em] text-[var(--fg-3)]">
+        {title.toUpperCase()}
+      </h3>
+      <ul className="mt-3.5 space-y-2 text-[11.5px] text-[var(--fg-3)]">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
     </div>
   )
 }
 
 /**
- * The hero's right column: one seeded case rendered in the same visual language the case
- * page itself uses — verdict badges, a confidence meter, and the highlighted span that
- * drove the verdict.
- *
- * Static, and deliberately consistent: every value here matches the curl sample in the
- * developer section, so nothing on this page contradicts anything else on it. Note the
- * overall 0.50 — the minimum of the two verdicts, not their average. Showing that on the
- * front page makes the rule visible before anyone reads a word about it.
+ * The hero's right column: one seeded case in the same visual language the case page uses.
+ * Static, and consistent by design — the values match the curl sample further down, and
+ * the overall 0.50 is the MINIMUM of the two verdicts rather than their average, which
+ * puts the aggregation rule on screen before anyone reads a word about it.
  */
 function VerdictPreview() {
   return (
@@ -819,7 +889,7 @@ function VerdictPreview() {
         </span>
       </div>
 
-      <div className="border-b px-4 py-3.5" style={{ borderColor: 'var(--line)' }}>
+      <div className="border-b px-4 py-4" style={{ borderColor: 'var(--line)' }}>
         <div className="flex items-baseline justify-between gap-3">
           <span className="flex items-center gap-2">
             <span className="size-1.5 rounded-full" style={{ background: 'var(--win)' }} />
@@ -827,45 +897,37 @@ function VerdictPreview() {
               CONTEST
             </span>
           </span>
-          <span className="num text-[11.5px] text-[var(--fg-3)]">confidence 0.50</span>
+          <span className="num text-[11.5px] text-[var(--fg-3)]">0.50</span>
         </div>
         <div
-          className="mt-2.5 h-1 overflow-hidden rounded-full"
+          className="mt-3 h-1 overflow-hidden rounded-full"
           style={{ background: 'var(--surface-3)' }}
         >
           <div className="h-full rounded-full" style={{ width: '50%', background: 'var(--win)' }} />
         </div>
-        <p className="mt-2 text-[10.5px] leading-snug text-[var(--fg-3)]">
-          the minimum across the driving verdicts, not their average
-        </p>
+        <p className="mt-2 text-[10.5px] text-[var(--fg-3)]">the weakest link, not the average</p>
       </div>
 
-      <div className="border-b px-4 py-3" style={{ borderColor: 'var(--line)' }}>
-        <p
-          className="text-[10px] tracking-[0.05em] text-[var(--fg-3)]"
-          style={{ fontVariationSettings: "'wght' 560" }}
-        >
-          BANK&rsquo;S CLAIM
-        </p>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--fg-2)]">
-          Cardholder states the goods were never received and the merchant has not provided
-          proof of delivery.
+      <div className="border-b px-4 py-3.5" style={{ borderColor: 'var(--line)' }}>
+        <p className="w-semi text-[10px] tracking-[0.06em] text-[var(--fg-3)]">CLAIM</p>
+        <p className="mt-1.5 text-[12px] leading-[1.55] text-[var(--fg-2)]">
+          Goods never received at the delivery address given at checkout.
         </p>
       </div>
 
       <div className="space-y-4 p-4">
         <EvidenceLine type="delivery_proof" confidence="0.90">
-          Courier proof of delivery signed at 14:22.{' '}
+          Courier POD signed 14:22.{' '}
           <mark
             className="rounded px-1"
             style={{ background: 'var(--warn-soft)', color: 'var(--fg)' }}
           >
-            OTP captured at delivery, ID matching the KYC record
+            OTP captured at delivery, ID matching KYC
           </mark>
           {'.'}
         </EvidenceLine>
         <EvidenceLine type="order_history" confidence="0.50">
-          Three prior orders to the same address in the past year, none disputed.
+          Three prior orders to this address, none disputed.
         </EvidenceLine>
       </div>
     </div>
@@ -895,146 +957,7 @@ function EvidenceLine({
           <span className="num text-[10.5px] text-[var(--fg-3)]">{confidence}</span>
         </span>
       </div>
-      <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--fg-2)]">{children}</p>
+      <p className="mt-1.5 text-[11.5px] leading-[1.55] text-[var(--fg-2)]">{children}</p>
     </div>
   )
 }
-
-/**
- * Native details/summary rather than a JS accordion: keyboard operable, announced
- * correctly by screen readers, and open-by-default if the browser prints the page.
- */
-function Faq({ q, children }: { q: string; children: React.ReactNode }) {
-  return (
-    <details className="group border-b py-4" style={{ borderColor: 'var(--line)' }}>
-      <summary
-        className="focus-ring flex cursor-pointer list-none items-start justify-between gap-4 rounded text-[13.5px] leading-snug"
-        style={{ fontVariationSettings: "'wght' 550" }}
-      >
-        {q}
-        <span
-          className="mt-0.5 shrink-0 text-[var(--fg-3)] transition-transform duration-200 group-open:rotate-45"
-          aria-hidden="true"
-        >
-          +
-        </span>
-      </summary>
-      <p className="mt-2.5 text-[12.5px] leading-relaxed text-[var(--fg-2)]">{children}</p>
-    </details>
-  )
-}
-
-function Footer({ entry }: { entry: string }) {
-  return (
-    <footer className="border-t" style={{ borderColor: 'var(--line)' }}>
-      <div className="mx-auto max-w-[72rem] px-5 py-10 sm:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <Mark size={26} />
-              <span className="text-[13.5px]" style={{ fontVariationSettings: "'wght' 580" }}>
-                Recourse
-              </span>
-            </div>
-            <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-              Explainable chargeback defence. Built for Razorpay&rsquo;s AI Buildathon,
-              Track 2.
-            </p>
-          </div>
-
-          <FooterCol
-            title="Product"
-            items={[
-              ['How it works', '#how'],
-              ['Developers', '#developers'],
-              ['FAQ', '#faq'],
-            ]}
-          />
-
-          <div>
-            <h3
-              className="text-[11px] tracking-[0.05em] text-[var(--fg-3)]"
-              style={{ fontVariationSettings: "'wght' 560" }}
-            >
-              STACK
-            </h3>
-            <ul className="mt-3 space-y-1.5 text-[11.5px] text-[var(--fg-3)]">
-              <li>FastAPI · Pydantic v2 · SQLAlchemy</li>
-              <li>cross-encoder/nli-deberta-v3-base</li>
-              <li>React · TypeScript · Vite · Tailwind</li>
-              <li>razorpay (test mode only)</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3
-              className="text-[11px] tracking-[0.05em] text-[var(--fg-3)]"
-              style={{ fontVariationSettings: "'wght' 560" }}
-            >
-              GUARDRAILS
-            </h3>
-            <ul className="mt-3 space-y-1.5 text-[11.5px] text-[var(--fg-3)]">
-              {[
-                ['Test-mode keys enforced at startup', 'var(--win)'],
-                ['Dispute records are synthetic', 'var(--fg-3)'],
-                ['Never auto-submits to Razorpay', 'var(--warn)'],
-                ['Defence only — no offensive action', 'var(--win)'],
-              ].map(([label, tone]) => (
-                <li key={label} className="flex items-start gap-2">
-                  <span
-                    className="mt-[5px] size-1 shrink-0 rounded-full"
-                    style={{ background: tone }}
-                  />
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div
-          className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t pt-5 text-[11.5px] text-[var(--fg-3)]"
-          style={{ borderColor: 'var(--line)' }}
-        >
-          <span className="flex items-center gap-2">
-            <BookOpen size={13} strokeWidth={1.7} aria-hidden="true" />
-            Dispute data is synthetic; backing payments are real test-mode Razorpay payments.
-          </span>
-          <Link
-            to={entry}
-            className="focus-ring inline-flex items-center gap-1.5 rounded transition hover:text-[var(--fg)]"
-          >
-            Open dashboard
-            <ArrowRight size={13} strokeWidth={1.8} aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-    </footer>
-  )
-}
-
-function FooterCol({ title, items }: { title: string; items: string[][] }) {
-  return (
-    <div>
-      <h3
-        className="text-[11px] tracking-[0.05em] text-[var(--fg-3)]"
-        style={{ fontVariationSettings: "'wght' 560" }}
-      >
-        {title.toUpperCase()}
-      </h3>
-      <ul className="mt-3 space-y-1.5">
-        {items.map(([label, href]) => (
-          <li key={label}>
-            <a
-              href={href}
-              className="focus-ring rounded text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
-            >
-              {label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-

@@ -190,6 +190,65 @@ h3 {
   }
 }
 
+/* --- type weight -----------------------------------------------------------------
+ *
+ * Inter Variable is a variable font, so weight is an axis rather than a set of named
+ * faces. These four steps replace the inline `style={{ fontVariationSettings }}` that was
+ * scattered through the landing page -- same rendering, but the scale is now defined in
+ * one place and can be read at a glance instead of reconstructed from thirty call sites.
+ */
+@utility w-med {
+  font-variation-settings: 'wght' 520;
+}
+@utility w-semi {
+  font-variation-settings: 'wght' 560;
+}
+@utility w-bold {
+  font-variation-settings: 'wght' 600;
+}
+@utility w-display {
+  font-variation-settings: 'wght' 640;
+  letter-spacing: -0.035em;
+}
+
+/* --- scroll reveal ---------------------------------------------------------------
+ *
+ * Short and small on purpose: 200ms and 10px. A landing page reveal that travels far or
+ * runs long reads as a slideshow and delays the content someone came to read.
+ *
+ * Two failsafes, because content that never appears is far worse than content that
+ * appears without motion:
+ *   1. The hidden state applies only under [data-reveal='on'], which the page sets in a
+ *      layout effect. With JavaScript broken or the observer unsupported, nothing is ever
+ *      hidden in the first place.
+ *   2. Under prefers-reduced-motion the whole block is skipped, so the page renders
+ *      static and complete.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal='on'] .reveal {
+    opacity: 0;
+    transform: translateY(10px);
+    transition:
+      opacity 0.2s var(--ease-out),
+      transform 0.2s var(--ease-out);
+  }
+
+  [data-reveal='on'] .reveal.shown {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Product screenshots ship in both themes; show whichever matches the current one. A
+   dark screenshot on a light page (or the reverse) is the single most obvious tell that a
+   marketing image was pasted in rather than taken from the running app. */
+:root[data-theme='dark'] [data-shot='light'] {
+  display: none;
+}
+:root[data-theme='light'] [data-shot='dark'] {
+  display: none;
+}
+
 /* --- state tone helpers -------------------------------------------------------- */
 
 @utility tone-win {
