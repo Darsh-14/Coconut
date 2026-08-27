@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import CaseDetail from './pages/CaseDetail'
 import DisputeQueue from './pages/DisputeQueue'
 import MetricsDashboard from './pages/MetricsDashboard'
@@ -12,6 +13,9 @@ export default function App() {
       <main className="min-w-0 flex-1">
         <MobileBar />
         <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
+          {/* Keyed on the route so recovering from a crash on one page does not leave the
+              boundary latched shut when you navigate to another. */}
+          <ErrorBoundary key={useLocation().pathname}>
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/disputes" element={<DisputeQueue />} />
@@ -19,6 +23,7 @@ export default function App() {
             <Route path="/metrics" element={<MetricsDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         </div>
       </main>
     </div>

@@ -23,9 +23,9 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import PlainTextResponse
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse, PlainTextResponse
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
@@ -78,6 +78,9 @@ from app.services.verification_engine import get_verification_engine
 logger = logging.getLogger("recourse.api")
 
 router = APIRouter()
+
+# Line separator for the text exports below.
+NEWLINE = "\n"
 
 
 # --- helpers ----------------------------------------------------------------------------
@@ -140,26 +143,59 @@ def _summarise(row: DisputeRow) -> DisputeSummary:
 
 @router.get("/disputes", response_model=list[DisputeSummary], tags=["disputes"])
 def list_disputes(
+    response: Response,
     session: Session = Depends(get_session),
     dispute_status: Optional[str] = Query(
         None, alias="status", description="Filter by computed status."
     ),
+    q: Optional[str] = Query(
+        None,
+        description="Match a dispute id, payment id, reason code or claim text.",
+        max_length=120,
+    ),
     limit: int = Query(500, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ) -> list[DisputeSummary]:
-    """The dispute queue, most urgent first."""
-    rows = session.scalars(
-        select(DisputeRow)
-        .options(selectinload(DisputeRow.decisions), selectinload(DisputeRow.audit_entries))
-        .order_by(DisputeRow.respond_by)
-    ).all()
+    """The dispute queue, most urgent first.
 
-    summaries = [
-        _summarise(row)
-        for row in rows
-    ]
+    Search is pushed into SQL; `status` cannot be, because it is derived from a dispute's
+    decisions and audit entries rather than stored. That is a deliberate trade -- deriving
+    it keeps a single source of truth -- so it is applied after loading and the honest
+    total is reported in X-Total-Count either way.
+
+    The response stays a bare array, as Section 8 specifies. Paging metadata rides in
+    headers rather than wrapping the body in an envelope, so the documented contract holds.
+    """
+    query = select(DisputeRow).options(
+        selectinload(DisputeRow.decisions), selectinload(DisputeRow.audit_entries)
+    )
+
+    if q:
+        # ESCAPE, because a merchant pasting an id containing _ (every id contains _)
+        # would otherwise have it treated as a single-character wildcard.
+        term = f"%{q.strip().replace(chr(92), chr(92) * 2).replace('%', chr(92) + '%').replace('_', chr(92) + '_')}%"
+        query = query.where(
+            or_(
+                DisputeRow.dispute_id.ilike(term, escape=chr(92)),
+                DisputeRow.payment_id.ilike(term, escape=chr(92)),
+                DisputeRow.reason_code.ilike(term, escape=chr(92)),
+                DisputeRow.claim_text.ilike(term, escape=chr(92)),
+            )
+        )
+
+    # dispute_id is the tiebreaker, and it is load-bearing rather than tidiness: twelve
+    # disputes share a respond_by, and ordering by a non-unique column alone leaves SQLite
+    # free to return ties in a different order per query -- so paging could skip a row or
+    # show it twice.
+    rows = session.scalars(
+        query.order_by(DisputeRow.respond_by, DisputeRow.dispute_id)
+    ).all()
+    summaries = [_summarise(row) for row in rows]
     if dispute_status:
-        summaries = [s for s in summaries if s.status == dispute_status]
-    return summaries[:limit]
+        summaries = [item for item in summaries if item.status == dispute_status]
+
+    response.headers["X-Total-Count"] = str(len(summaries))
+    return summaries[offset : offset + limit]
 
 
 @router.post(
@@ -514,6 +550,132 @@ def approve(
         bool(entry.would_be_razorpay_payload),
     )
     return entry.to_schema()
+
+
+@router.post(
+    "/disputes/{dispute_id}/withdraw",
+    response_model=AuditLogEntry,
+    tags=["disputes"],
+)
+def withdraw_approval(
+    dispute_id: str, session: Session = Depends(get_session)
+) -> AuditLogEntry:
+    """Retract a standing approval and return the case to the queue.
+
+    Approval was a one-way door: once a human clicked it the case read as approved forever,
+    with no way to say "I was wrong" short of editing the database. For a system whose
+    whole pitch is that a human stays in charge, the human being unable to change their
+    mind is a strange gap.
+
+    Recorded as a NEW audit entry rather than by editing or deleting the one it retracts.
+    An audit trail that can be rewritten is not an audit trail, and the sequence
+    approve -> withdraw -> approve is exactly the history a reviewer would want to see.
+    """
+    row = _load_dispute(session, dispute_id)
+    if row.computed_status() not in {"approved", "submitted"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{dispute_id} has no standing approval to withdraw.",
+        )
+
+    latest = row.latest_decision
+    entry = AuditLogRow(
+        dispute_id=dispute_id,
+        decision_id=latest.id,
+        approved_by_human=False,
+        submitted_to_razorpay=False,
+        withdrawn=True,
+        note=(
+            "Human withdrew the earlier approval. The case returns to the queue. Nothing "
+            "was transmitted at any point, so there is nothing to retract on Razorpay's "
+            "side (CLAUDE.md Section 7)."
+        ),
+    )
+    session.add(entry)
+    session.commit()
+    logger.info("approval WITHDRAWN for %s", dispute_id)
+    return entry.to_schema()
+
+
+# --- exports ---------------------------------------------------------------------------
+# A packet a merchant cannot get out of the browser is a packet they cannot send to their
+# acquirer, and the "would submit" payload is the artefact Section 7 exists to produce.
+
+
+@router.get("/disputes/{dispute_id}/packet.txt", tags=["disputes"])
+def export_packet(
+    dispute_id: str, session: Session = Depends(get_session)
+) -> PlainTextResponse:
+    """The representment as a text file: the merchant's edit if there is one, else the draft."""
+    row = _load_dispute(session, dispute_id)
+    latest = row.latest_decision
+    if latest is None or not (latest.edited_packet or latest.drafted_packet):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{dispute_id} has no drafted representment.",
+        )
+
+    text = latest.edited_packet or latest.drafted_packet or ""
+    header = [
+        f"Representment for {dispute_id}",
+        f"Reason code: {row.reason_code}",
+        f"Amount: INR {row.amount / 100:,.2f}",
+        f"Recommendation: {latest.recommendation} ({latest.confidence:.0%} confidence)",
+        f"Model: {latest.model_version}",
+        "",
+        "-" * 72,
+        "",
+    ]
+    footer = [
+        "",
+        "-" * 72,
+        "",
+        "Drafted by Recourse. This dispute is synthetic and was never transmitted to "
+        "Razorpay or any bank (CLAUDE.md Section 7). A human approved this text before "
+        "export; the system never submits on its own.",
+    ]
+    return PlainTextResponse(
+        NEWLINE.join(header + [text] + footer),
+        headers={
+            "Content-Disposition": f'attachment; filename="{dispute_id}_representment.txt"'
+        },
+    )
+
+
+@router.get("/disputes/{dispute_id}/would-submit.json", tags=["disputes"])
+def export_would_submit(
+    dispute_id: str, session: Session = Depends(get_session)
+) -> JSONResponse:
+    """The exact payload that WOULD have gone to Razorpay, as a downloadable file.
+
+    Section 7's honest artefact. Showing it on screen proves it exists; letting someone
+    take it away is what makes it reviewable.
+    """
+    row = _load_dispute(session, dispute_id)
+    entries = [e for e in row.audit_entries if e.would_be_razorpay_payload]
+    if not entries:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{dispute_id} has no prepared submission payload.",
+        )
+
+    entry = sorted(entries, key=lambda e: e.id)[-1]
+    return JSONResponse(
+        content={
+            "dispute_id": dispute_id,
+            "prepared_at": entry.created_at.isoformat(),
+            "transmitted": False,
+            "why_not_transmitted": (
+                "The dispute is synthetic and does not exist on Razorpay's side. The "
+                "system never submits to a live dispute workflow (CLAUDE.md Sections 2 "
+                "and 7)."
+            ),
+            "would_be_razorpay_payload": entry.would_be_razorpay_payload,
+        },
+        headers={
+            "Content-Disposition": f'attachment; filename="{dispute_id}_would_submit.json"'
+        },
+    )
 
 
 # --- backing a dispute with a real test-mode payment (Section 7) -----------------------

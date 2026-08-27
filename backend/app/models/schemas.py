@@ -183,6 +183,9 @@ class AuditLogEntry(BaseModel):
     # Logged, never sent. See Section 7: the dispute_id does not exist on Razorpay's side,
     # so we record the exact payload we *would* have sent instead of making the call.
     would_be_razorpay_payload: Optional[dict] = None
+    # True when this entry retracts an earlier approval rather than granting one.
+    withdrawn: bool = False
+    note: Optional[str] = None
 
 
 class EvalMetrics(BaseModel):

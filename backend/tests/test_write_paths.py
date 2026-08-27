@@ -306,3 +306,172 @@ def test_drafting_before_any_decision_is_a_conflict(client):
 
 def test_drafting_on_an_unknown_dispute_is_404(client):
     assert client.put("/disputes/disp_nope/packet-draft", json={"text": "x"}).status_code == 404
+
+
+# -- withdrawing an approval ---------------------------------------------------------------
+# Approval used to be a one-way door. For a system whose pitch is that a human stays in
+# charge, the human being unable to change their mind is a strange gap.
+
+
+def approve(client, dispute_id):
+    return client.post(
+        f"/disputes/{dispute_id}/approve", json={"approved": True, "edited_packet": None}
+    )
+
+
+def test_withdrawing_returns_the_case_to_the_queue(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    approve(client, dispute_id)
+    assert client.get(f"/disputes/{dispute_id}").json()["status"] in {"approved", "submitted"}
+
+    assert client.post(f"/disputes/{dispute_id}/withdraw").status_code == 200
+    assert client.get(f"/disputes/{dispute_id}").json()["status"] == "decided"
+
+
+def test_a_withdrawal_is_appended_never_a_deletion(client, monkeypatch):
+    """An audit trail that can be rewritten is not an audit trail."""
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    approve(client, dispute_id)
+
+    before = client.get(f"/disputes/{dispute_id}").json()["audit_log"]
+    client.post(f"/disputes/{dispute_id}/withdraw")
+    after = client.get(f"/disputes/{dispute_id}").json()["audit_log"]
+
+    assert len(after) == len(before) + 1
+    assert after[: len(before)] == before, "existing entries must be untouched"
+    assert after[-1]["withdrawn"] is True
+    assert after[-1]["approved_by_human"] is False
+
+
+def test_approve_withdraw_approve_is_a_readable_history(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    approve(client, dispute_id)
+    client.post(f"/disputes/{dispute_id}/withdraw")
+    approve(client, dispute_id)
+
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    assert detail["status"] in {"approved", "submitted"}
+    assert [e["withdrawn"] for e in detail["audit_log"]] == [False, True, False]
+
+
+def test_withdrawing_without_a_standing_approval_is_a_conflict(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    assert client.post(f"/disputes/{dispute_id}/withdraw").status_code == 409
+
+
+# -- exports --------------------------------------------------------------------------------
+
+
+def test_the_packet_exports_with_its_non_submission_notice(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "My representment."})
+
+    response = client.get(f"/disputes/{dispute_id}/packet.txt")
+    assert response.status_code == 200
+    assert "attachment" in response.headers["content-disposition"]
+    assert "My representment." in response.text
+    assert "never transmitted" in response.text
+
+
+def test_the_export_prefers_the_merchants_edit_over_the_draft(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "MINE, NOT THE MODEL'S."})
+
+    assert "MINE, NOT THE MODEL'S." in client.get(f"/disputes/{dispute_id}/packet.txt").text
+
+
+def test_exporting_a_packet_that_does_not_exist_is_404(client):
+    dispute_id = file_dispute(client)["dispute_id"]
+    assert client.get(f"/disputes/{dispute_id}/packet.txt").status_code == 404
+
+
+def test_the_would_submit_payload_exports_and_says_it_was_not_sent(client, monkeypatch):
+    """Section 7's artefact. Showing it proves it exists; exporting it makes it reviewable."""
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history", source_ref="oms_2")
+    _stub_decision(client, monkeypatch, dispute_id)
+    approve(client, dispute_id)
+
+    response = client.get(f"/disputes/{dispute_id}/would-submit.json")
+    if response.status_code == 404:
+        pytest.skip("the stubbed decision was not a CONTEST, so no payload was prepared")
+
+    body = response.json()
+    assert body["transmitted"] is False
+    assert "does not exist on Razorpay" in body["why_not_transmitted"]
+    assert body["would_be_razorpay_payload"]
+
+
+def test_exporting_a_payload_that_was_never_prepared_is_404(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    assert client.get(f"/disputes/{dispute_id}/would-submit.json").status_code == 404
+
+
+# -- search and paging -----------------------------------------------------------------------
+
+
+def test_search_matches_across_the_columns_a_merchant_would_type(client):
+    a = file_dispute(client, reason_code="duplicate_charge")["dispute_id"]
+    file_dispute(client, reason_code="goods_not_received")
+
+    by_reason = client.get("/disputes", params={"q": "duplicate_charge"}).json()
+    assert [d["dispute_id"] for d in by_reason] == [a]
+
+    by_id = client.get("/disputes", params={"q": a}).json()
+    assert [d["dispute_id"] for d in by_id] == [a]
+
+
+def test_an_underscore_in_a_query_is_literal_not_a_wildcard(client):
+    """Every dispute id contains underscores, so treating one as LIKE's single-character
+    wildcard would quietly match far too much."""
+    file_dispute(client)
+    assert client.get("/disputes", params={"q": "disp_manual"}).json()
+    assert client.get("/disputes", params={"q": "dispXmanual"}).json() == []
+
+
+def test_a_bare_percent_matches_nothing_rather_than_everything(client):
+    file_dispute(client)
+    assert client.get("/disputes", params={"q": "%"}).json() == []
+
+
+def test_the_total_count_is_reported_for_paging(client):
+    for _ in range(5):
+        file_dispute(client)
+    response = client.get("/disputes", params={"limit": 2})
+    assert response.headers["x-total-count"] == "5"
+    assert len(response.json()) == 2
+
+
+def test_paging_is_stable_when_deadlines_tie(client):
+    """Ordering by a non-unique column alone lets SQLite return ties in any order, so a
+    page boundary could skip a row or show it twice."""
+    same = "2026-09-01T10:00:00Z"
+    for _ in range(6):
+        file_dispute(client, raised_at="2026-08-01T10:00:00Z", respond_by=same)
+
+    whole = [d["dispute_id"] for d in client.get("/disputes").json()]
+    paged = []
+    for offset in range(0, len(whole), 2):
+        paged += [
+            d["dispute_id"]
+            for d in client.get("/disputes", params={"limit": 2, "offset": offset}).json()
+        ]
+
+    assert paged == whole
+    assert len(set(paged)) == len(paged)

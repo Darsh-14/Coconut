@@ -28,6 +28,7 @@ export default function DisputeQueue() {
   const navigate = useNavigate()
   const { rows, error, stats, batch, assessNext, stopBatch, refresh, loading } = useDisputes()
   const [filing, setFiling] = useState(false)
+  const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortKey>('deadline')
 
@@ -44,7 +45,21 @@ export default function DisputeQueue() {
   )
 
   const visible = useMemo(() => {
-    const filtered = (rows ?? []).filter((r) =>
+    // Filtered here rather than round-tripping to the API: the whole queue is already
+    // loaded for the counts above, so a request per keystroke would be slower and would
+    // make the counts and the rows disagree mid-type. The API's own ?q= exists for
+    // consumers that do not hold the list.
+    const needle = search.trim().toLowerCase()
+    const searched = needle
+      ? (rows ?? []).filter(
+          (r) =>
+            r.dispute_id.toLowerCase().includes(needle) ||
+            r.reason_code.toLowerCase().includes(needle) ||
+            r.payment_id.toLowerCase().includes(needle) ||
+            reasonCopy(r.reason_code).short.toLowerCase().includes(needle),
+        )
+      : (rows ?? [])
+    const filtered = searched.filter((r) =>
       filter === 'all'
         ? true
         : filter === 'unassessed'
@@ -56,7 +71,7 @@ export default function DisputeQueue() {
         ? b.amount - a.amount
         : parseApiDate(a.respond_by).getTime() - parseApiDate(b.respond_by).getTime(),
     )
-  }, [rows, filter, sort])
+  }, [rows, filter, sort, search])
 
   return (
     <div>
@@ -114,6 +129,15 @@ export default function DisputeQueue() {
         <div className="-mx-1 max-w-full overflow-x-auto px-1">
           <Segmented options={filters} value={filter} onChange={setFilter} />
         </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search id, reason, payment"
+            aria-label="Search disputes"
+            className="w-52 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12.5px] outline-none transition focus:bg-[var(--surface)] focus:shadow-[var(--shadow-line)]"
+          />
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
@@ -123,6 +147,7 @@ export default function DisputeQueue() {
           <option value="deadline">Soonest deadline</option>
           <option value="amount">Largest amount</option>
         </select>
+        </div>
       </div>
 
       <Surface className="overflow-hidden">

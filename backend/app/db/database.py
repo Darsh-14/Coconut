@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Optional
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -56,8 +57,31 @@ def _enable_sqlite_foreign_keys(dbapi_connection, _record) -> None:
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
 
 
+def _scalar_default(column):
+    """The literal a column defaults to, or None if it has no simple scalar default.
+
+    Only plain scalars are handled. A callable or server-side default is deliberately not
+    guessed at -- getting that wrong writes silent nonsense into every existing row.
+    """
+    default = column.default
+    if default is None or not getattr(default, "is_scalar", False):
+        return None
+    return default.arg
+
+
+def _sql_literal(value) -> Optional[str]:
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        escaped = value.replace("'", "''")
+        return f"'{escaped}'"
+    return None
+
+
 def _add_missing_columns() -> None:
-    """Add columns the ORM declares but the existing database file lacks.
+    """Add columns the ORM declares but the existing database file lacks, and backfill them.
 
     `create_all` only creates missing TABLES -- it will not alter one that already exists.
     So every time a column was added to a model, the running database silently went stale
@@ -65,10 +89,17 @@ def _add_missing_columns() -> None:
     entry recorded against it. For an app that argues its audit trail is the point, losing
     the audit trail to a schema change is not an acceptable upgrade path.
 
-    This closes that gap for the only schema change SQLite handles cheaply and safely:
-    adding a nullable/defaulted column. Anything harder -- dropping a column, changing a
-    type, adding a constraint -- is deliberately NOT attempted here; it needs a real
-    migration tool, and silently half-doing it would be worse than failing loudly.
+    THE BACKFILL IS NOT OPTIONAL. SQLite's ADD COLUMN fills every existing row with NULL,
+    while SQLAlchemy's `default=` applies only on INSERT -- so a new non-nullable column
+    lands as NULL on all historical rows, and the first read of one fails validation. That
+    is exactly what happened when `withdrawn` was added to the audit log: every dispute
+    with prior history started returning a 500. The DDL therefore carries a real DEFAULT,
+    and existing NULLs are repaired on every startup so a database migrated by an earlier,
+    less careful version of this function heals itself.
+
+    Only additive changes are attempted. Dropping a column, changing a type or adding a
+    constraint needs a real migration tool; silently half-doing it would be worse than
+    failing loudly.
     """
     from sqlalchemy import inspect as sa_inspect, text
 
@@ -80,10 +111,30 @@ def _add_missing_columns() -> None:
             if table.name not in existing_tables:
                 continue  # create_all just made it; it is already current
             present = {c["name"] for c in inspector.get_columns(table.name)}
+
             for column in table.columns:
+                literal = _sql_literal(_scalar_default(column))
+
                 if column.name in present:
+                    # Repair rows left NULL by an earlier migration that added the column
+                    # without a default.
+                    if literal is not None and not column.nullable:
+                        repaired = connection.execute(
+                            text(
+                                f"UPDATE {table.name} SET {column.name} = {literal} "
+                                f"WHERE {column.name} IS NULL"
+                            )
+                        ).rowcount
+                        if repaired:
+                            logger.warning(
+                                "backfilled %s.%s on %d existing row(s)",
+                                table.name,
+                                column.name,
+                                repaired,
+                            )
                     continue
-                if not (column.nullable or column.default is not None or column.server_default):
+
+                if not (column.nullable or literal is not None or column.server_default):
                     logger.error(
                         "column %s.%s is missing and is NOT NULL without a default; "
                         "this needs a manual migration",
@@ -91,7 +142,17 @@ def _add_missing_columns() -> None:
                         column.name,
                     )
                     continue
-                ddl = f"ALTER TABLE {table.name} ADD COLUMN {column.name} {column.type.compile(engine.dialect)}"
+
+                ddl = (
+                    f"ALTER TABLE {table.name} ADD COLUMN {column.name} "
+                    f"{column.type.compile(engine.dialect)}"
+                )
+                if literal is not None:
+                    # SQLite requires a DEFAULT to add a NOT NULL column, and it is what
+                    # gives existing rows a real value instead of NULL.
+                    if not column.nullable:
+                        ddl += " NOT NULL"
+                    ddl += f" DEFAULT {literal}"
                 connection.execute(text(ddl))
                 logger.warning("migrated: added %s.%s", table.name, column.name)
 

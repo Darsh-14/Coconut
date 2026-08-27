@@ -135,15 +135,22 @@ class DisputeRow(Base):
         return self.decisions[-1] if self.decisions else None
 
     def computed_status(self) -> str:
-        """Section 8's computed status: pending | decided | approved | submitted."""
+        """Section 8's computed status: pending | decided | approved | submitted.
+
+        Replays the audit entries in order rather than asking whether an approval exists
+        anywhere in them. Those are the same answer until an approval can be withdrawn, and
+        different afterwards: a case whose approval was retracted must return to the queue,
+        not stay marked approved because it once was.
+        """
         if not self.decisions:
             return "pending"
-        approved = [a for a in self.audit_entries if a.approved_by_human]
-        if any(a.submitted_to_razorpay for a in approved):
-            return "submitted"
-        if approved:
-            return "approved"
-        return "decided"
+        state = "decided"
+        for entry in sorted(self.audit_entries, key=lambda a: a.id):
+            if entry.withdrawn:
+                state = "decided"
+            elif entry.approved_by_human:
+                state = "submitted" if entry.submitted_to_razorpay else "approved"
+        return state
 
 
 class DecisionRow(Base):
@@ -239,6 +246,9 @@ class AuditLogRow(Base):
         JSON, nullable=True
     )
     edited_packet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # A withdrawal of an earlier approval. Recorded as a NEW entry rather than by editing
+    # or deleting the one it retracts: an audit trail that can be rewritten is not one.
+    withdrawn: Mapped[bool] = mapped_column(default=False, nullable=False)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
 
@@ -259,6 +269,8 @@ class AuditLogRow(Base):
             approved_at=as_utc(self.approved_at),
             submitted_to_razorpay=self.submitted_to_razorpay,
             would_be_razorpay_payload=self.would_be_razorpay_payload,
+            withdrawn=self.withdrawn,
+            note=self.note,
         )
 
 

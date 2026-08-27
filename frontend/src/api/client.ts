@@ -189,6 +189,9 @@ export interface AuditLogEntry {
   approved_at: string | null
   submitted_to_razorpay: boolean
   would_be_razorpay_payload: Record<string, unknown> | null
+  /** True when this entry retracts an earlier approval rather than granting one. */
+  withdrawn: boolean
+  note: string | null
 }
 
 export interface DisputeSummary {
@@ -303,6 +306,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ text }),
     }),
+  withdraw: (id: string) =>
+    request<AuditLogEntry>(`/disputes/${id}/withdraw`, { method: 'POST' }),
+  packetUrl: (id: string) => `/api/disputes/${id}/packet.txt`,
+  wouldSubmitUrl: (id: string) => `/api/disputes/${id}/would-submit.json`,
   createDispute: (body: DisputeCreate) =>
     request<Dispute>('/disputes', { method: 'POST', body: JSON.stringify(body) }),
   addEvidence: (id: string, body: EvidenceAdd) =>

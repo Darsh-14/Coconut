@@ -36,9 +36,22 @@ export function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
   )
 }
 
+/**
+ * A withdrawal carries approved_by_human = false, exactly as a rejection does, so reading
+ * that flag alone labelled every retraction "Rejected by human" — a different act, and a
+ * materially misleading thing to write in an audit trail. The withdrawn flag is checked
+ * first for that reason.
+ */
+function entryKind(entry: AuditLogEntry): { label: string; tone: 'win' | 'warn' | 'mute' } {
+  if (entry.withdrawn) return { label: 'Approval withdrawn', tone: 'warn' }
+  if (entry.approved_by_human) return { label: 'Approved by human', tone: 'win' }
+  return { label: 'Rejected by human', tone: 'mute' }
+}
+
 function AuditEntry({ entry }: { entry: AuditLogEntry }) {
   const [open, setOpen] = useState(false)
   const copy = RECOMMENDATIONS[entry.decision.recommendation]
+  const kind = entryKind(entry)
 
   return (
     <li className="surface p-4">
@@ -47,15 +60,11 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
           className="flex items-center gap-2 text-[13px]"
           style={{ fontVariationSettings: "'wght' 510" }}
         >
-          <span
-            className={`size-1.5 rounded-full ${
-              entry.approved_by_human ? toneDot('win') : toneDot('mute')
-            }`}
-          />
-          {entry.approved_by_human ? 'Approved' : 'Rejected'} by human
+          <span className={`size-1.5 rounded-full ${toneDot(kind.tone)}`} />
+          {kind.label}
         </span>
         <span className="num text-[11.5px] text-[var(--fg-3)]">
-          {formatTimestamp(entry.approved_at)}
+          {formatTimestamp(entry.approved_at ?? null)}
         </span>
       </div>
 
@@ -73,6 +82,10 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
           <dd className="num text-[11px]">{entry.decision.model_version}</dd>
         </div>
       </dl>
+
+      {entry.note && (
+        <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--fg-3)]">{entry.note}</p>
+      )}
 
       {entry.would_be_razorpay_payload && (
         <div

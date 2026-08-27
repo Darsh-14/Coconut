@@ -104,7 +104,12 @@ if (await approve.count()) {
     await textarea.fill((await textarea.inputValue()) + '\n\nEdited during smoke test.')
   }
   await approve.click()
-  await page.getByText(/by human/).waitFor({ timeout: 60000 })
+  // .first(): a case may already carry approvals and withdrawals from earlier runs, so
+  // this must assert an entry appeared, not that exactly one exists.
+  await page
+    .getByText(/Approved by human|Rejected by human|Approval withdrawn/)
+    .first()
+    .waitFor({ timeout: 60000 })
 }
 
 const showPayload = page.getByRole('button', { name: /Show payload/i }).first()

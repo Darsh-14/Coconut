@@ -79,6 +79,21 @@ export default function CaseDetail() {
     }
   }
 
+  async function runWithdraw() {
+    setBusy('approving')
+    setNotice(null)
+    try {
+      await api.withdraw(disputeId)
+      await load()
+      setTab('audit')
+      setNotice('Approval withdrawn. The case is back in the queue.')
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function runApprove(approved: boolean) {
     setBusy('approving')
     setNotice(null)
@@ -309,10 +324,41 @@ export default function CaseDetail() {
                 Reject
               </Button>
               {actioned && (
-                <p className="mt-2.5 text-[11px] text-[var(--fg-3)]">
-                  Already actioned — approving appends a new entry.
-                </p>
+                <>
+                  <Button className="mt-2 w-full" onClick={runWithdraw} disabled={busy !== null}>
+                    {busy === 'approving' ? 'Working…' : 'Withdraw approval'}
+                  </Button>
+                  <p className="mt-2.5 text-[11px] leading-relaxed text-[var(--fg-3)]">
+                    Withdrawing returns this to the queue. Nothing was ever transmitted, so
+                    there is nothing to retract on Razorpay's side.
+                  </p>
+                </>
               )}
+
+              {/* A packet you cannot get out of the browser is one you cannot send on. */}
+              <div
+                className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t pt-3"
+                style={{ borderColor: 'var(--line)' }}
+              >
+                {isContest && (
+                  <a
+                    href={api.packetUrl(dispute.dispute_id)}
+                    download
+                    className="text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                  >
+                    Download packet
+                  </a>
+                )}
+                {detail.audit_log.some((e) => e.would_be_razorpay_payload) && (
+                  <a
+                    href={api.wouldSubmitUrl(dispute.dispute_id)}
+                    download
+                    className="text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                  >
+                    Download &ldquo;would submit&rdquo; payload
+                  </a>
+                )}
+              </div>
             </Surface>
           )}
         </aside>
