@@ -8,6 +8,7 @@ import {
   parseApiDate,
   type DisputeSummary,
 } from '../api/client'
+import { ABSTAIN_RATE, RECORDED } from '../lib/headline'
 import { reasonCopy, RECOMMENDATIONS } from '../lib/labels'
 import { useDisputes } from '../lib/useDisputes'
 import {
@@ -258,8 +259,12 @@ function ExposureByReason({
 }
 
 /**
- * The recorded held-out result, surfaced on the landing page. Figures match README.md's
- * table and the Performance page; labelled as a recorded run, never as a live one.
+ * The recorded held-out result. Figures come from lib/headline.ts rather than literals,
+ * because this card previously showed 62.5% / 21.5% under "Last recorded run" -- Section
+ * 10's hand-picked thresholds, not the calibrated ones the system ships -- while claiming
+ * in its own docstring to match the README and the Performance page. It did not, and a
+ * reviewer crossing from the landing page would have caught the product disagreeing with
+ * itself about its own accuracy.
  */
 function ModelCard({ onOpen }: { onOpen: () => void }) {
   return (
@@ -268,17 +273,23 @@ function ModelCard({ onOpen }: { onOpen: () => void }) {
         How well it calls them
       </h2>
       <p className="mt-1 text-[11.5px] text-[var(--fg-3)]">
-        Last recorded run, 79 held-out disputes.
+        Last recorded run, {RECORDED.nEvaluated} held-out disputes.
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-4">
-        <Inline value="62.5%" label="precision when it says contest" />
-        <Inline value="21.5%" label="of the queue it will call" />
+        <Inline
+          value={`${(RECORDED.precision * 100).toFixed(1)}%`}
+          label="precision when it says contest"
+        />
+        <Inline
+          value={`${(RECORDED.coverage * 100).toFixed(1)}%`}
+          label="of the queue it will call"
+        />
       </div>
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-        It abstains on four cases in five. That is the design — guessing is what costs a
-        merchant the ₹1,500 twice over.
+        It abstains on {(ABSTAIN_RATE * 10).toFixed(0)} cases in ten. That is the design —
+        guessing is what costs a merchant the ₹1,500 twice over.
       </p>
 
       <Button className="mt-4 w-full" onClick={onOpen}>

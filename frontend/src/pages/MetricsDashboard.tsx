@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { api, formatPercent, type EvalMetrics } from '../api/client'
 import { Button, Metric, PageHeader, Progress, Surface } from '../components/ui'
 import { RiskBudgetDial } from '../components/RiskBudgetDial'
+import { BASELINES, RECORDED } from '../lib/headline'
 
 /**
  * The last committed evaluation run, so the page says something on open rather than
@@ -10,21 +11,21 @@ import { RiskBudgetDial } from '../components/RiskBudgetDial'
  * never as a live one. Same figures as README.md's results table.
  */
 const REFERENCE = {
-  section10: { precision: 0.625, coverage: 0.215 },
-  heldOut: { precision: 0.692, coverage: 0.291 },
-  naive: { precision: 0.481, coverage: 0.423 },
+  section10: BASELINES.section10,
+  heldOut: { precision: RECORDED.precision, coverage: RECORDED.coverage },
+  naive: BASELINES.naive,
 }
 
 /** The recorded run in full, so the page is populated before anyone clicks anything. */
-const RECORDED: EvalMetrics = {
-  precision: 0.692,
-  recall: 0.75,
-  f1: 0.72,
-  coverage: 0.291,
-  n_evaluated: 79,
-  false_positive_cost_estimate_inr: 6000,
-  confusion_matrix: { tp: 9, fp: 4, fn: 3, tn: 7, flagged_human: 51 },
-  auto_resolved: 5,
+const LAST_RUN: EvalMetrics = {
+  precision: RECORDED.precision,
+  recall: RECORDED.recall,
+  f1: RECORDED.f1,
+  coverage: RECORDED.coverage,
+  n_evaluated: RECORDED.nEvaluated,
+  false_positive_cost_estimate_inr: RECORDED.falsePositiveCostInr,
+  confusion_matrix: { ...RECORDED.matrix },
+  auto_resolved: RECORDED.autoResolved,
 }
 
 export default function MetricsDashboard() {
@@ -45,7 +46,7 @@ export default function MetricsDashboard() {
   }
 
   // Show the recorded run until a live one replaces it — never an empty page.
-  const shown = metrics ?? RECORDED
+  const shown = metrics ?? LAST_RUN
   const cm = shown.confusion_matrix
   const isLive = metrics !== null
 

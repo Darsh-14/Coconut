@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mark, ThemeToggle } from '../components/ThemeToggle'
 import { HEADLINE } from '../lib/headline'
@@ -49,10 +49,7 @@ export default function Landing() {
         <Band>
           <div className="grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_1fr] lg:items-center">
             <div className="reveal">
-              <p className="w-semi text-[11px] tracking-[0.08em] text-[var(--fg-3)]">
-                TRACK 2 — AI RISK MANAGER
-              </p>
-              <h1 className="w-display mt-5 max-w-[16ch] text-[42px] leading-[1.02] sm:text-[60px]">
+              <h1 className="w-display max-w-[15ch] text-[44px] leading-[1.0] sm:text-[64px]">
                 Know which chargebacks are worth fighting.
               </h1>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-[1.55] text-[var(--fg-2)]">
@@ -66,11 +63,11 @@ export default function Landing() {
                 <Secondary href="#how">How it works</Secondary>
               </div>
 
-              <p className="mt-10 text-[12.5px] text-[var(--fg-3)]">
-                <span className="num text-[var(--fg-2)]">{HEADLINE.precision}</span> precision
-                on <span className="num text-[var(--fg-2)]">{HEADLINE.nEvaluated}</span>{' '}
-                held-out disputes it had never seen.
-              </p>
+              <div className="mt-11 flex flex-wrap gap-x-10 gap-y-5">
+                <Stat value={HEADLINE.precision} label="precision" tone="var(--win)" />
+                <Stat value={HEADLINE.coverage} label="auto-decided" tone="var(--warn)" />
+                <Stat value={String(HEADLINE.nEvaluated)} label="held-out records" />
+              </div>
             </div>
 
             <div className="reveal">
@@ -84,18 +81,8 @@ export default function Landing() {
           <div className="py-14">
             <Shot name="queue" alt="The Recourse dispute queue" priority />
             <p className="reveal mt-4 text-[12.5px] text-[var(--fg-3)]">
-              The queue, filtered by what Recourse concluded. Deadlines in red; cases
-              NPCI&rsquo;s own rules will resolve are pushed down.
+              Filtered by what Recourse concluded. Deadlines in red.
             </p>
-          </div>
-        </Band>
-
-        {/* --- numbers ------------------------------------------------------------- */}
-        <Band>
-          <div className="grid gap-8 py-14 sm:grid-cols-3">
-            <Stat value={HEADLINE.precision} label="precision" tone="var(--win)" />
-            <Stat value={HEADLINE.coverage} label="auto-decided" tone="var(--warn)" />
-            <Stat value={String(HEADLINE.nEvaluated)} label="held-out records" />
           </div>
         </Band>
 
@@ -469,8 +456,22 @@ function useReveal<T extends HTMLElement>() {
 /* -- layout ------------------------------------------------------------------------ */
 
 function Nav({ entry }: { entry: string }) {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="material sticky top-0 z-30 border-b" style={{ borderColor: 'var(--line)' }}>
+    <header
+      className={`sticky top-0 z-30 border-b transition-colors duration-200 ${
+        scrolled ? 'material' : ''
+      }`}
+      style={{ borderColor: scrolled ? 'var(--line)' : 'transparent' }}
+    >
       <div className="mx-auto flex h-14 max-w-[72rem] items-center justify-between gap-4 px-5 sm:px-8">
         <div className="flex items-center gap-2.5">
           <Mark size={26} />
@@ -653,14 +654,14 @@ function Shot({ name, alt, priority = false }: { name: string; alt: string; prio
 
 function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
-    <div className="reveal">
+    <div>
       <div
-        className="num text-[42px] leading-none tracking-[-0.04em]"
+        className="num text-[28px] leading-none tracking-[-0.03em]"
         style={{ color: tone ?? 'var(--fg)' }}
       >
         {value}
       </div>
-      <div className="mt-2.5 text-[12.5px] text-[var(--fg-3)]">{label}</div>
+      <div className="mt-2 text-[11.5px] text-[var(--fg-3)]">{label}</div>
     </div>
   )
 }
@@ -698,7 +699,7 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <div className="reveal surface p-4">
+    <div className="reveal surface lift p-4">
       <span className="text-[var(--fg-3)]">{icon}</span>
       <h4 className="w-semi mt-3 text-[13px]">{title}</h4>
       <p className="mt-1.5 text-[12px] leading-[1.55] text-[var(--fg-3)]">{children}</p>
@@ -764,9 +765,9 @@ function Footer({ entry }: { entry: string }) {
               <span className="w-semi text-[13.5px]">Recourse</span>
             </div>
             <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-              Explainable chargeback defence.
+              Explainable chargeback defence,
               <br />
-              Razorpay AI Buildathon, Track 2.
+              built for Indian payment rails.
             </p>
           </div>
 
@@ -903,7 +904,10 @@ function VerdictPreview() {
           className="mt-3 h-1 overflow-hidden rounded-full"
           style={{ background: 'var(--surface-3)' }}
         >
-          <div className="h-full rounded-full" style={{ width: '50%', background: 'var(--win)' }} />
+          <div
+            className="meter-fill h-full rounded-full"
+            style={{ width: '50%', background: 'var(--win)' }}
+          />
         </div>
         <p className="mt-2 text-[10.5px] text-[var(--fg-3)]">the weakest link, not the average</p>
       </div>

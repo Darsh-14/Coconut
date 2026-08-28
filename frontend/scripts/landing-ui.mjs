@@ -88,6 +88,17 @@ const stranded = await page.evaluate(
 )
 check(stranded === 0, `no revealed element is left invisible (${stranded} stranded)`)
 
+// The hero's confidence bar animates from scaleX(0). If the keyframe stops resolving it
+// would sit at zero width forever -- invisible, and silently deleting the one number the
+// hero exists to show.
+await page.evaluate(() => window.scrollTo(0, 0))
+await page.waitForTimeout(900)
+const meter = await page.evaluate(() => {
+  const el = document.querySelector('.meter-fill')
+  return el ? Math.round(el.getBoundingClientRect().width) : -1
+})
+check(meter > 10, `the hero confidence bar has real width (${meter}px)`)
+
 // The product screenshots are real files; a 404 renders as a broken image, not an error.
 const shots = await page.evaluate(() =>
   [...document.querySelectorAll('img[src^="/shots/"]')]
@@ -134,6 +145,23 @@ await page.waitForSelector('h1, h2', { timeout: 10000 })
 await page.locator('a[href="/app/disputes"]').first().click()
 await page.waitForURL('**/app/disputes', { timeout: 5000 })
 check(page.url().endsWith('/app/disputes'), 'back-link returns to the queue')
+
+// --- 4b. the same numbers everywhere ---------------------------------------------------
+// These figures lived as literals on three surfaces and drifted: Overview showed 62.5% at
+// 21.5% coverage -- Section 10's HAND-PICKED thresholds -- under the heading "Last recorded
+// run", while the landing page showed the calibrated 0.692. A reviewer crossing between
+// them would have found the product disagreeing with itself about its own accuracy. They
+// now share lib/headline.ts; this asserts they still do.
+await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
+await page.getByText('at stake across').waitFor({ timeout: 30000 })
+const modelCard = await page
+  .locator('text=How well it calls them')
+  .locator('xpath=ancestor::*[contains(@class,"surface")][1]')
+  .innerText()
+check(modelCard.includes('69.2%'), 'Overview quotes the shipped precision (69.2%)', modelCard.slice(0, 90))
+check(modelCard.includes('29.1%'), 'Overview quotes the shipped coverage (29.1%)')
+check(!modelCard.includes('62.5%') && !modelCard.includes('21.5%'),
+      'Overview does not quote the hand-picked thresholds as the recorded run')
 
 // --- 5. nav ---------------------------------------------------------------------------
 await page.locator('aside a[href="/app/metrics"]').click()
