@@ -270,10 +270,48 @@ An empty database seeds itself on first start, so the queue is populated without
 step. Both the database and the model cache live in named volumes and survive
 `docker compose down`.
 
+`torch` is installed from PyTorch's CPU index rather than PyPI. The default PyPI wheel
+bundles the CUDA runtime — roughly 2.5GB of GPU libraries this image can never use, since
+inference here is CPU-only by design. `requirements.txt` stays platform-neutral so a local
+`pip install -r` still works on Windows and macOS; only the Dockerfile pins the CPU wheel.
+
 > **Not verified on this machine.** Docker is not installed on the machine this was built
-> on, so the compose file and Dockerfile are written but have never been built. The
-> single-origin server they run (`uvicorn app.server:site`) *is* verified — see below. If
-> the build needs a fix, that is where to look first.
+> on, so the compose file and Dockerfile are written but have never been built — including
+> the CPU-wheel line above, which is reasoned rather than tested. The single-origin server
+> they run (`uvicorn app.server:site`) *is* verified — see below. If the build needs a fix,
+> that is where to look first.
+
+### If you want to host it
+
+Measured on this machine, with the model loaded and a full evaluation run:
+
+| | |
+|---|---|
+| Peak resident memory | **886 MB** |
+| Model on disk | 715 MB |
+
+That rules out the smallest tiers — a 512MB instance cannot hold this process. The natural
+fit is **Hugging Face Spaces**: its CPU Basic hardware is 2 vCPU and 16GB at no hourly
+cost, which is comfortable against 886MB, and the model is already hosted there so first
+boot pulls it over HF's own network.
+
+One thing to check against your own account before counting on it: this app needs a
+**Docker** Space (it is FastAPI plus a built SPA, not Gradio or Streamlit), and the public
+documentation is not clear on whether a free account can create one — HF's pricing page
+lists "Create Gradio & Docker Spaces" under a paid plan's benefits, while the hardware
+itself is listed as free. The hardware fits; the account tier is the open question.
+
+Three things to decide before putting this on a public URL, none of them blockers but none
+of them automatic:
+
+1. **It needs a real `rzp_test_` key to boot at all** — `config.py` hard-fails otherwise
+   (Section 2). That means putting a credential, test-mode or not, into a host's secret
+   store.
+2. **The write endpoints are unauthenticated.** Creating disputes, editing evidence,
+   approving and withdrawing are all open, because the sign-in screen is a front door with
+   no server component (Section 16). Anyone with the URL can mutate the demo. It reseeds
+   when empty, so this is survivable rather than safe.
+3. **`/evaluate` costs about 90 seconds of CPU per call** and is equally open.
 
 To run that same single-origin server without Docker:
 

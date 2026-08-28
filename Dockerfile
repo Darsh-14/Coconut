@@ -35,7 +35,20 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /srv
 
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# torch is installed from PyTorch's CPU index BEFORE requirements.txt, deliberately.
+#
+# The default PyPI wheel bundles the CUDA runtime -- roughly 2.5GB of GPU libraries this
+# image can never use. Inference here is CPU-only by design (Section 3: the decision must
+# be deterministic, local, and free to run thousands of times), so every one of those bytes
+# is dead weight in the image and in the pull.
+#
+# requirements.txt still asks for `torch>=2.4` and is installed second; the CPU wheel
+# (2.x.y+cpu) satisfies that constraint, so pip leaves it alone rather than replacing it.
+# requirements.txt is left platform-neutral on purpose -- it has to keep working for a
+# local `pip install -r` on Windows and macOS, where this index is the wrong answer.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch \
+    && pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ ./backend/
 COPY --from=frontend /build/dist ./frontend/dist
