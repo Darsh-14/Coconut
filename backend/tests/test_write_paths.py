@@ -14,6 +14,9 @@ incidental, and are tested first:
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -108,7 +111,9 @@ def test_removing_evidence_also_invalidates_it(client, monkeypatch):
 def _stub_decision(client, monkeypatch, dispute_id: str) -> None:
     """Run /decide with the model stubbed out -- these tests are about bookkeeping."""
     from app.models.schemas import ClaimVerdict
+    from app.services.conformal_calibrator import set_active_threshold
 
+    set_active_threshold(0.5, 0.75, 0.1)
     monkeypatch.setattr(
         "app.api.routes.get_verification_engine",
         lambda: _FakeEngine(),
@@ -116,6 +121,19 @@ def _stub_decision(client, monkeypatch, dispute_id: str) -> None:
     response = client.post(f"/disputes/{dispute_id}/decide")
     assert response.status_code == 200, response.text
     assert ClaimVerdict(**response.json()["claim_verdicts"][0])
+
+
+def latest_decision_id(client, dispute_id: str) -> int:
+    value = client.get(f"/disputes/{dispute_id}").json()["latest_decision_id"]
+    assert isinstance(value, int)
+    return value
+
+
+def save_draft(client, dispute_id: str, text: str):
+    return client.put(
+        f"/disputes/{dispute_id}/packet-draft",
+        json={"decision_id": latest_decision_id(client, dispute_id), "text": text},
+    )
 
 
 class _FakeEngine:
@@ -140,6 +158,24 @@ def test_a_filed_dispute_joins_the_queue(client):
 
     assert len(after) == before + 1
     assert dispute["dispute_id"] in {row["dispute_id"] for row in after}
+
+
+def test_concurrent_filings_receive_distinct_identifiers(client):
+    body = {
+        "reason_code": "goods_not_received",
+        "claim_text": "The parcel did not arrive.",
+        "amount": 10000,
+    }
+
+    def file_one():
+        response = client.post("/disputes", json=body)
+        return response.status_code, response.json()["dispute_id"]
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _index: file_one(), range(2)))
+
+    assert [status for status, _ in results] == [201, 201]
+    assert len({dispute_id for _, dispute_id in results}) == 2
 
 
 def test_ids_are_minted_by_the_server_and_do_not_collide(client):
@@ -255,9 +291,10 @@ def test_evidence_on_an_unknown_dispute_is_404(client):
 def test_a_draft_survives_being_saved_and_read_back(client, monkeypatch):
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
 
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "My own wording."})
+    save_draft(client, dispute_id, "My own wording.")
     assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] == "My own wording."
 
 
@@ -265,10 +302,11 @@ def test_saving_a_draft_is_not_approving_it(client, monkeypatch):
     """Section 2.2: only a human clicking approve may set these."""
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
 
     before = client.get(f"/disputes/{dispute_id}").json()
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Draft text."})
+    save_draft(client, dispute_id, "Draft text.")
     after = client.get(f"/disputes/{dispute_id}").json()
 
     assert after["audit_log"] == before["audit_log"] == []
@@ -279,10 +317,11 @@ def test_an_empty_draft_clears_it(client, monkeypatch):
     """So 'revert to the model's text' is expressible, not just 'overwrite with spaces'."""
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
 
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Something."})
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": ""})
+    save_draft(client, dispute_id, "Something.")
+    save_draft(client, dispute_id, "")
     assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] is None
 
 
@@ -291,8 +330,9 @@ def test_re_assessing_does_not_resurrect_an_edit_of_the_old_draft(client, monkey
     show a merchant text they wrote while looking at different verdicts."""
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "Old wording."})
+    save_draft(client, dispute_id, "Old wording.")
 
     _stub_decision(client, monkeypatch, dispute_id)  # re-assess
     assert client.get(f"/disputes/{dispute_id}").json()["edited_packet"] is None
@@ -300,12 +340,128 @@ def test_re_assessing_does_not_resurrect_an_edit_of_the_old_draft(client, monkey
 
 def test_drafting_before_any_decision_is_a_conflict(client):
     dispute_id = file_dispute(client)["dispute_id"]
-    response = client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "x"})
+    response = client.put(
+        f"/disputes/{dispute_id}/packet-draft", json={"decision_id": 1, "text": "x"}
+    )
     assert response.status_code == 409
 
 
 def test_drafting_on_an_unknown_dispute_is_404(client):
-    assert client.put("/disputes/disp_nope/packet-draft", json={"text": "x"}).status_code == 404
+    assert (
+        client.put(
+            "/disputes/disp_nope/packet-draft", json={"decision_id": 1, "text": "x"}
+        ).status_code
+        == 404
+    )
+
+
+def test_detail_exposes_the_persisted_decision_token(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    assert isinstance(detail["latest_decision_id"], int)
+
+
+def test_a_superseded_decision_token_cannot_change_a_draft(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    old_id = latest_decision_id(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    response = client.put(
+        f"/disputes/{dispute_id}/packet-draft",
+        json={"decision_id": old_id, "text": "Written against an old assessment."},
+    )
+    assert response.status_code == 409
+    assert "no longer current" in response.json()["detail"]
+
+
+def test_non_contest_decision_cannot_create_or_export_a_packet(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    # One evidence type deliberately fails the corroboration requirement.
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    draft = client.put(
+        f"/disputes/{dispute_id}/packet-draft",
+        json={"decision_id": decision_id, "text": "misleading packet"},
+    )
+    export = client.get(
+        f"/disputes/{dispute_id}/packet.txt", params={"decision_id": decision_id}
+    )
+    assert draft.status_code == export.status_code == 409
+
+
+def test_evidence_staleness_blocks_every_decision_bound_action(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+    add_evidence(client, dispute_id, type="communication_log", source_ref="chat_new")
+
+    draft = client.put(
+        f"/disputes/{dispute_id}/packet-draft",
+        json={"decision_id": decision_id, "text": "stale"},
+    )
+    action = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": True, "edited_packet": None},
+    )
+    export = client.get(
+        f"/disputes/{dispute_id}/packet.txt", params={"decision_id": decision_id}
+    )
+
+    assert {draft.status_code, action.status_code, export.status_code} == {409}
+    assert all(
+        "Evidence changed" in response.json()["detail"]
+        for response in (draft, action, export)
+    )
+
+
+def test_risk_budget_change_stales_a_persisted_decision(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    monkeypatch.setattr("app.api.routes.get_active_calibrated_threshold", lambda: 0.99)
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    action = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": False, "edited_packet": None},
+    )
+    assert detail["decision_is_stale"] is True
+    assert action.status_code == 409
+    assert "risk budget changed" in action.json()["detail"]
+
+
+def test_new_same_payer_dispute_stales_a_upi_decision(client, monkeypatch):
+    dispute_id = file_dispute(
+        client,
+        rail="upi",
+        payer_ref="payer_stale_history",
+        raised_at="2026-09-03T12:00:00Z",
+    )["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    file_dispute(
+        client,
+        rail="upi",
+        payer_ref="payer_stale_history",
+        raised_at="2026-09-03T11:00:00Z",
+    )
+    action = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": False, "edited_packet": None},
+    )
+    assert action.status_code == 409
+    assert "payer's dispute history changed" in action.json()["detail"]
 
 
 # -- withdrawing an approval ---------------------------------------------------------------
@@ -315,7 +471,31 @@ def test_drafting_on_an_unknown_dispute_is_404(client):
 
 def approve(client, dispute_id):
     return client.post(
-        f"/disputes/{dispute_id}/approve", json={"approved": True, "edited_packet": None}
+        f"/disputes/{dispute_id}/approve",
+        json={
+            "decision_id": latest_decision_id(client, dispute_id),
+            "approved": True,
+            "edited_packet": None,
+        },
+    )
+
+
+def standing_approval_id(entries):
+    standing = None
+    for entry in entries:
+        if entry["withdrawn"]:
+            standing = None
+        elif entry["approved_by_human"]:
+            standing = entry["id"]
+    return standing
+
+
+def withdraw(client, dispute_id, approval_id=None):
+    if approval_id is None:
+        entries = client.get(f"/disputes/{dispute_id}").json()["audit_log"]
+        approval_id = standing_approval_id(entries) or 1
+    return client.post(
+        f"/disputes/{dispute_id}/withdraw", params={"approval_id": approval_id}
     )
 
 
@@ -326,8 +506,99 @@ def test_withdrawing_returns_the_case_to_the_queue(client, monkeypatch):
     approve(client, dispute_id)
     assert client.get(f"/disputes/{dispute_id}").json()["status"] in {"approved", "submitted"}
 
-    assert client.post(f"/disputes/{dispute_id}/withdraw").status_code == 200
+    assert withdraw(client, dispute_id).status_code == 200
     assert client.get(f"/disputes/{dispute_id}").json()["status"] == "decided"
+
+
+def test_duplicate_approval_is_a_conflict_not_a_second_audit_event(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    assert approve(client, dispute_id).status_code == 200
+    assert approve(client, dispute_id).status_code == 409
+    assert len(client.get(f"/disputes/{dispute_id}").json()["audit_log"]) == 1
+
+
+def test_concurrent_approvals_with_one_token_create_one_event(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    def send_approval():
+        return client.post(
+            f"/disputes/{dispute_id}/approve",
+            json={"decision_id": decision_id, "approved": True, "edited_packet": None},
+        ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        statuses = sorted(pool.map(lambda _index: send_approval(), range(2)))
+
+    assert statuses == [200, 409]
+    assert len(client.get(f"/disputes/{dispute_id}").json()["audit_log"]) == 1
+
+
+def test_approval_waiting_on_reassessment_cannot_action_the_old_decision(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    old_decision_id = latest_decision_id(client, dispute_id)
+    started = Event()
+    release = Event()
+
+    class BlockingEngine(_FakeEngine):
+        def verify_bundle(self, claim_text, evidence, reason_code):
+            started.set()
+            assert release.wait(timeout=5)
+            return super().verify_bundle(claim_text, evidence, reason_code)
+
+    monkeypatch.setattr(
+        "app.api.routes.get_verification_engine", lambda: BlockingEngine()
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        reassessment = pool.submit(client.post, f"/disputes/{dispute_id}/decide")
+        assert started.wait(timeout=5)
+        approval = pool.submit(
+            client.post,
+            f"/disputes/{dispute_id}/approve",
+            json={
+                "decision_id": old_decision_id,
+                "approved": True,
+                "edited_packet": None,
+            },
+        )
+        release.set()
+
+    assert reassessment.result().status_code == 200
+    assert approval.result().status_code == 409
+    assert client.get(f"/disputes/{dispute_id}").json()["audit_log"] == []
+
+
+def test_standing_approval_must_be_withdrawn_before_the_case_changes(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+    approve(client, dispute_id)
+
+    evidence = client.post(
+        f"/disputes/{dispute_id}/evidence",
+        json={"type": "communication_log", "content": "A newly supplied chat."},
+    )
+    reassess = client.post(f"/disputes/{dispute_id}/decide")
+    draft = client.put(
+        f"/disputes/{dispute_id}/packet-draft",
+        json={"decision_id": decision_id, "text": "too late"},
+    )
+    assert evidence.status_code == reassess.status_code == draft.status_code == 409
+
+    assert withdraw(client, dispute_id).status_code == 200
+    assert client.post(
+        f"/disputes/{dispute_id}/evidence",
+        json={"type": "communication_log", "content": "A newly supplied chat."},
+    ).status_code == 201
 
 
 def test_a_withdrawal_is_appended_never_a_deletion(client, monkeypatch):
@@ -338,13 +609,15 @@ def test_a_withdrawal_is_appended_never_a_deletion(client, monkeypatch):
     approve(client, dispute_id)
 
     before = client.get(f"/disputes/{dispute_id}").json()["audit_log"]
-    client.post(f"/disputes/{dispute_id}/withdraw")
+    withdraw(client, dispute_id)
     after = client.get(f"/disputes/{dispute_id}").json()["audit_log"]
 
     assert len(after) == len(before) + 1
     assert after[: len(before)] == before, "existing entries must be untouched"
     assert after[-1]["withdrawn"] is True
     assert after[-1]["approved_by_human"] is False
+    assert after[-1]["decision_id"] == before[-1]["decision_id"]
+    assert after[-1]["created_at"].endswith(("Z", "+00:00"))
 
 
 def test_approve_withdraw_approve_is_a_readable_history(client, monkeypatch):
@@ -353,7 +626,7 @@ def test_approve_withdraw_approve_is_a_readable_history(client, monkeypatch):
     _stub_decision(client, monkeypatch, dispute_id)
 
     approve(client, dispute_id)
-    client.post(f"/disputes/{dispute_id}/withdraw")
+    withdraw(client, dispute_id)
     approve(client, dispute_id)
 
     detail = client.get(f"/disputes/{dispute_id}").json()
@@ -361,11 +634,35 @@ def test_approve_withdraw_approve_is_a_readable_history(client, monkeypatch):
     assert [e["withdrawn"] for e in detail["audit_log"]] == [False, True, False]
 
 
+def test_stale_approval_token_cannot_withdraw_a_later_approval(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+
+    first = approve(client, dispute_id).json()["id"]
+    assert withdraw(client, dispute_id, first).status_code == 200
+    second = approve(client, dispute_id).json()["id"]
+
+    stale = withdraw(client, dispute_id, first)
+    assert stale.status_code == 409
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    assert detail["status"] in {"approved", "submitted"}
+    assert standing_approval_id(detail["audit_log"]) == second
+
+
 def test_withdrawing_without_a_standing_approval_is_a_conflict(client, monkeypatch):
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
     _stub_decision(client, monkeypatch, dispute_id)
-    assert client.post(f"/disputes/{dispute_id}/withdraw").status_code == 409
+    assert withdraw(client, dispute_id).status_code == 409
+
+
+def test_withdraw_requires_an_approval_token(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    _stub_decision(client, monkeypatch, dispute_id)
+    approve(client, dispute_id)
+    assert client.post(f"/disputes/{dispute_id}/withdraw").status_code == 422
 
 
 # -- exports --------------------------------------------------------------------------------
@@ -374,10 +671,14 @@ def test_withdrawing_without_a_standing_approval_is_a_conflict(client, monkeypat
 def test_the_packet_exports_with_its_non_submission_notice(client, monkeypatch):
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "My representment."})
+    save_draft(client, dispute_id, "My representment.")
 
-    response = client.get(f"/disputes/{dispute_id}/packet.txt")
+    response = client.get(
+        f"/disputes/{dispute_id}/packet.txt",
+        params={"decision_id": latest_decision_id(client, dispute_id)},
+    )
     assert response.status_code == 200
     assert "attachment" in response.headers["content-disposition"]
     assert "My representment." in response.text
@@ -387,15 +688,89 @@ def test_the_packet_exports_with_its_non_submission_notice(client, monkeypatch):
 def test_the_export_prefers_the_merchants_edit_over_the_draft(client, monkeypatch):
     dispute_id = file_dispute(client)["dispute_id"]
     add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
     _stub_decision(client, monkeypatch, dispute_id)
-    client.put(f"/disputes/{dispute_id}/packet-draft", json={"text": "MINE, NOT THE MODEL'S."})
+    save_draft(client, dispute_id, "MINE, NOT THE MODEL'S.")
 
-    assert "MINE, NOT THE MODEL'S." in client.get(f"/disputes/{dispute_id}/packet.txt").text
+    response = client.get(
+        f"/disputes/{dispute_id}/packet.txt",
+        params={"decision_id": latest_decision_id(client, dispute_id)},
+    )
+    assert "MINE, NOT THE MODEL'S." in response.text
 
 
-def test_exporting_a_packet_that_does_not_exist_is_404(client):
+def test_approved_export_uses_the_immutable_audit_text(client, monkeypatch):
+    """Approval can beat the debounced draft save; export must still match the audit."""
     dispute_id = file_dispute(client)["dispute_id"]
-    assert client.get(f"/disputes/{dispute_id}/packet.txt").status_code == 404
+    add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history", source_ref="oms_approved")
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    action = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={
+            "decision_id": decision_id,
+            "approved": True,
+            "edited_packet": "THE TEXT THE HUMAN ACTUALLY APPROVED.",
+        },
+    )
+    assert action.status_code == 200, action.text
+
+    exported = client.get(
+        f"/disputes/{dispute_id}/packet.txt", params={"decision_id": decision_id}
+    )
+    assert exported.status_code == 200, exported.text
+    assert "THE TEXT THE HUMAN ACTUALLY APPROVED." in exported.text
+
+
+def test_saved_draft_is_frozen_when_approval_body_omits_an_edit(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+    saved = "THE SAVED WORKING COPY."
+    assert save_draft(client, dispute_id, saved).status_code == 200
+
+    action = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": True, "edited_packet": None},
+    )
+    assert action.status_code == 200, action.text
+    entry = action.json()
+    assert entry["decision"]["drafted_packet"] == saved
+    assert saved in str(entry["would_be_razorpay_payload"])
+
+    exported = client.get(
+        f"/disputes/{dispute_id}/packet.txt", params={"decision_id": decision_id}
+    )
+    assert exported.status_code == 200
+    assert saved in exported.text
+
+
+def test_blank_contest_packet_cannot_be_approved_but_can_be_rejected(client, monkeypatch):
+    dispute_id = file_dispute(client)["dispute_id"]
+    add_evidence(client, dispute_id)
+    add_evidence(client, dispute_id, type="order_history")
+    _stub_decision(client, monkeypatch, dispute_id)
+    decision_id = latest_decision_id(client, dispute_id)
+
+    approval = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": True, "edited_packet": "   "},
+    )
+    assert approval.status_code == 409
+    rejection = client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={"decision_id": decision_id, "approved": False, "edited_packet": None},
+    )
+    assert rejection.status_code == 200
+
+
+def test_exporting_before_any_decision_is_a_conflict(client):
+    dispute_id = file_dispute(client)["dispute_id"]
+    assert client.get(f"/disputes/{dispute_id}/packet.txt", params={"decision_id": 1}).status_code == 409
 
 
 def test_the_would_submit_payload_exports_and_says_it_was_not_sent(client, monkeypatch):
@@ -412,6 +787,7 @@ def test_the_would_submit_payload_exports_and_says_it_was_not_sent(client, monke
 
     body = response.json()
     assert body["transmitted"] is False
+    assert body["prepared_at"].endswith(("Z", "+00:00"))
     assert "does not exist on Razorpay" in body["why_not_transmitted"]
     assert body["would_be_razorpay_payload"]
 

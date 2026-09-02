@@ -11,8 +11,9 @@ CONTEST is the positive class. Per Section 11:
     FN  model says ACCEPT,  ground truth contest_win
     TN  model says ACCEPT,  ground truth contest_loss or should_accept
 
-    NEEDS_HUMAN_REVIEW records are EXCLUDED from precision/recall/F1 but counted in
-    coverage = (n_evaluated - n_flagged_human) / n_evaluated
+    NEEDS_HUMAN_REVIEW and deterministic URCS outcomes are EXCLUDED from
+    precision/recall/F1. Model coverage counts only CONTEST/ACCEPT decisions made on the
+    evidence: (n_evaluated - n_flagged_human - n_auto_resolved) / n_evaluated.
 
 The held-out set was not inspected or tuned against during development (Section 9); every
 threshold in the verification engine was chosen on data/synthetic_disputes.json.
@@ -144,7 +145,7 @@ def run_evaluation(
         alpha=calibration.get("alpha"),
         calibrated_threshold=calibration.get("threshold"),
         # The observed false-positive rate among auto-contested cases is 1 - precision.
-        # The guarantee is that it stays under alpha.
+        # This legacy field reports whether that observation stayed under alpha.
         guarantee_held=(
             None
             if calibration.get("alpha") is None or (tp + fp) == 0
@@ -173,8 +174,8 @@ def format_report(metrics: EvalMetrics) -> str:
             f"  precision     : {metrics.precision:.3f}",
             f"  recall        : {metrics.recall:.3f}",
             f"  f1            : {metrics.f1:.3f}",
-            f"  coverage      : {metrics.coverage:.3f}  "
-            f"(fraction NOT flagged to a human)",
+            f"  model coverage: {metrics.coverage:.3f}  "
+            f"(fraction decided on the evidence)",
             f"  FP cost est.  : Rs {metrics.false_positive_cost_estimate_inr:,.0f}",
             "",
         ]

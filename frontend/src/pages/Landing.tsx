@@ -65,7 +65,7 @@ export default function Landing() {
 
               <div className="mt-11 flex flex-wrap gap-x-10 gap-y-5">
                 <Stat value={HEADLINE.precision} label="precision" tone="var(--win)" />
-                <Stat value={HEADLINE.coverage} label="auto-decided" tone="var(--warn)" />
+                <Stat value={HEADLINE.coverage} label="model coverage" tone="var(--warn)" />
                 <Stat value={String(HEADLINE.nEvaluated)} label="held-out records" />
               </div>
             </div>
@@ -96,8 +96,8 @@ export default function Landing() {
               <Card icon={<Scale size={16} strokeWidth={1.7} />} title="Decision aggregator">
                 A readable conditional. Confidence is the minimum, never the average.
               </Card>
-              <Card icon={<Gauge size={16} strokeWidth={1.7} />} title="Conformal calibration">
-                Thresholds derived from a risk budget, not picked by hand.
+              <Card icon={<Gauge size={16} strokeWidth={1.7} />} title="Risk-budget calibration">
+                A development threshold derived from a stated budget, not picked by hand.
               </Card>
               <Card icon={<FileSearch size={16} strokeWidth={1.7} />} title="Span explainability">
                 The exact sentence that drove each verdict, highlighted inline.
@@ -136,13 +136,13 @@ export default function Landing() {
         {/* --- feature: the dial ---------------------------------------------------- */}
         <Band>
           <Feature
-            eyebrow="CONFORMAL RISK CONTROL"
+            eyebrow="RISK-BUDGET PROTOTYPE"
             title="Name a risk budget, not a threshold"
             shot="metrics"
-            alt="The risk budget dial showing calibrated threshold, coverage and observed false-positive rate"
+            alt="The risk budget dial showing calibrated threshold, coverage and observed contest-error rate"
           >
             <p>
-              Say the most false positives you&rsquo;ll accept. It calibrates its own
+              Say the most errors among auto-contested cases you&rsquo;ll accept. It calibrates its own
               threshold and tells you what that costs in coverage.
             </p>
             <p>
@@ -187,7 +187,7 @@ export default function Landing() {
                     <th className="px-4 py-3 font-normal">You do</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--line)' }}>
+                <tbody className="divide-y divide-[var(--line)]">
                   <Row
                     tone="var(--win)"
                     name="CONTEST"
@@ -204,7 +204,7 @@ export default function Landing() {
                     tone="var(--warn)"
                     name="NEEDS_HUMAN_REVIEW"
                     trigger="Anything else — including a risk budget this data cannot support."
-                    action="Decide it yourself. Seven cases in ten."
+                    action="Decide it yourself. Roughly two cases in three."
                   />
                   <Row
                     tone="var(--fg-3)"
@@ -230,7 +230,7 @@ export default function Landing() {
                   ['POST', '/disputes/{id}/approve', 'human approval'],
                   ['GET', '/disputes/{id}/urcs-forecast', 'NPCI cap forecast'],
                   ['POST', '/calibrate', 'threshold from a risk budget'],
-                  ['GET', '/verify-guarantee', 'did the budget hold'],
+                  ['GET', '/verify-guarantee', 'empirical check (legacy path)'],
                   ['POST', '/evaluate', 'held-out metrics'],
                 ].map(([method, path, note]) => (
                   <li key={path} className="flex flex-wrap items-baseline gap-x-2.5">
@@ -257,14 +257,18 @@ export default function Landing() {
 {
   "recommendation": "CONTEST",
   "confidence": 0.50,
-  "calibrated_threshold_used": 0.72,
+  "calibrated_threshold_used": 0.50,
   "claim_verdicts": [
     { "evidence_index": 0,
       "label": "support",
       "confidence": 0.50,
-      "highlighted_span": "OTP captured at delivery" }
+      "highlighted_span": "OTP captured at delivery" },
+    { "evidence_index": 1,
+      "label": "support",
+      "confidence": 0.50,
+      "highlighted_span": "Three prior orders to this address, none disputed." }
   ],
-  "model_version": "cross-encoder/nli-deberta-v3-base"
+  "model_version": "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
 }`}
                   </pre>
                 </div>
@@ -280,13 +284,13 @@ export default function Landing() {
         {/* --- measured ------------------------------------------------------------- */}
         <Band>
           <Section
-            title="Measured on data it had never seen"
+            title="Measured on a separate held-out set"
             sub={`${HEADLINE.nEvaluated} held-out records · ${HEADLINE.measuredOn}`}
           >
             <div className="grid gap-10 lg:grid-cols-2">
               <div className="reveal surface overflow-hidden">
                 <table className="w-full text-left text-[12.5px]">
-                  <tbody className="divide-y" style={{ borderColor: 'var(--line)' }}>
+                  <tbody className="divide-y divide-[var(--line)]">
                     {[
                       ['TP', 9, 'CONTEST, and it was winnable'],
                       ['FP', 4, 'CONTEST, and it was not'],
@@ -309,8 +313,8 @@ export default function Landing() {
 
               <div className="reveal space-y-4 text-[13px] leading-[1.65] text-[var(--fg-2)]">
                 <p>
-                  It declines to decide on seven cases in ten. That&rsquo;s the product, not
-                  a shortfall.
+                  The model decides 23 cases on their evidence; 51 go to a person, and 5
+                  are resolved separately by NPCI rules. Those paths stay explicit.
                 </p>
                 <p>
                   <span className="w-semi text-[var(--fg)]">
@@ -350,13 +354,14 @@ export default function Landing() {
                 No, deliberately — single-merchant demo. Any credentials continue, nothing is
                 stored, and no API route is protected by it.
               </Faq>
-              <Faq q="What does the guarantee promise?">
-                That the false-positive rate among auto-contested disputes stays under your
-                budget, assuming calibration and live data are exchangeable. Nothing about
-                recall.
+              <Faq q="What does the risk check show?">
+                It reports whether the observed contest-error rate on the cached test split
+                fell below the chosen budget. Because this prototype reuses development data
+                and tests several thresholds without a multiplicity correction, it is not a
+                formal finite-sample or deployment guarantee.
               </Faq>
               <Faq q="What did calibration reveal?">
-                That the tightest budget this data supports is about 72% — not a useful
+                That the tightest budget this data supports is about 71% — not a useful
                 promise. It didn&rsquo;t fix the model; it made the ceiling impossible to
                 hide.
               </Faq>
@@ -367,7 +372,7 @@ export default function Landing() {
         {/* --- cta ------------------------------------------------------------------ */}
         <Band>
           <div className="reveal py-20 text-center">
-            <h2 className="w-display text-[30px] leading-tight">See it decide a real case.</h2>
+            <h2 className="w-display text-[30px] leading-tight">See it decide a case end to end.</h2>
             <p className="mx-auto mt-3 max-w-[38ch] text-[13.5px] text-[var(--fg-2)]">
               182 disputes are seeded and waiting.
             </p>

@@ -8,7 +8,7 @@ import {
   parseApiDate,
   type DisputeSummary,
 } from '../api/client'
-import { ABSTAIN_RATE, RECORDED } from '../lib/headline'
+import { HUMAN_REVIEW_RATE, RECORDED } from '../lib/headline'
 import { reasonCopy, RECOMMENDATIONS } from '../lib/labels'
 import { useDisputes } from '../lib/useDisputes'
 import {
@@ -19,8 +19,8 @@ import {
   Progress,
   Skeleton,
   Surface,
-  toneDot,
 } from '../components/ui'
+import { toneDot } from '../components/uiTokens'
 
 export default function Overview() {
   const navigate = useNavigate()
@@ -283,13 +283,14 @@ function ModelCard({ onOpen }: { onOpen: () => void }) {
         />
         <Inline
           value={`${(RECORDED.coverage * 100).toFixed(1)}%`}
-          label="of the queue it will call"
+          label="decided on the evidence"
         />
       </div>
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-        It abstains on {(ABSTAIN_RATE * 10).toFixed(0)} cases in ten. That is the design —
-        guessing is what costs a merchant the ₹1,500 twice over.
+        It sends {(HUMAN_REVIEW_RATE * 100).toFixed(1)}% to a person; another{' '}
+        {RECORDED.autoResolved} are settled by deterministic NPCI caps. Guessing is what
+        costs a merchant the ₹1,500 twice over.
       </p>
 
       <Button className="mt-4 w-full" onClick={onOpen}>

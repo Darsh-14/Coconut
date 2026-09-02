@@ -6,7 +6,7 @@
     POST /disputes/{dispute_id}/decide   run the pipeline, persist and return a Decision
     POST /disputes/{dispute_id}/approve  record human approval, apply Section 7 handling
     POST /calibrate                      calibrate the threshold to a risk budget
-    GET  /verify-guarantee               check the guarantee on the untouched test split
+    GET  /verify-guarantee               empirical budget check (historical route name)
     POST /evaluate                       run the pipeline over the held-out set
 
 The safety-critical endpoint is /approve. Section 2's second hard constraint is that the
@@ -20,7 +20,10 @@ synthetic dispute id. Both layers are tested.
 from __future__ import annotations
 
 import logging
+import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -30,7 +33,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
 from app.db.database import get_session
-from app.db.models import AuditLogRow, CalibrationRow, DecisionRow, DisputeRow
+from app.db.models import AuditLogRow, CalibrationRow, DecisionRow, DisputeRow, as_utc
 from app.models.schemas import (
     ApproveRequest,
     CalibrateRequest,
@@ -56,7 +59,9 @@ from app.services.evidence_documents import render_document
 from app.services.conformal_calibrator import (
     active_state,
     calibrate_threshold,
+    calibration_pairs,
     empirical_fp_rate,
+    get_active_calibrated_threshold,
     guarantee_statement,
     hoeffding_slack,
     load_scores,
@@ -82,6 +87,56 @@ router = APIRouter()
 # Line separator for the text exports below.
 NEWLINE = "\n"
 
+# This demo is deliberately a single-process SQLite service. Serialising mutations per
+# dispute closes the stale-tab check/commit race without blocking work on unrelated cases.
+# A multi-worker deployment must replace this process-local boundary with database CAS or
+# row locking.
+_dispute_locks_guard = threading.Lock()
+_dispute_locks: dict[str, threading.RLock] = {}
+_calibration_operation_lock = threading.Lock()
+_create_dispute_operation_lock = threading.Lock()
+
+
+@contextmanager
+def _dispute_operation(dispute_id: str):
+    with _dispute_locks_guard:
+        lock = _dispute_locks.setdefault(dispute_id, threading.RLock())
+    with lock:
+        yield
+
+
+def _serialise_dispute_write(handler):
+    """Keep a mutation's load/check/commit sequence atomic in the local process."""
+
+    @wraps(handler)
+    def wrapped(dispute_id: str, *args, **kwargs):
+        with _dispute_operation(dispute_id):
+            return handler(dispute_id, *args, **kwargs)
+
+    return wrapped
+
+
+def _serialise_calibration(handler):
+    """Publish persisted calibration changes in the same order requests complete."""
+
+    @wraps(handler)
+    def wrapped(*args, **kwargs):
+        with _calibration_operation_lock:
+            return handler(*args, **kwargs)
+
+    return wrapped
+
+
+def _serialise_dispute_creation(handler):
+    """Prevent simultaneous filings from selecting the same manual identifier."""
+
+    @wraps(handler)
+    def wrapped(*args, **kwargs):
+        with _create_dispute_operation_lock:
+            return handler(*args, **kwargs)
+
+    return wrapped
+
 
 # --- helpers ----------------------------------------------------------------------------
 
@@ -97,6 +152,68 @@ def _load_dispute(session: Session, dispute_id: str) -> DisputeRow:
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown dispute {dispute_id}"
         )
     return row
+
+
+def _decision_staleness_reason(
+    session: Session, row: DisputeRow, latest: DecisionRow
+) -> Optional[str]:
+    """Explain why a persisted decision no longer describes the current operating state."""
+    if (latest.evidence_revision or 0) != (row.evidence_revision or 0):
+        return f"Evidence changed after decision {latest.id}"
+
+    if latest.calibrated_threshold_used != get_active_calibrated_threshold():
+        return f"The risk budget changed after decision {latest.id}"
+
+    if row.rail == "upi":
+        dispute = row.to_schema()
+        current_forecast = forecast_urcs_disposition(
+            dispute, _payer_history(session, dispute)
+        ).model_dump(mode="json")
+        if latest.urcs_forecast != current_forecast:
+            return f"The payer's dispute history changed after decision {latest.id}"
+    return None
+
+
+def _current_decision(
+    session: Session, row: DisputeRow, expected_decision_id: int, action: str
+) -> DecisionRow:
+    """Resolve an optimistic decision token and fail closed on stale operating state."""
+    latest = row.latest_decision
+    if latest is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"{row.dispute_id} has no decision yet; nothing to {action}.",
+        )
+    if latest.id != expected_decision_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Decision {expected_decision_id} is no longer current for "
+                f"{row.dispute_id}; reload before trying to {action}."
+            ),
+        )
+    stale_reason = _decision_staleness_reason(session, row, latest)
+    if stale_reason:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"{stale_reason}; re-assess "
+                f"{row.dispute_id} before trying to {action}."
+            ),
+        )
+    return latest
+
+
+def _require_no_standing_approval(row: DisputeRow, action: str) -> None:
+    """Keep an approved audit record tied to the evidence and decision it describes."""
+    if row.standing_approval is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"{row.dispute_id} has a standing approval; withdraw it before "
+                f"trying to {action}."
+            ),
+        )
 
 
 def _payer_history(session: Session, dispute: Dispute) -> list[Dispute]:
@@ -204,6 +321,7 @@ def list_disputes(
     status_code=status.HTTP_201_CREATED,
     tags=["disputes"],
 )
+@_serialise_dispute_creation
 def create_dispute(
     body: DisputeCreate, session: Session = Depends(get_session)
 ) -> Dispute:
@@ -222,13 +340,11 @@ def create_dispute(
     # 14 days is a realistic issuer response window, used only when none is given.
     respond_by = body.respond_by or (raised_at + timedelta(days=14))
 
-    latest = session.scalars(
+    manual_ids = session.scalars(
         select(DisputeRow.dispute_id)
         .where(DisputeRow.dispute_id.like(f"{MANUAL_DISPUTE_PREFIX}%"))
-        .order_by(DisputeRow.dispute_id.desc())
-        .limit(1)
-    ).first()
-    next_n = (int(latest.rsplit("_", 1)[1]) + 1) if latest else 1
+    ).all()
+    next_n = max((int(value.rsplit("_", 1)[1]) for value in manual_ids), default=0) + 1
     dispute_id = f"{MANUAL_DISPUTE_PREFIX}{next_n:04d}"
 
     dispute = Dispute(
@@ -260,16 +376,16 @@ def get_dispute(dispute_id: str, session: Session = Depends(get_session)) -> Dis
     """Full dispute, its latest decision (nullable) and its audit trail."""
     row = _load_dispute(session, dispute_id)
     latest = row.latest_decision
+    stale_reason = _decision_staleness_reason(session, row, latest) if latest else None
     return DisputeDetail(
         dispute=row.to_schema(),
         latest_decision=latest.to_schema() if latest else None,
+        latest_decision_id=latest.id if latest else None,
         decision_rationale=latest.rationale if latest else None,
         audit_log=[entry.to_schema() for entry in row.audit_entries],
         status=row.computed_status(),
         payment_is_real=not is_placeholder_payment_id(row.payment_id),
-        decision_is_stale=bool(
-            latest and (latest.evidence_revision or 0) != (row.evidence_revision or 0)
-        ),
+        decision_is_stale=stale_reason is not None,
         edited_packet=latest.edited_packet if latest else None,
     )
 
@@ -292,11 +408,13 @@ def _bump_evidence(row: DisputeRow, bundle: list[EvidenceItem]) -> None:
     status_code=status.HTTP_201_CREATED,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def add_evidence(
     dispute_id: str, body: EvidenceAdd, session: Session = Depends(get_session)
 ) -> Dispute:
     """Attach a new piece of evidence, then re-assess to see what it changes."""
     row = _load_dispute(session, dispute_id)
+    _require_no_standing_approval(row, "change evidence")
     bundle = row.evidence_items()
     bundle.append(
         EvidenceItem(type=body.type, content=body.content, source_ref=body.source_ref)
@@ -312,11 +430,13 @@ def add_evidence(
     response_model=Dispute,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def remove_evidence(
     dispute_id: str, index: int, session: Session = Depends(get_session)
 ) -> Dispute:
     """Remove a piece of evidence -- for the merchant who attached the wrong file."""
     row = _load_dispute(session, dispute_id)
+    _require_no_standing_approval(row, "change evidence")
     bundle = row.evidence_items()
     if not 0 <= index < len(bundle):
         raise HTTPException(
@@ -390,6 +510,7 @@ def evidence_download(
     response_model=Decision,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision:
     """Run the verification engine and aggregator, persist the decision, return it.
 
@@ -397,13 +518,16 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
     that a case was re-assessed, not silently rewrite history.
     """
     row = _load_dispute(session, dispute_id)
+    _require_no_standing_approval(row, "re-assess it")
     evidence = row.evidence_items()
     dispute = row.to_schema()
     history = _payer_history(session, dispute)
 
     engine = get_verification_engine()
+    threshold = get_active_calibrated_threshold()
+    starting_revision = row.evidence_revision or 0
     verdicts = engine.verify_bundle(row.claim_text, evidence, row.reason_code)
-    result = aggregate(verdicts, evidence, dispute, history)
+    result = aggregate(verdicts, evidence, dispute, history, threshold)
 
     # Only CONTEST decisions get a drafted representment (Section 12).
     packet = None
@@ -419,7 +543,46 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
         drafted_packet=packet,
         dispute=dispute,
         dispute_history=history,
+        threshold=threshold,
+        aggregation_result=result,
     )
+
+    # Model inference can be slow. Re-check mutable inputs immediately before persisting
+    # so a calibration, evidence edit, payer-history update, or action that landed while
+    # it ran cannot create a decision that was stale the instant it was returned. The
+    # process-local per-dispute lock covers same-process case mutations; these checks also
+    # fail closed if another process touched the database.
+    session.refresh(row)
+    session.expire(row, ["audit_entries", "decisions"])
+    if (row.evidence_revision or 0) != starting_revision:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Evidence changed while {dispute_id} was being assessed; run it again.",
+        )
+    _require_no_standing_approval(row, "finish this re-assessment")
+    if get_active_calibrated_threshold() != threshold:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The risk budget changed during assessment; run the assessment again.",
+        )
+    if row.rail == "upi":
+        current_dispute = row.to_schema()
+        current_forecast = forecast_urcs_disposition(
+            current_dispute, _payer_history(session, current_dispute)
+        ).model_dump(mode="json")
+        expected_forecast = (
+            result.urcs_forecast.model_dump(mode="json")
+            if result.urcs_forecast is not None
+            else None
+        )
+        if current_forecast != expected_forecast:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "The payer's dispute history changed during assessment; "
+                    "run the assessment again."
+                ),
+            )
 
     session.add(
         DecisionRow.from_schema(
@@ -445,6 +608,7 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
     response_model=PacketDraft,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def save_packet_draft(
     dispute_id: str, body: PacketDraft, session: Session = Depends(get_session)
 ) -> PacketDraft:
@@ -460,17 +624,18 @@ def save_packet_draft(
     human clicks it (Section 2.2).
     """
     row = _load_dispute(session, dispute_id)
-    latest = row.latest_decision
-    if latest is None:
+    latest = _current_decision(session, row, body.decision_id, "save this draft")
+    _require_no_standing_approval(row, "edit its packet")
+    if latest.recommendation != "CONTEST":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"{dispute_id} has no decision yet; nothing to draft against.",
+            detail="Only a CONTEST decision can have a representment draft.",
         )
 
     # An empty draft clears it, so "revert to the model's text" is expressible.
     latest.edited_packet = body.text or None
     session.commit()
-    return PacketDraft(text=latest.edited_packet or "")
+    return PacketDraft(decision_id=latest.id, text=latest.edited_packet or "")
 
 
 @router.post(
@@ -478,6 +643,7 @@ def save_packet_draft(
     response_model=AuditLogEntry,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def approve(
     dispute_id: str,
     body: ApproveRequest,
@@ -492,19 +658,50 @@ def approve(
     exists at all: nothing else in the system can set these flags.
     """
     row = _load_dispute(session, dispute_id)
-    latest = row.latest_decision
-    if latest is None:
+    latest = _current_decision(session, row, body.decision_id, "record this action")
+    _require_no_standing_approval(row, "record another action")
+
+    entries_for_decision = sorted(
+        (entry for entry in row.audit_entries if entry.decision_id == latest.id),
+        key=lambda entry: entry.id,
+    )
+    if (
+        not body.approved
+        and entries_for_decision
+        and not entries_for_decision[-1].approved_by_human
+        and not entries_for_decision[-1].withdrawn
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"{dispute_id} has no decision yet; POST /disputes/{dispute_id}/decide first.",
+            detail=f"Decision {latest.id} was already rejected; no duplicate was recorded.",
         )
 
+    if body.approved and latest.recommendation != "CONTEST" and body.edited_packet is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A representment can only be attached to a CONTEST decision.",
+        )
+
+    effective_packet = None
+    if body.approved and latest.recommendation == "CONTEST":
+        effective_packet = (
+            body.edited_packet
+            if body.edited_packet is not None
+            else latest.edited_packet
+            if latest.edited_packet is not None
+            else latest.drafted_packet
+        )
+        if not effective_packet or not effective_packet.strip():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A CONTEST decision cannot be approved without a non-empty packet.",
+            )
     entry = AuditLogRow(
         dispute_id=dispute_id,
         decision_id=latest.id,
         approved_by_human=body.approved,
         approved_at=datetime.now(timezone.utc) if body.approved else None,
-        edited_packet=body.edited_packet,
+        edited_packet=effective_packet,
         submitted_to_razorpay=False,
     )
 
@@ -516,7 +713,6 @@ def approve(
         return entry.to_schema()
 
     if latest.recommendation == "CONTEST":
-        packet_text = body.edited_packet or latest.drafted_packet or ""
         evidence_refs = [
             e.source_ref
             for e in row.evidence_items()
@@ -525,7 +721,7 @@ def approve(
         entry.would_be_razorpay_payload = build_contest_payload(
             dispute_id=dispute_id,
             amount_paise=row.amount,
-            packet_text=packet_text,
+            packet_text=effective_packet,
             evidence_refs=evidence_refs,
         )
         # True means "prepared and logged as if submitted", never "sent". The network call
@@ -557,8 +753,11 @@ def approve(
     response_model=AuditLogEntry,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def withdraw_approval(
-    dispute_id: str, session: Session = Depends(get_session)
+    dispute_id: str,
+    approval_id: int = Query(..., gt=0),
+    session: Session = Depends(get_session),
 ) -> AuditLogEntry:
     """Retract a standing approval and return the case to the queue.
 
@@ -572,16 +771,23 @@ def withdraw_approval(
     approve -> withdraw -> approve is exactly the history a reviewer would want to see.
     """
     row = _load_dispute(session, dispute_id)
-    if row.computed_status() not in {"approved", "submitted"}:
+    standing = row.standing_approval
+    if standing is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"{dispute_id} has no standing approval to withdraw.",
         )
-
-    latest = row.latest_decision
+    if standing.id != approval_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Approval {approval_id} is no longer standing for {dispute_id}; "
+                "reload before trying to withdraw it."
+            ),
+        )
     entry = AuditLogRow(
         dispute_id=dispute_id,
-        decision_id=latest.id,
+        decision_id=standing.decision_id,
         approved_by_human=False,
         submitted_to_razorpay=False,
         withdrawn=True,
@@ -604,18 +810,37 @@ def withdraw_approval(
 
 @router.get("/disputes/{dispute_id}/packet.txt", tags=["disputes"])
 def export_packet(
-    dispute_id: str, session: Session = Depends(get_session)
+    dispute_id: str,
+    decision_id: int = Query(..., gt=0),
+    session: Session = Depends(get_session),
 ) -> PlainTextResponse:
     """The representment as a text file: the merchant's edit if there is one, else the draft."""
     row = _load_dispute(session, dispute_id)
-    latest = row.latest_decision
-    if latest is None or not (latest.edited_packet or latest.drafted_packet):
+    latest = _current_decision(session, row, decision_id, "export this packet")
+    if latest.recommendation != "CONTEST":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only a CONTEST decision has a representment to export.",
+        )
+
+    standing = row.standing_approval
+    if standing is not None and standing.decision_id == latest.id:
+        # Once approved, export the immutable text captured in the audit entry. The browser
+        # may approve before its debounced working-copy save completes; exporting the
+        # mutable draft in that race would produce text different from what was approved.
+        text = (
+            standing.edited_packet
+            if standing.edited_packet is not None
+            else latest.drafted_packet or ""
+        )
+    else:
+        text = latest.edited_packet or latest.drafted_packet or ""
+
+    if not text.strip():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{dispute_id} has no drafted representment.",
         )
-
-    text = latest.edited_packet or latest.drafted_packet or ""
     header = [
         f"Representment for {dispute_id}",
         f"Reason code: {row.reason_code}",
@@ -631,8 +856,9 @@ def export_packet(
         "-" * 72,
         "",
         "Drafted by Recourse. This dispute is synthetic and was never transmitted to "
-        "Razorpay or any bank (CLAUDE.md Section 7). A human approved this text before "
-        "export; the system never submits on its own.",
+        "Razorpay or any bank (CLAUDE.md Section 7). Exporting is not proof of human "
+        "approval; the audit log records approval separately, and the system never "
+        "submits on its own.",
     ]
     return PlainTextResponse(
         NEWLINE.join(header + [text] + footer),
@@ -663,7 +889,7 @@ def export_would_submit(
     return JSONResponse(
         content={
             "dispute_id": dispute_id,
-            "prepared_at": entry.created_at.isoformat(),
+            "prepared_at": as_utc(entry.created_at).isoformat(),
             "transmitted": False,
             "why_not_transmitted": (
                 "The dispute is synthetic and does not exist on Razorpay's side. The "
@@ -699,6 +925,7 @@ def export_would_submit(
     response_model=BackingOrder,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def create_backing_order(
     dispute_id: str, session: Session = Depends(get_session)
 ) -> BackingOrder:
@@ -755,6 +982,7 @@ def create_backing_order(
     response_model=BackingStatus,
     tags=["disputes"],
 )
+@_serialise_dispute_write
 def backing_status(
     dispute_id: str, session: Session = Depends(get_session)
 ) -> BackingStatus:
@@ -828,20 +1056,15 @@ def backing_status(
     )
 
 
-# --- conformal risk control (Addendum 3) ----------------------------------------------
-
-
-def _calibration_pairs(cache: dict) -> list[tuple[float, str]]:
-    return [
-        (r["score"], r["label"]) for r in cache["calibration"] if r["score"] is not None
-    ]
+# --- risk-budget calibration (Addendum 3) ---------------------------------------------
 
 
 @router.post("/calibrate", response_model=CalibrationResult, tags=["calibration"])
+@_serialise_calibration
 def calibrate(
     body: CalibrateRequest, session: Session = Depends(get_session)
 ) -> CalibrationResult:
-    """Calibrate the decision threshold to a stated maximum false-positive rate.
+    """Calibrate the decision threshold to a stated maximum contest-error rate.
 
     Replays the threshold search over cached scores, so this is instant regardless of how
     many times the slider moves.
@@ -856,9 +1079,8 @@ def calibrate(
             ),
         )
 
-    pairs = _calibration_pairs(cache)
+    pairs = calibration_pairs(cache)
     lam = calibrate_threshold(pairs, body.alpha, body.delta)
-    set_active_threshold(lam, body.alpha, body.delta)
 
     # Persisted so a restart does not silently revert the operator's budget to a built-in
     # default. The threshold decides every recommendation, so losing it changes what the
@@ -872,6 +1094,9 @@ def calibrate(
         )
     )
     session.commit()
+    # Publish only after durable storage succeeds. A failed commit must not leave this
+    # process deciding cases under a risk budget that does not exist in the audit record.
+    set_active_threshold(lam, body.alpha, body.delta)
 
     r_hat, n_lam = (None, 0) if lam is None else empirical_fp_rate(pairs, lam)
     floor = smallest_achievable_alpha(pairs, body.delta)
@@ -880,11 +1105,11 @@ def calibrate(
         guarantee_statement(body.alpha, body.delta)
         if lam is not None
         else (
-            f"A {body.alpha:.0%} false-positive budget is not achievable on this "
+            f"A {body.alpha:.0%} contest-error budget is not achievable on this "
             f"calibration set"
             + (f"; the tightest it can support is {floor:.0%}." if floor else ".")
-            + " The system will defer every case rather than promise something the data "
-            "does not support."
+            + " The model will defer every remaining case rather than claim support the "
+            "data does not provide; deterministic NPCI rules still apply."
         )
     )
 
@@ -904,10 +1129,11 @@ def calibrate(
 
 @router.get("/verify-guarantee", response_model=GuaranteeVerification, tags=["calibration"])
 def verify_guarantee() -> GuaranteeVerification:
-    """Check whether the active threshold's guarantee actually held on the TEST split.
+    """Check whether the active risk budget held empirically on the TEST split.
 
-    This endpoint exists so the system can prove itself wrong. It reads only the test
-    split, which shares no dispute ids with the calibration data.
+    This endpoint exists so the system can test its calibration estimate empirically. It reads
+    only the test split, which shares no dispute ids with the calibration data. The result
+    is an empirical check, not a repaired finite-sample guarantee.
     """
     cache = load_scores()
     if not cache:
@@ -921,19 +1147,27 @@ def verify_guarantee() -> GuaranteeVerification:
     test = cache["test"]
 
     if lam is None or alpha is None:
-        # Nothing is auto-contested, so the false-positive rate is vacuously zero and
-        # coverage is zero. Reporting that plainly beats refusing to answer.
+        # No model cases were selected. Reporting zero would look like evidence that an
+        # unsupported budget passed; this statistic is instead explicitly not evaluable.
+        resolved_by_urcs = sum(1 for r in test if r.get("urcs_auto_reject", False))
         return GuaranteeVerification(
-            alpha=alpha if alpha is not None else 0.0,
-            observed_fp_rate_on_test=0.0,
-            guarantee_held=True,
-            coverage=0.0,
+            alpha=alpha,
+            observed_fp_rate_on_test=None,
+            guarantee_held=None,
+            n_contested=0,
+            coverage=round(resolved_by_urcs / len(test), 4) if test else 0.0,
             n_test=len(test),
         )
 
-    contested = [r for r in test if r["score"] is not None and r["score"] >= lam]
+    contested = [
+        r
+        for r in test
+        if not r.get("urcs_auto_reject", False)
+        and r["score"] is not None
+        and r["score"] >= lam
+    ]
     fps = sum(1 for r in contested if r["label"] != "contest_win")
-    observed = fps / len(contested) if contested else 0.0
+    observed = fps / len(contested) if contested else None
 
     # Coverage counts every case the system settles without a human: contests, accepts,
     # and the URCS auto-rejects that never needed a decision at all.
@@ -947,8 +1181,9 @@ def verify_guarantee() -> GuaranteeVerification:
 
     return GuaranteeVerification(
         alpha=alpha,
-        observed_fp_rate_on_test=round(observed, 4),
-        guarantee_held=observed <= alpha,
+        observed_fp_rate_on_test=round(observed, 4) if observed is not None else None,
+        guarantee_held=observed <= alpha if observed is not None else None,
+        n_contested=len(contested),
         coverage=round(decided / len(test), 4) if test else 0.0,
         n_test=len(test),
     )

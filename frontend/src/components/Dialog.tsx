@@ -13,20 +13,69 @@ import { createPortal } from 'react-dom'
  */
 export function Dialog({
   labelledBy,
+  label,
   onClose,
   children,
   width = 'max-w-2xl',
 }: {
-  labelledBy: string
+  labelledBy?: string
+  /** Fallback accessible name while a loading/error state has not rendered its title. */
+  label?: string
   onClose: () => void
   children: React.ReactNode
   width?: string
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
 
   useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
+    const panel = panelRef.current
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null
+
+    const focusable = () =>
+      panel
+        ? Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter(
+            (element) =>
+              element.getAttribute('aria-hidden') !== 'true' &&
+              (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0),
+          )
+        : []
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onCloseRef.current()
+        return
+      }
+      if (e.key !== 'Tab' || !panel) return
+
+      const controls = focusable()
+      if (!controls.length) {
+        e.preventDefault()
+        panel.focus()
+        return
+      }
+
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === panel || active === first || !panel.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === panel || active === last || !panel.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
@@ -35,15 +84,13 @@ export function Dialog({
     // The panel itself is the fallback: a dialog that opens on a loading skeleton has no
     // control to focus yet, and without this focus stayed outside it entirely -- Escape
     // still worked, but Tab walked off into the page behind.
-    const first = panelRef.current?.querySelector<HTMLElement>(
-      'button, input, textarea, select, a[href]',
-    )
-    ;(first ?? panelRef.current)?.focus()
+    ;(focusable()[0] ?? panel)?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
+      if (previousFocus?.isConnected) previousFocus.focus()
     }
-  }, [onClose])
+  }, [])
 
   const stop = useCallback((e: React.MouseEvent) => e.stopPropagation(), [])
 
@@ -65,6 +112,7 @@ export function Dialog({
         aria-modal="true"
         tabIndex={-1}
         aria-labelledby={labelledBy}
+        aria-label={label}
         onClick={stop}
         className={`rise flex max-h-[86vh] w-full ${width} flex-col overflow-hidden rounded-[var(--radius-card)]`}
         style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-pop)' }}

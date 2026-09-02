@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { parseApiDate, type AuditLogEntry } from '../api/client'
 import { RECOMMENDATIONS } from '../lib/labels'
-import { Surface, toneDot } from './ui'
+import { Surface } from './ui'
+import { toneDot } from './uiTokens'
 
 function formatTimestamp(iso: string | null): string {
   if (!iso) return '—'
@@ -64,7 +65,7 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
           {kind.label}
         </span>
         <span className="num text-[11.5px] text-[var(--fg-3)]">
-          {formatTimestamp(entry.approved_at ?? null)}
+          {formatTimestamp(entry.created_at)}
         </span>
       </div>
 
@@ -78,8 +79,16 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
           <dd className="num">{(entry.decision.confidence * 100).toFixed(0)}%</dd>
         </div>
         <div className="flex gap-1.5">
+          <dt className="text-[var(--fg-3)]">Threshold</dt>
+          <dd className="num">
+            {entry.decision.calibrated_threshold_used == null
+              ? '—'
+              : entry.decision.calibrated_threshold_used.toFixed(2)}
+          </dd>
+        </div>
+        <div className="flex gap-1.5">
           <dt className="text-[var(--fg-3)]">Model</dt>
-          <dd className="num text-[11px]">{entry.decision.model_version}</dd>
+          <dd className="num break-all text-[11px]">{entry.decision.model_version}</dd>
         </div>
       </dl>
 
@@ -102,7 +111,7 @@ function AuditEntry({ entry }: { entry: AuditLogEntry }) {
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              className="text-[11.5px] text-[var(--warn)] underline-offset-2 hover:underline"
+              className="focus-ring rounded text-[11.5px] text-[var(--warn)] underline-offset-2 hover:underline"
             >
               {open ? 'Hide' : 'Show payload'}
             </button>

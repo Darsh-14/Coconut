@@ -95,7 +95,7 @@ class EvidenceDocument(BaseModel):
 
     `body` is the evidence content reproduced verbatim -- nothing is added to it (see
     services/evidence_documents.py). `content_hash` is the SHA-256 of exactly the text the
-    verification engine scored, so the document and the verdict are provably about the
+    verification engine scored, so the document and the verdict are verifiably about the
     same bytes.
     """
 
@@ -168,7 +168,9 @@ class Decision(BaseModel):
     claim_verdicts: list[ClaimVerdict]
     drafted_packet: Optional[str] = None
     decided_at: datetime
-    model_version: str = "cross-encoder/nli-deberta-v3-base"
+    model_version: str = (
+        "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+    )
     # Addendum 3: a decision is only reproducible if you know which threshold produced it.
     calibrated_threshold_used: Optional[float] = None
 
@@ -176,9 +178,13 @@ class Decision(BaseModel):
 class AuditLogEntry(BaseModel):
     id: int
     dispute_id: str
+    decision_id: int
     decision: Decision
     approved_by_human: bool = False
     approved_at: Optional[datetime] = None
+    # Every audit event has a timestamp, including rejection and withdrawal events for
+    # which ``approved_at`` is intentionally null.
+    created_at: datetime
     submitted_to_razorpay: bool = False
     # Logged, never sent. See Section 7: the dispute_id does not exist on Razorpay's side,
     # so we record the exact payload we *would* have sent instead of making the call.
@@ -194,14 +200,14 @@ class EvalMetrics(BaseModel):
     f1: float
     confusion_matrix: dict  # {"tp","fp","fn","tn","flagged_human"}
     false_positive_cost_estimate_inr: float
-    coverage: float  # fraction NOT flagged to human
+    coverage: float  # fraction the model decides on evidence; excludes human + URCS
     n_evaluated: int
     # Cap-breach cases URCS resolves without the merchant. Excluded from precision and
     # recall exactly as NEEDS_HUMAN_REVIEW is -- counting them as wins would inflate the
     # headline number for work the system did not do.
     auto_resolved: int = 0
-    # Addendum 3: the risk budget in force, the threshold it produced, and whether the
-    # guarantee actually held on the test split.
+    # Addendum 3 legacy field names: the risk budget in force, its threshold, and whether
+    # the observed test-split false-positive rate stayed within that budget.
     alpha: Optional[float] = None
     calibrated_threshold: Optional[float] = None
     guarantee_held: Optional[bool] = None
@@ -233,13 +239,15 @@ class CalibrationResult(BaseModel):
     """Outcome of calibrating the decision threshold to a stated risk budget."""
 
     alpha: float  # requested maximum false-positive rate
-    delta: float  # confidence level
+    delta: float  # failure probability; nominal confidence is 1 - delta
     calibrated_threshold: Optional[float]
     achievable: bool
     calibration_set_size: int
     n_above_threshold: int
     empirical_fp_rate_on_calibration: Optional[float]
     hoeffding_slack: Optional[float]
+    # Historical response-field name retained for API compatibility; the text explicitly
+    # describes a development statistic, not a formal guarantee.
     guarantee_statement: str
     # The tightest budget this calibration set can support, so an unachievable request is
     # actionable rather than a dead end.
@@ -247,12 +255,15 @@ class CalibrationResult(BaseModel):
 
 
 class GuaranteeVerification(BaseModel):
-    """Computed on the TEST split, never the calibration split."""
+    """Empirical budget check computed on the TEST split, never the calibration split."""
 
-    alpha: float
-    observed_fp_rate_on_test: float
-    guarantee_held: bool
-    coverage: float  # fraction auto-decided rather than deferred to a human
+    alpha: Optional[float]
+    observed_fp_rate_on_test: Optional[float]
+    # Historical response-field name: True means observed_fp_rate_on_test <= alpha only.
+    # Null means there were no model-contested cases, so the statistic is not evaluable.
+    guarantee_held: Optional[bool]
+    n_contested: int
+    coverage: float  # fraction resolved by model decisions or deterministic NPCI rules
     n_test: int
 
 
@@ -300,6 +311,9 @@ class DisputeDetail(BaseModel):
 
     dispute: Dispute
     latest_decision: Optional[Decision] = None
+    # Database identity of latest_decision. Mutation requests echo this value so the
+    # server can reject a browser tab that is acting on an assessment it no longer shows.
+    latest_decision_id: Optional[int] = None
     decision_rationale: Optional[str] = None
     audit_log: list[AuditLogEntry] = []
     status: DisputeStatus
@@ -396,12 +410,14 @@ class BackingStatus(BaseModel):
 class PacketDraft(BaseModel):
     """PUT /disputes/{id}/packet-draft -- save an in-progress representment edit."""
 
+    decision_id: int = Field(gt=0)
     text: str
 
 
 class ApproveRequest(BaseModel):
     """POST /disputes/{dispute_id}/approve."""
 
+    decision_id: int = Field(gt=0)
     approved: bool
     edited_packet: Optional[str] = None
 

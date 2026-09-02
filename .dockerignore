@@ -17,7 +17,6 @@ venv/
 .env
 *.db
 *.db-journal
-**/.conformal_scores.json
 **/.signal_cache.json
 
 # Build output — the image builds its own

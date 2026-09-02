@@ -58,6 +58,14 @@ def test_readiness_is_reported_separately_from_liveness(client):
     ready = client.get("/api/ready")
     assert ready.status_code in {200, 503}
     assert ready.json()["ready"] is (ready.status_code == 200)
+    assert ready.json()["calibrated"] is True
+
+
+def test_docker_healthcheck_targets_the_mounted_api():
+    """The SPA catch-all serves HTML with 200 at root /ready, so that path cannot prove
+    the mounted API is ready. Pin the healthcheck to the actual /api route."""
+    dockerfile = (FRONTEND_DIST.parents[1] / "Dockerfile").read_text(encoding="utf-8")
+    assert "http://127.0.0.1:8000/api/ready" in dockerfile
 
 
 # -- routing --------------------------------------------------------------------------------

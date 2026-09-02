@@ -1,10 +1,10 @@
 # Demo script
 
-Five minutes, live. Assumes backend on :8000 and frontend on :5173, both already running,
-and `python -m app.db.seed` already done.
+Five minutes, live. Assumes backend on :8000 and frontend on :5173, both already running.
+The backend lifespan seeds an empty database automatically.
 
 Rehearse the two slow steps once beforehand so the model is warm: the first `/decide` loads
-the NLI model (~15s cold), and `/evaluate` takes about a minute.
+the NLI model (~15s cold), and `/evaluate` takes about 90 seconds on this machine.
 
 ---
 
@@ -95,10 +95,11 @@ the live one is a verification rather than a reveal. While it runs:
 > "This is the held-out 30%, untouched during development. Real inference, not a cached
 > number — that's why it takes a minute."
 
-When it lands: 69.2 / 75.0 / 72.0, coverage 29.1%, ₹6,000.
+When it lands: 69.2 / 75.0 / 72.0, model coverage 29.1%, ₹6,000.
 
-> "Coverage of 29% means it declines to decide on seven cases in ten. That's the product,
-> not a shortfall — it says 'I don't know' instead of guessing.
+> "Model coverage of 29.1% means it decides 23 of 79 cases on their evidence. Five more
+> resolve under deterministic NPCI caps; 51, or 64.6%, go to a person. That abstention is
+> the product, not a shortfall — it says 'I don't know' instead of guessing.
 >
 > The number I actually care about isn't the precision. It's that at the thresholds I
 > hand-tuned, the working set scored 0.625 and coverage 0.214 and the held-out set scored

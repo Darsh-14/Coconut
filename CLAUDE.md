@@ -34,7 +34,7 @@ before anything is treated as final.
 
 ## 3. Tech stack — use exactly this, don't substitute
 
-- **Backend:** Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy 2.0 (sync engine is fine —
+- **Backend:** Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.0 (sync engine is fine —
   don't add async complexity for this scale), SQLite as the database file.
 - **ML — verification engine:** `sentence-transformers`, using the pretrained cross-encoder
   `cross-encoder/nli-deberta-v3-base` (confirmed real, on Hugging Face, trained on
@@ -255,9 +255,13 @@ of `AuditLogEntry`.
 **`POST /disputes/{dispute_id}/decide`** → runs the verification engine + aggregator, persists
 and returns a `Decision`. Body: none required.
 
-**`POST /disputes/{dispute_id}/approve`** → body `{"approved": bool, "edited_packet":
-str | null}`. Returns the updated `AuditLogEntry`. Applies the real-vs-synthetic handling
-from Section 7.
+**Phase-0 API correction:** `POST /disputes/{dispute_id}/approve` requires body
+`{"decision_id": int, "approved": bool, "edited_packet": str | null}`. Draft saves and
+packet exports also require the current `decision_id`, and
+`POST /disputes/{dispute_id}/withdraw` requires the standing `approval_id` query parameter.
+These optimistic tokens reject stale tabs rather than applying an action to a newer record.
+The endpoint returns the new `AuditLogEntry` and applies Section 7's real-vs-synthetic
+handling.
 
 **`POST /evaluate`** → runs the full pipeline over `eval/held_out_set.json` (never used during
 development), returns `EvalMetrics`.
@@ -824,8 +828,21 @@ NPCI's circulars."
 
 # CLAUDE.md — Addendum 3: Conformal Risk Control (the Risk Budget Dial)
 
+> **PHASE-0 SUPERSESSION NOTICE — IMPLEMENTED STATE:** The addendum below is retained as
+> design history, not as a valid guarantee or current implementation contract. Phase 0 ships
+> a development-time operating-point search on reused synthetic working data and an empirical
+> check on a disjoint held-out file; it does not establish finite-sample or deployment risk
+> control. It also intentionally changes the legacy Section 10 CONTEST gate from average
+> support confidence to weakest-link (`min`) confidence, so its reported comparison is not a
+> threshold-only ablation. The selected-case error `FP / (TP + FP)` is called the
+> **contest-error rate** (false-discovery rate) in user-facing copy. Historical code and JSON
+> identifiers containing `fp_rate`, plus the `/verify-guarantee` route, remain compatibility
+> names only. Where this addendum conflicts with the Phase-0 README or architecture, those
+> implemented-state documents take precedence.
+
 Append after Addendum 2. This is now the **headline feature**. It does not sit alongside
-Section 10 — it **replaces Section 10's hard-coded thresholds**. Read Section 33 before
+Section 10 — it **replaces Section 10's hard-coded thresholds and legacy average-support
+gate**. Read Section 33 before
 deciding what to keep from Addenda 1 and 2.
 
 ---
@@ -837,15 +854,15 @@ support confidence), and `0.6` (weak-evidence cutoff in Addendum 1). None of the
 justified by anything. A panel will ask where they came from, and "I picked them" is a bad
 answer in a track whose stated bar is measured precision and recall on a held-out set.
 
-Conformal risk control removes the guesswork. Instead of choosing a threshold, you choose a
-**risk budget** — a maximum tolerated false-positive rate — and the threshold is *calibrated*
-to satisfy it, with a finite-sample, distribution-free guarantee under exchangeability. The
-system then reports the coverage it can achieve at that budget.
+The risk-budget search removes a picked runtime threshold. Instead, you choose a **risk
+budget** — a maximum tolerated contest-error (false-discovery) rate among auto-contested
+cases — and the system selects a threshold and reports the coverage it can achieve at that
+budget. The Phase-0 procedure does not meet the independence and multiplicity-control
+conditions needed for a formal finite-sample guarantee.
 
-This reframes the core claim from "our model got 87% precision" to "you name the false-positive
-rate you can live with, and the system provably stays under it — here's what that costs you in
-coverage." That is a materially stronger statement and it is exactly what a risk team cares
-about.
+This reframes the core prototype from "our model got 87% precision" to "you name the
+contest-error rate you can live with, and the system shows the operating point and its
+empirical held-out result — here's what that costs you in coverage."
 
 ### Grounding (cite these in ARCHITECTURE.md)
 - Conformal prediction gives finite-sample, distribution-free validity under exchangeability;
@@ -860,8 +877,8 @@ about.
   financial ranking — **not payment disputes**. State this gap plainly; it is the novelty
   claim, and it is checkable.
 
-Do not overstate. The guarantee is on the false-positive rate among *auto-contested* disputes,
-under exchangeability of calibration and test data. Nothing more.
+Do not overstate. The measured ratio is the contest-error/false-discovery rate among
+*auto-contested* disputes. Phase 0 reports an empirical check, not a guarantee.
 
 ---
 
@@ -884,9 +901,11 @@ R̂(λ) = (# calibration disputes where s(x) ≥ λ AND ground_truth is NOT cont
         / max(1, # calibration disputes where s(x) ≥ λ)
 ```
 
-i.e. the false-positive rate among cases the system would auto-contest at threshold `λ`.
+i.e. the contest-error (false-discovery) rate among cases the system would auto-contest at
+threshold `λ`. The historical helper and response fields retain `fp_rate` in their names for
+compatibility, but the denominator is `TP + FP`, not `FP + TN`.
 
-- Given a user-specified risk budget `α` (max tolerated FP rate) and confidence level `δ`
+- Given a user-specified risk budget `α` (max tolerated contest-error rate) and failure probability `δ`
   (default `0.1`), select:
 
 ```
@@ -902,7 +921,7 @@ would defeat the entire point of the feature.
 
 The guarantee statement to put in the README, worded precisely:
 
-> With probability at least 1 − δ over the draw of the calibration set, the false-positive rate
+> With probability at least 1 − δ over the draw of the calibration set, the false-discovery rate
 > among disputes the system auto-contests is at most α, assuming calibration and deployment
 > data are exchangeable.
 
@@ -913,7 +932,8 @@ The guarantee statement to put in the README, worded precisely:
 2. Exchangeability is an assumption. Real dispute streams drift (seasonal fraud patterns, new
    attack modes), which breaks it. Note that handling drift would require adaptive/online
    conformal methods, and that this is out of scope.
-3. The bound is on FP rate only, not on recall or on total money recovered.
+3. The bound is on contest-error/false-discovery rate only, not on recall or on total money
+   recovered.
 
 Stating all three is not a weakness in the pitch — it is the single clearest demonstration that
 you understand what you built. Say them on camera.
@@ -938,7 +958,9 @@ def empirical_fp_rate(scores_and_labels, lam):
     return fps / len(selected), len(selected)
 
 def calibrate_threshold(scores_and_labels, alpha: float, delta: float = 0.1) -> Optional[float]:
-    """Smallest lambda whose Hoeffding-corrected empirical FP rate is <= alpha.
+    """Smallest lambda whose Hoeffding-corrected contest-error rate is <= alpha.
+
+    `empirical_fp_rate` is the retained legacy helper name; its denominator is TP + FP.
     Returns None if the budget is unachievable on this calibration set."""
     for lam in GRID:
         r_hat, n_lam = empirical_fp_rate(scores_and_labels, lam)
@@ -954,8 +976,8 @@ def calibrate_threshold(scores_and_labels, alpha: float, delta: float = 0.1) -> 
 
 ```python
 class CalibrationResult(BaseModel):
-    alpha: float                      # requested max FP rate
-    delta: float                      # confidence level
+    alpha: float                      # requested max contest-error rate
+    delta: float                      # failure probability; nominal confidence is 1 - delta
     calibrated_threshold: Optional[float]
     achievable: bool
     calibration_set_size: int
@@ -997,17 +1019,18 @@ else:
     return NEEDS_HUMAN_REVIEW
 ```
 
-Keep the min-not-average definition of `overall_confidence` and the ≥2-distinct-evidence-types
-rule from Section 10 — those are structural design choices, not arbitrary numbers, and they
-remain defensible. Only the numeric thresholds are replaced.
+Phase 0 deliberately promotes `min(confidence)` from Section 10's reported
+`overall_confidence` to the unanimous-support gate itself; the legacy gate used
+`average(confidence)`. Together with the single selected threshold, this is an intentional
+operating-rule change. The ≥2-distinct-evidence-types rule remains a structural constraint.
 
 ### Endpoints
 
 - `POST /calibrate` — body `{"alpha": float, "delta": float}` → `CalibrationResult`. Runs on
   the calibration split, caches the active threshold.
-- `GET /verify-guarantee` → `GuaranteeVerification`. Runs the active threshold against the
-  **test** split and reports whether the guarantee actually held. This endpoint existing at all
-  is itself a strong signal — you built the thing that could prove you wrong.
+- `GET /verify-guarantee` → `GuaranteeVerification`. The historical route name is retained
+  for compatibility; it runs the active threshold against the **test** split and reports
+  whether the configured budget held empirically.
 - Extend Section 11's `EvalMetrics` with `alpha`, `calibrated_threshold`, `guarantee_held`.
 
 ---
@@ -1016,15 +1039,15 @@ remain defensible. Only the numeric thresholds are replaced.
 
 On **MetricsDashboard**, above everything else:
 
-- A slider labeled "Maximum false-positive rate I'll accept", range 1%–20%, step 1%,
+- A slider labeled "Maximum contest-error rate I'll accept", range 1%–20%, step 1%,
   default 5%.
 - On release, call `POST /calibrate`, then `GET /verify-guarantee`.
 - Render three big numbers side by side: **calibrated threshold**, **coverage at this budget**,
-  **observed FP rate on the test split** — with a pass/fail marker on whether the guarantee
+  **observed contest-error rate on the test split** — with a pass/fail marker on whether the budget
   held.
 - Below, one plain-English line, regenerated on each change:
-  "At a 3% false-positive budget, the system auto-decides 61% of disputes and defers the rest.
-  On the held-out test split, the observed false-positive rate was 2.1%."
+  "At a 3% contest-error budget, the system auto-decides 61% of disputes and defers the rest.
+  On the held-out test split, the observed contest-error rate was 2.1%."
 - If `achievable` is `false`, show that clearly instead of a threshold:
   "A 1% budget isn't achievable with the current calibration set — the system would need to
   defer every case." Do not hide this state; make sure at least one slider position in the demo
@@ -1074,7 +1097,7 @@ Put this at beat 4, replacing the plain metrics readout:
 
 "Most chargeback tools report a win rate. That tells you what happened, not what will happen.
 So instead of me picking a confidence threshold and hoping — watch this. [drag slider to 3%]
-I'm telling the system: I'll tolerate at most a 3% false-positive rate on disputes it contests
+I'm telling the system: I'll tolerate at most a 3% contest-error rate on disputes it contests
 automatically. It calibrates its own threshold on a held-out calibration split, and tells me
 that costs 61% coverage — the rest defers to a human. [drag to 1%] At 1%, it can't do it, and
 it says so rather than pretending. This is conformal risk control. It's used in drug discovery

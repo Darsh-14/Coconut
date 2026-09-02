@@ -87,6 +87,11 @@ from app.models.schemas import ClaimVerdict, EvidenceItem, VerdictLabel
 logger = logging.getLogger("recourse.verification")
 
 MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
+# Pin the exact weights used for the recorded evaluation. A model repository name alone
+# is not reproducible: its default branch can move while old decisions continue to report
+# the same apparent version. This is the commit already present in the local HF cache.
+MODEL_REVISION = "6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+MODEL_VERSION = f"{MODEL_NAME}@{MODEL_REVISION}"
 
 # Index order of the model's output logits.
 NLI_LABELS = ("contradiction", "entailment", "neutral")
@@ -208,8 +213,13 @@ class EvidenceAssessment:
 class VerificationEngine:
     """Wraps the cross-encoder. Model load is lazy and thread-safe."""
 
-    def __init__(self, model_name: str = MODEL_NAME) -> None:
+    def __init__(
+        self,
+        model_name: str = MODEL_NAME,
+        model_revision: str = MODEL_REVISION,
+    ) -> None:
         self.model_name = model_name
+        self.model_revision = model_revision
         self._model = None
         self._lock = threading.Lock()
         # A separate lock for inference. HuggingFace's fast tokenizer is a Rust object
@@ -230,8 +240,12 @@ class VerificationEngine:
                 if self._model is None:
                     from sentence_transformers import CrossEncoder
 
-                    logger.info("loading NLI cross-encoder %s", self.model_name)
-                    model = CrossEncoder(self.model_name)
+                    logger.info(
+                        "loading NLI cross-encoder %s@%s",
+                        self.model_name,
+                        self.model_revision,
+                    )
+                    model = CrossEncoder(self.model_name, revision=self.model_revision)
                     _assert_label_order(model)
                     self._model = model
                     logger.info("NLI cross-encoder ready")
@@ -440,6 +454,8 @@ __all__ = [
     "IDX_ENTAILMENT",
     "IDX_NEUTRAL",
     "MODEL_NAME",
+    "MODEL_REVISION",
+    "MODEL_VERSION",
     "model_is_loaded",
     "warm_up",
     "NLI_LABELS",

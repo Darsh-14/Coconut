@@ -6,8 +6,8 @@
 // plus a ~115MB browser download, which would work against the repo's "clone and run in
 // five minutes" goal. With the backend and Vite dev server both running:
 //
-//   npm i -D playwright && npx playwright install chromium
-//   node scripts/a11y-ui.mjs
+//   npm install && npx playwright install chromium
+//   npm run verify:a11y
 //
 // Every check here started as a real defect. The queue was mouse-only until a case link
 // existed; dialogs opening on a skeleton left focus outside themselves; and the focus ring
@@ -77,17 +77,71 @@ ok(true, 'Enter opens the case')
 // --- Escape closes a dialog ----------------------------------------------
 await page.goto(`${BASE}/app/disputes/${target}`, { waitUntil: 'networkidle' })
 await page.getByText(/Bank.s claim/).waitFor({ timeout: 20000 })
-await page.locator('button[title="Open the record behind this evidence"]').first().click()
+const evidenceOpener = page.locator('button[title="Open the record behind this evidence"]').first()
+await evidenceOpener.click()
 await page.locator('[role="dialog"]').waitFor({ timeout: 10000 })
 
 const focusInDialog = await page.evaluate(
   () => !!document.activeElement?.closest('[role="dialog"]'),
 )
 ok(focusInDialog, 'opening a dialog moves focus into it')
+ok(
+  (await page.locator('[role="dialog"]').getAttribute('aria-label')) === 'Evidence record',
+  'the evidence dialog has a name even while its record is loading',
+)
+
+// A dialog may initially focus its panel while content is loading, then gain controls.
+// Both tab directions must enter those controls rather than escape to the page behind.
+await page.getByRole('button', { name: 'Close' }).waitFor({ timeout: 10000 })
+await page.locator('[role="dialog"]').focus()
+await page.keyboard.press('Shift+Tab')
+ok(
+  await page.evaluate(() => {
+    const panel = document.querySelector('[role="dialog"]')
+    const controls = panel
+      ? [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+          .filter((element) =>
+            element.getAttribute('aria-hidden') !== 'true' &&
+            (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0),
+          )
+      : []
+    return controls.length > 0 && document.activeElement === controls.at(-1)
+  }),
+  'Shift+Tab from the dialog panel enters its last control',
+)
+await page.locator('[role="dialog"]').focus()
+await page.keyboard.press('Tab')
+ok(
+  await page.evaluate(() => {
+    const panel = document.querySelector('[role="dialog"]')
+    const controls = panel
+      ? [...panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+          .filter((element) =>
+            element.getAttribute('aria-hidden') !== 'true' &&
+            (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0),
+          )
+      : []
+    return controls.length > 0 && document.activeElement === controls[0]
+  }),
+  'Tab from the dialog panel enters its first control',
+)
+
+// A modal cannot let Tab escape into the inert-looking page behind it. Start at the first
+// control and wrap backwards; this also covers the loading state where the panel itself is
+// the only focus target.
+await page.keyboard.press('Shift+Tab')
+ok(
+  await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]')),
+  'Shift+Tab remains trapped inside the dialog',
+)
 
 await page.keyboard.press('Escape')
 await page.locator('[role="dialog"]').waitFor({ state: 'detached', timeout: 5000 })
 ok(true, 'Escape closes the evidence record')
+ok(
+  await evidenceOpener.evaluate((element) => document.activeElement === element),
+  'closing a dialog restores focus to its opener',
+)
 
 // --- Escape closes the file-a-dispute dialog too --------------------------
 await page.goto(`${BASE}/app/disputes`, { waitUntil: 'networkidle' })
@@ -124,6 +178,19 @@ for (const width of [1440, 1280, 1024, 900]) {
   await p2.screenshot({ path: `${SHOTS}/a4-w${width}.png` })
   await p2.close()
 }
+
+// Sidebar and mobile navigation are both mounted. They must read one shared theme rather
+// than keeping two local states that drift when the breakpoint changes.
+const syncedTheme = await newPage({ viewport: { width: 1440, height: 900 } })
+await syncedTheme.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
+await syncedTheme.locator('aside button[aria-label="Toggle colour theme"]').click()
+await syncedTheme.setViewportSize({ width: 900, height: 900 })
+await syncedTheme.locator('div.lg\\:hidden button[aria-label="Toggle colour theme"]').click()
+const themeAfterTwoClicks = await syncedTheme.evaluate(
+  () => document.documentElement.dataset.theme,
+)
+ok(themeAfterTwoClicks === 'dark', 'theme controls stay synchronized across the lg breakpoint')
+await syncedTheme.close()
 
 // --- light theme still works ---------------------------------------------
 const light = await newPage({ viewport: { width: 1280, height: 900 } })

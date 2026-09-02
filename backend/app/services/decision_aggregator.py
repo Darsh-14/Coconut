@@ -1,27 +1,17 @@
 """Decision aggregation: turn a list of ClaimVerdict into a recommendation.
 
-This implements CLAUDE.md Section 10 literally. The rule is deliberately a plain, readable
-conditional rather than a learned model: a merchant disputing a chargeback needs to be able
-to read why the system said what it said, and a judge needs to be able to check it.
+The Phase-0 rule is deliberately a plain, readable conditional rather than a learned model:
+a merchant disputing a chargeback needs to be able to read why the system said what it said,
+and a judge needs to be able to check it. Deterministic UPI caps run first. Otherwise, both
+evidence branches compare against the active risk-budget threshold; unanimous support must
+also span at least two evidence types, and its weakest confidence must meet that threshold.
 
-    if any verdict has label == "contradict" and confidence > 0.7:
-        ACCEPT
-    elif all verdicts have label == "support"
-         and average(confidence) > 0.65
-         and count(distinct evidence.type among supporting verdicts) >= 2:
-        CONTEST
-    else:
-        NEEDS_HUMAN_REVIEW
-
-    overall_confidence = min(confidence across the verdicts that drove the decision)
-
-On the min(): Section 10 calls for the minimum rather than the average, because a chain of
-evidence is only as strong as its weakest link. That choice does real work here because the
-verification engine puts evidentiary strength into `confidence` (see verification_engine's
-module docstring) -- so the minimum is the strength of the flimsiest thing the merchant is
-relying on, which is exactly what an opposing bank will attack first.
-
-The thresholds are Section 10's, unchanged. They are not tuned here.
+This intentionally changes the complete operating rule from CLAUDE.md Section 10. The legacy
+baseline gated unanimous support on its average confidence and used `min()` only for the
+reported confidence after a decision. Phase 0 gates on `min()` itself: a chain of evidence is
+only as strong as its weakest link, and this is the exact score used by the risk-budget search.
+Comparisons with the legacy baseline are therefore operating-rule comparisons, not
+threshold-only ablations.
 """
 
 from __future__ import annotations
@@ -29,7 +19,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 from app.models.schemas import (
     ClaimVerdict,
@@ -41,17 +31,21 @@ from app.models.schemas import (
 )
 from app.services.conformal_calibrator import get_active_calibrated_threshold
 from app.services.urcs_forecaster import forecast_urcs_disposition
-from app.services.verification_engine import MODEL_NAME
+from app.services.verification_engine import MODEL_VERSION
 
 logger = logging.getLogger("recourse.aggregator")
 
+# ``None`` is a meaningful threshold: calibration found no supported operating point and
+# the model must defer. A sentinel lets a caller freeze that value for one decision rather
+# than accidentally re-read mutable process state halfway through.
+_THRESHOLD_UNSET = object()
+
 # --- thresholds ---
 #
-# Section 10's two numeric thresholds are SUPERSEDED by Addendum 3: they are no longer
-# used to decide anything. Both branches now compare against a single threshold
-# calibrated to a stated risk budget by conformal_calibrator.py, so the number is derived
-# from data rather than chosen. The originals are kept only as the historical record of
-# what the spec first prescribed, and are referenced by nothing in the decision path.
+# Section 10's numeric thresholds and average-confidence CONTEST gate are SUPERSEDED by
+# Phase 0. Both branches now compare against one threshold selected for a stated risk
+# budget, and the CONTEST branch compares its weakest-link score. The originals remain only
+# as a historical baseline and are referenced by nothing in the live decision path.
 LEGACY_CONTRADICT_CONFIDENCE_THRESHOLD = 0.7
 LEGACY_SUPPORT_AVERAGE_CONFIDENCE_THRESHOLD = 0.65
 
@@ -82,11 +76,11 @@ def aggregate(
     evidence_bundle: Sequence[EvidenceItem],
     dispute: Optional[Dispute] = None,
     dispute_history: Optional[Sequence[Dispute]] = None,
-    threshold: Optional[float] = None,
+    threshold: Optional[float] | object = _THRESHOLD_UNSET,
 ) -> AggregationResult:
     """Apply the decision rule to a bundle's verdicts.
 
-    `threshold` is the conformally calibrated lambda. Omit it and the active calibrated
+    `threshold` is the prototype risk-budget lambda. Omit it and the active calibrated
     threshold is used; pass it explicitly to evaluate a bundle at a specific budget
     without touching global state, which is what the tests and /verify-guarantee do.
 
@@ -100,11 +94,12 @@ def aggregate(
     """
     # Addendum 3 supersedes Section 10's 0.7 and 0.65. Both branches now use one
     # threshold calibrated to a stated risk budget, so the number is derived rather than
-    # picked. The structural rules -- unanimity, >= 2 distinct evidence types, and min-
-    # rather-than-average confidence -- are design choices, not arbitrary constants, and
-    # they stay exactly as Section 10 wrote them.
-    if threshold is None:
+    # picked. Unanimity and >= 2 distinct evidence types remain structural constraints;
+    # weakest-link rather than legacy average-confidence gating is an intentional Phase-0
+    # operating-rule change and is the score the calibration artifact actually contains.
+    if threshold is _THRESHOLD_UNSET:
         threshold = get_active_calibrated_threshold()
+    threshold = cast(Optional[float], threshold)
 
     forecast = None
     if dispute is not None:
@@ -129,15 +124,15 @@ def aggregate(
     if threshold is None:
         # Either nothing has been calibrated yet, or the requested risk budget is
         # unachievable on the calibration data. Both mean the same thing: the system
-        # cannot promise the stated false-positive rate, so it decides nothing. Silently
+        # cannot apply the selected operating point, so it decides nothing. Silently
         # falling back to a default threshold would defeat the entire point.
         return AggregationResult(
             recommendation="NEEDS_HUMAN_REVIEW",
             confidence=0.0,
             driving_verdicts=[],
             rationale=(
-                "No calibrated threshold is in force, so the system cannot guarantee the "
-                "requested false-positive rate and declines to decide."
+                "No calibrated threshold is in force, so the system cannot apply the "
+                "requested risk budget and declines to decide."
             ),
             urcs_forecast=forecast,
         )
@@ -176,7 +171,7 @@ def aggregate(
     supporting = [v for v in verdicts if v.label == "support"]
     if len(supporting) == len(verdicts):
         # The score the threshold is calibrated against is the weakest link, not the
-        # average -- that is the quantity conformal calibration was run on, so it has to
+        # average -- that is the quantity the risk-budget search was run on, so it has to
         # be the quantity compared here.
         weakest_link = min(v.confidence for v in supporting)
         distinct_types = _distinct_supporting_types(supporting, evidence_bundle)
@@ -274,14 +269,27 @@ def build_decision(
     decided_at: Optional[datetime] = None,
     dispute: Optional[Dispute] = None,
     dispute_history: Optional[Sequence[Dispute]] = None,
-    threshold: Optional[float] = None,
+    threshold: Optional[float] | object = _THRESHOLD_UNSET,
+    aggregation_result: Optional[AggregationResult] = None,
 ) -> Decision:
     """Aggregate and wrap the outcome in the Section 6 Decision contract.
 
-    Pass `dispute` and `dispute_history` to have NPCI's UPI caps checked first; omit them
-    and the behaviour is exactly Section 10 as before.
+    Pass `dispute` and `dispute_history` to have NPCI's UPI caps checked first. Omitting
+    them skips that rail-specific branch but still uses Phase 0's weakest-link rule.
     """
-    result = aggregate(verdicts, evidence_bundle, dispute, dispute_history, threshold)
+    # Resolve mutable calibration state exactly once. Previously aggregation and the
+    # persisted audit field read it separately, so a concurrent calibration could make
+    # the recommendation and recorded threshold disagree.
+    if threshold is _THRESHOLD_UNSET:
+        threshold = get_active_calibrated_threshold()
+    effective_threshold = cast(Optional[float], threshold)
+    result = aggregation_result or aggregate(
+        verdicts,
+        evidence_bundle,
+        dispute,
+        dispute_history,
+        effective_threshold,
+    )
     return Decision(
         dispute_id=dispute_id,
         recommendation=result.recommendation,
@@ -289,8 +297,8 @@ def build_decision(
         claim_verdicts=list(verdicts),
         drafted_packet=drafted_packet,
         decided_at=decided_at or datetime.now(timezone.utc),
-        model_version=MODEL_NAME,
-        calibrated_threshold_used=threshold if threshold is not None else get_active_calibrated_threshold(),
+        model_version=MODEL_VERSION,
+        calibrated_threshold_used=effective_threshold,
     )
 
 

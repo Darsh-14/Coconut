@@ -5,7 +5,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@upstash/context7-mcp"
+        "@upstash/context7-mcp@4.0.3"
       ],
       "env": {}
     },
@@ -14,7 +14,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@playwright/mcp@latest"
+        "@playwright/mcp@0.0.79"
       ],
       "env": {}
     }

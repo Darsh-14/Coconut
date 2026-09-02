@@ -211,7 +211,9 @@ def test_build_decision_returns_the_section_6_contract():
     assert decision.recommendation == "CONTEST"
     assert decision.confidence == 0.80
     assert len(decision.claim_verdicts) == 2
-    assert decision.model_version == "cross-encoder/nli-deberta-v3-base"
+    assert decision.model_version == (
+        "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+    )
     assert decision.decided_at is not None
 
 
@@ -223,6 +225,28 @@ def test_build_decision_carries_the_drafted_packet():
         drafted_packet="Representment text.",
     )
     assert decision.drafted_packet == "Representment text."
+
+
+def test_build_decision_snapshots_the_active_threshold_once(monkeypatch):
+    from app.services import decision_aggregator as aggregator
+
+    reads = 0
+
+    def changing_threshold():
+        nonlocal reads
+        reads += 1
+        return 0.5 if reads == 1 else 0.99
+
+    monkeypatch.setattr(aggregator, "get_active_calibrated_threshold", changing_threshold)
+    decision = build_decision(
+        dispute_id="disp_synthetic_snapshot",
+        verdicts=[verdict(0, "support", 0.8), verdict(1, "support", 0.8)],
+        evidence_bundle=bundle("delivery_proof", "order_history"),
+    )
+
+    assert reads == 1
+    assert decision.recommendation == "CONTEST"
+    assert decision.calibrated_threshold_used == 0.5
 
 
 @pytest.mark.parametrize(

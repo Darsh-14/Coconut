@@ -8,11 +8,16 @@ python-dotenv>=1.0,<2.0
 SQLAlchemy>=2.0,<2.1
 
 # --- verification engine (local NLI cross-encoder, no API calls) ---
-# sentencepiece + protobuf are required by the DeBERTa-v3 tokenizer.
-sentence-transformers>=3.2,<6.0
-torch>=2.4
-sentencepiece>=0.2.0
-protobuf>=4.25
+# These exact versions produced the committed calibration artifact. The cache records the
+# same versions and fails closed if they drift; changing one requires rebuilding it with
+# `python eval/build_conformal_cache.py` and rerunning the held-out evaluation.
+numpy==2.5.2
+sentence-transformers==5.7.0
+transformers==5.15.1
+torch==2.13.0
+tokenizers==0.22.2
+sentencepiece==0.2.2
+protobuf==7.36.0
 
 # --- external services ---
 # razorpay must be >=2.0: 1.x imports pkg_resources, which Python 3.12+ venvs no longer

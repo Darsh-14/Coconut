@@ -43,19 +43,19 @@ COPY backend/requirements.txt ./backend/requirements.txt
 # be deterministic, local, and free to run thousands of times), so every one of those bytes
 # is dead weight in the image and in the pull.
 #
-# requirements.txt still asks for `torch>=2.4` and is installed second; the CPU wheel
-# (2.x.y+cpu) satisfies that constraint, so pip leaves it alone rather than replacing it.
+# requirements.txt asks for the same exact public torch version and is installed second;
+# the CPU wheel's local `+cpu` suffix satisfies that pin, so pip leaves it in place.
 # requirements.txt is left platform-neutral on purpose -- it has to keep working for a
 # local `pip install -r` on Windows and macOS, where this index is the wrong answer.
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch \
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.13.0 \
     && pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ ./backend/
 COPY --from=frontend /build/dist ./frontend/dist
 
-# Run as a non-root user. Nothing here needs root, and a container that does not need it
-# should not have it.
-RUN useradd --create-home --uid 10001 recourse \
+# Run as a non-root user. UID 1000 also matches Hugging Face Docker Spaces' documented
+# mounted-volume convention, so an attached model/database bucket remains writable.
+RUN useradd --create-home --uid 1000 recourse \
     && mkdir -p /models \
     && chown -R recourse:recourse /srv /models
 USER recourse
@@ -68,6 +68,6 @@ EXPOSE 8000
 # stall for fifteen seconds waiting for a cold load. start-period covers the first
 # download, which is far slower than a warm start.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=180s --retries=5 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=4).status == 200 else 1)"
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=4).status == 200 else 1)"
 
 CMD ["python", "-m", "uvicorn", "app.server:site", "--host", "0.0.0.0", "--port", "8000"]

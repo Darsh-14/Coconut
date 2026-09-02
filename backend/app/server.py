@@ -55,7 +55,7 @@ async def lifespan(_: FastAPI):
         Section 2 wants a misconfigured process to refuse to start, and it would not have;
       * init_db and seed_if_empty never ran, so a fresh container had no tables and an
         empty queue;
-      * the conformal threshold was never calibrated, so the aggregator deferred EVERY
+      * the risk-budget threshold was never calibrated, so the aggregator deferred EVERY
         case to a human and the product looked broken rather than cautious;
       * the model never warmed up, so /ready never returned 200 and the container
         healthcheck could never pass.

@@ -90,6 +90,9 @@ deterministic, reproducible by anyone cloning this repo, and free to run thousan
 times during evaluation. `cross-encoder/nli-deberta-v3-base` runs locally on CPU with no
 API key, no rate limit and no per-call cost. An LLM is used only to rewrite prose *after*
 the decision is made — it cannot change a recommendation, a verdict or a confidence.
+The evaluated weights are pinned to Hub revision
+`6c749ce3425cd33b46d187e45b92bbf96ee12ec7`; every new decision records that full model
+version alongside the calibrated threshold that produced it.
 
 **Why two signals.** See [ARCHITECTURE.md](ARCHITECTURE.md#the-two-signal-verification-engine).
 Scoring evidence against the claim alone produced **precision 0.481** — worse than a coin
@@ -103,66 +106,74 @@ Section 10 of the spec hard-coded `0.7` and `0.65`. Nothing justified those numb
 were picked. In a track whose bar is measured precision on a held-out set, "I picked them"
 is a bad answer.
 
-So they are gone. You now state the **maximum false-positive rate you can live with**, and
-the threshold is *calibrated* to satisfy it:
+So they are gone. You now state the **maximum contest-error rate you can live with** — the
+false-discovery rate `FP / (TP + FP)` among cases the system auto-contests — and the
+threshold is selected against that budget:
 
     lambda = min { lambda : R(lambda) + sqrt(log(1/delta) / (2 n_lambda)) <= alpha }
 
-where `R(lambda)` is the empirical false-positive rate among cases the system would
-auto-contest at `lambda`, and the square-root term is a Hoeffding correction for finite
-samples. Learn-then-Test style bounded risk control, ~40 lines, in
+where `R(lambda)` is the empirical contest-error (false-discovery) rate among cases the
+system would auto-contest at `lambda`, and the square-root term is a Hoeffding correction for finite
+samples. This is a compact, development-time risk-budget prototype in
 [`conformal_calibrator.py`](backend/app/services/conformal_calibrator.py).
 
-> With probability at least 1 − δ over the draw of the calibration set, the false-positive
-> rate among disputes the system auto-contests is at most α, assuming calibration and
-> deployment data are exchangeable.
+> This does **not** establish a formal finite-sample or deployment guarantee. The score and
+> aggregation rule were developed on the same working set used for calibration, and the
+> 50-threshold search has no family-wise multiple-testing correction. The held-out result
+> below is an empirical check, not a repair for either assumption.
 
-**It beat the hand-picked thresholds.** Same held-out set, same model, only the threshold
-changed:
+**The Phase-0 operating rule beat the hand-picked baseline.** The held-out set and model are
+the same, but this is intentionally not a threshold-only ablation: in addition to replacing
+the two picked thresholds with one selected threshold, the CONTEST gate uses the minimum
+support confidence (the weakest link) instead of Section 10's legacy average-confidence gate.
 
-| | Section 10 (0.7 / 0.65) | Calibrated |
+| | Legacy Section 10 (average gate) | Phase 0 (weakest-link gate) |
 |---|---|---|
 | Precision | 0.625 | **0.692** |
 | Recall | 0.625 | **0.750** |
 | F1 | 0.625 | **0.720** |
 | Coverage | 0.215 | **0.291** |
 
-`POST /calibrate` sets the budget; `GET /verify-guarantee` checks whether it actually held,
-on a test split that shares no dispute ids with the calibration data. That endpoint exists
-so the system can prove itself wrong.
+`POST /calibrate` sets the budget; `GET /verify-guarantee` is the backward-compatible name
+of the endpoint that checks it empirically on a test split sharing no dispute ids with the
+calibration data. At the shipped operating point, 4 of 13 model-contested test cases were
+contest errors (30.8%), below the configured 75% budget. The legacy JSON fields
+`empirical_fp_rate_on_calibration` and `observed_fp_rate_on_test` retain their names for API
+compatibility; both use `FP / (TP + FP)`, so user-facing copy calls the quantity the
+contest-error rate (or false-discovery rate).
 
-### What the guarantee is not
+### What this risk check does — and does not — show
 
 Stated up front rather than buried, because these are the parts that matter:
 
-1. **The tightest budget this data supports is ~72%.** Not a typo. The method is correct;
+1. **The tightest budget this development sample supports is ~71%.** Not a typo;
    the *score* it calibrates has almost no dynamic range — contest scores cluster at 0.500
-   (p25 0.498, median 0.500, only 1 of 48 above 0.55) and precision does not improve as the
+   (p25 0.498, median 0.500, only 1 of 42 above 0.55) and precision does not improve as the
    threshold rises. That is the same AUC ≈ 0.57 ceiling documented in
    [ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here), reappearing as an
-   unachievable guarantee. Ask for 5% and the system says so and defers everything, rather
-   than pretending. **A tight, meaningful guarantee here needs a better-calibrated
+   unsupported budget. Ask for 5% and the system says so and defers everything, rather
+   than pretending. **A tight, useful operating point needs a better-calibrated
    confidence signal, not a better threshold search.**
-2. **Calibration data is synthetic.** The guarantee holds relative to that distribution and
-   does not automatically transfer to real disputes.
-3. **Exchangeability is an assumption.** Real dispute streams drift — seasonal fraud, new
-   attack modes — which breaks it. Handling that needs adaptive/online conformal methods,
-   out of scope here.
-4. **The bound is on false-positive rate only** — not recall, not money recovered.
+2. **Calibration data is synthetic and reused development data.** It does not establish
+   performance on real disputes or on a genuinely independent calibration population.
+3. **The threshold grid needs multiplicity control.** A formal Learn-then-Test release
+   would use an independent calibration split plus fixed-sequence testing or another
+   family-wise-error-controlling procedure.
+4. **Real streams drift.** Even a valid static calibration result requires monitoring and
+   recalibration as populations change.
+5. **The measured risk is the contest-error/false-discovery rate only** — not recall or
+   money recovered, and not the conventional false-positive rate `FP / (FP + TN)`.
 
-One deviation from the spec, deliberately: Addendum 3 says to split the held-out set 50/50
-for calibration and test. That leaves 12 contest-eligible calibration points, where the
-Hoeffding slack alone is 0.31 and the floor is 0.539. Calibration therefore runs on the
-**working set** and verification on the **full held-out set** — disjoint by construction,
-and it avoids spending held-out data to pick a threshold, which is exactly what the rest of
-this repo refuses to do.
+One deviation from the spec is retained and disclosed: Addendum 3 says to split the held-out
+set 50/50. That leaves only 12 contest-eligible calibration points. The prototype instead
+uses the **working set** for threshold selection and the **full held-out set** for its
+empirical check. The two files are disjoint, but the working set was used during score
+development, which is precisely why no formal calibration claim is made.
 
-Grounding: split conformal prediction (Vovk et al. 2005; Papadopoulos et al. 2002),
-conformal risk control (Bates et al. 2021; Angelopoulos et al. 2024), selective
+Grounding and future direction: split conformal prediction (Vovk et al. 2005;
+Papadopoulos et al. 2002), Learn-then-Test (Angelopoulos et al. 2021), conformal risk
+control (Angelopoulos et al. 2024), and selective
 classification and deferral (Chow; El-Yaniv & Wiener 2010; Geifman & El-Yaniv 2017).
-Active 2026 applications span drug discovery, medical foundation models, GUI agents and
-financial ranking — **not payment disputes**, which is the novelty claim here, and it is
-checkable.
 
 ---
 
@@ -206,7 +217,7 @@ NPCI's rules engine did would inflate the headline number.
 
 ## Setup
 
-**Prerequisites:** Python 3.11+ and Node 18+. Tested on Python 3.13 / Node 24.
+**Prerequisites:** Python 3.12+ and Node 18+. Tested on Python 3.13 / Node 24.
 
 ```bash
 git clone <repo-url>
@@ -291,15 +302,30 @@ Measured on this machine, with the model loaded and a full evaluation run:
 | Model on disk | 715 MB |
 
 That rules out the smallest tiers — a 512MB instance cannot hold this process. The natural
-fit is **Hugging Face Spaces**: its CPU Basic hardware is 2 vCPU and 16GB at no hourly
-cost, which is comfortable against 886MB, and the model is already hosted there so first
-boot pulls it over HF's own network.
+hardware fit is **Hugging Face Spaces**: CPU Basic is 2 vCPU and 16GB at no hourly cost,
+comfortable against 886MB, and the model is already hosted there. The account requirement
+is not free, however: current [Spaces documentation](https://huggingface.co/docs/hub/en/spaces-overview)
+requires PRO for a personal Docker Space, or Team/Enterprise for an organization; CPU
+Basic's compute price is still $0/hour once the account is eligible.
 
-One thing to check against your own account before counting on it: this app needs a
-**Docker** Space (it is FastAPI plus a built SPA, not Gradio or Streamlit), and the public
-documentation is not clear on whether a free account can create one — HF's pricing page
-lists "Create Gradio & Docker Spaces" under a paid plan's benefits, while the hardware
-itself is listed as free. The hardware fits; the account tier is the open question.
+Before pushing a copy to a Space, prepend this configuration to the Space's root README
+([configuration reference](https://huggingface.co/docs/hub/en/spaces-config-reference)):
+
+```yaml
+---
+title: Recourse
+sdk: docker
+app_port: 8000
+models:
+  - cross-encoder/nli-deberta-v3-base
+---
+```
+
+Compose volumes do not transfer to Spaces. Its default disk is ephemeral, so persistence
+requires a [Storage Bucket](https://huggingface.co/docs/hub/en/storage-buckets) mounted at
+`/data`, with `HF_HOME=/data/models` and
+`DATABASE_URL=sqlite:////data/recourse.db`. The container runs as UID 1000 to match the
+documented Docker Spaces convention for writable mounted storage.
 
 Three things to decide before putting this on a public URL, none of them blockers but none
 of them automatic:
@@ -372,15 +398,16 @@ payload → *Performance* → *Run evaluation*.
 Light and dark themes both ship; the toggle is at the foot of the sidebar, and on the
 landing and sign-in pages in the header.
 
-**Optional UI checks.** Three Playwright scripts, none part of `npm install` or the test
-suite — they need a ~115MB browser download, which would work against the five-minute clone
-goal. With both servers running:
+**Optional UI checks.** Playwright is pinned in the frontend lockfile; its Chromium binary
+is a separate ~115MB download so the normal five-minute setup does not fetch it. With both
+servers running:
 
 ```bash
-npm i -D playwright && npx playwright install chromium
-node scripts/smoke-ui.mjs      # the decision loop, end to end, in both themes
-node scripts/a11y-ui.mjs       # keyboard reachability and responsive boundaries
-node scripts/landing-ui.mjs    # the landing page, the sign-in gate, and the /app routing
+npx playwright install chromium
+npm run verify:landing         # landing, sign-in gate, and /app routing
+npm run verify:a11y            # keyboard, dialogs, themes, responsive boundaries
+npm run verify:smoke           # decision loop, end to end, in both themes
+# or: npm run verify:ui        # all three, sequentially
 node scripts/capture-shots.mjs # regenerate the landing page's product screenshots
 ```
 
@@ -483,7 +510,7 @@ python data/add_upi_rails.py --report   # show what it would do
 python data/add_upi_rails.py            # assign rail + payer_ref, build the cap clusters
 ```
 
-The conformal calibration scores are cached too — one NLI pass, so moving the risk-budget
+The risk-calibration scores are cached too — one NLI pass, so moving the risk-budget
 slider is instant:
 
 ```bash
@@ -500,8 +527,13 @@ recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
 ```bash
 cd backend
 python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
-pytest -q                              # 165 tests
+pytest -m "not slow" -q                # bounded suite; does not load the NLI model
+pytest -m slow tests/test_verification_engine.py -q  # isolated real-model checks
+pytest -m slow tests/test_api.py -q     # isolated end-to-end API checks
 ```
+
+Run the two slow groups separately. This keeps failures attributable and avoids turning a
+single interrupted command into an all-or-nothing test run on lower-powered laptops.
 
 ### Tuning, and why it stopped
 
@@ -523,7 +555,7 @@ precision collapses to 0.490. Details in
 
 ### Results — held-out set, last real run
 
-79 records, never inspected or tuned against during development (CLAUDE.md Section 9).
+79 records, kept out of threshold fitting and the demo database (CLAUDE.md Section 9).
 CONTEST is the positive class.
 
 Re-run after the UPI rails were added to the dataset. The confusion matrix is unchanged —
@@ -550,14 +582,14 @@ recommends.
 | Flagged to human | 51 | routed to a person instead of guessed |
 | URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
 
-**How to read these.** Coverage of 0.291 means the system auto-decides a little under a
-third of the queue and hands the rest back. That is the intended behaviour, not a
-shortfall — the product thesis is that a copilot which declines to decide on seven cases
-in ten, and is right on roughly seven of every ten it does decide, is more useful than one
-that guesses confidently on everything.
+**How to read these.** Model coverage of 0.291 means 23 of 79 cases are decided on their
+evidence. Another 5 are resolved separately by deterministic NPCI caps, and 51 go to a
+person. That restraint is intended, not hidden: a copilot that is right on roughly seven
+of every ten contests it does make is more useful than one that guesses confidently on
+everything.
 
-**The number that actually validates the work** is not the precision but its agreement out
-of sample. That check is stated below against the *hand-picked* Section 10 thresholds,
+**The useful generalisation check** is not just precision but its agreement out of sample.
+That comparison is stated below against the *hand-picked* Section 10 thresholds,
 because those are the ones that were tuned: every threshold was fitted on
 `synthetic_disputes.json`, and the held-out set was opened once, at the end.
 
@@ -567,9 +599,9 @@ because those are the ones that were tuned: every threshold was fitted on
 | Coverage | 0.214 | 0.215 |
 | Recall | 0.556 | 0.625 |
 
-Near-identical out of sample means the design generalised rather than being fitted to
-noise. Calibration then improved on that operating point — 0.625 → 0.692 precision, 0.215
-→ 0.291 coverage — without ever being tuned on the held-out data, which is the comparison
+Near-identical values are evidence consistent with generalisation, not proof of it on this
+small synthetic dataset. The Phase-0 risk-budget operating rule then improved on that point —
+0.625 → 0.692 precision, 0.215 → 0.291 coverage — without ever being tuned on the held-out data, which is the comparison
 in [Name your risk budget](#name-your-risk-budget-not-a-threshold) above. For contrast, the
 naive single-signal engine scored **0.481** precision on the same working set.
 

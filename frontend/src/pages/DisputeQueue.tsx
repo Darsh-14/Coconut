@@ -20,8 +20,8 @@ import {
   Segmented,
   Surface,
   TableSkeleton,
-  toneDot,
 } from '../components/ui'
+import { toneDot } from '../components/uiTokens'
 
 type Filter = 'all' | 'unassessed' | Recommendation
 type SortKey = 'deadline' | 'amount'
@@ -196,7 +196,7 @@ export default function DisputeQueue() {
                   <th className="px-4 py-2.5 font-normal">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: 'var(--line)' }}>
+              <tbody className="divide-y divide-[var(--line)]">
                 {visible.map((row) => {
                   const countdown = countdownTo(row.respond_by)
                   const reason = reasonCopy(row.reason_code)

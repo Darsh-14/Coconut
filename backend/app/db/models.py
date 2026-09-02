@@ -132,7 +132,25 @@ class DisputeRow(Base):
 
     @property
     def latest_decision(self) -> Optional["DecisionRow"]:
-        return self.decisions[-1] if self.decisions else None
+        if not self.decisions:
+            return None
+        # id breaks the unlikely but possible tie between decisions committed in the same
+        # clock tick. Optimistic action tokens only work if "latest" is deterministic.
+        return max(
+            self.decisions,
+            key=lambda decision: (as_utc(decision.decided_at).timestamp(), decision.id or 0),
+        )
+
+    @property
+    def standing_approval(self) -> Optional["AuditLogRow"]:
+        """The approval still in force after replaying the append-only audit log."""
+        standing = None
+        for entry in sorted(self.audit_entries, key=lambda audit: audit.id):
+            if entry.withdrawn:
+                standing = None
+            elif entry.approved_by_human:
+                standing = entry
+        return standing
 
     def computed_status(self) -> str:
         """Section 8's computed status: pending | decided | approved | submitted.
@@ -144,13 +162,10 @@ class DisputeRow(Base):
         """
         if not self.decisions:
             return "pending"
-        state = "decided"
-        for entry in sorted(self.audit_entries, key=lambda a: a.id):
-            if entry.withdrawn:
-                state = "decided"
-            elif entry.approved_by_human:
-                state = "submitted" if entry.submitted_to_razorpay else "approved"
-        return state
+        standing = self.standing_approval
+        if standing is None:
+            return "decided"
+        return "submitted" if standing.submitted_to_razorpay else "approved"
 
 
 class DecisionRow(Base):
@@ -169,6 +184,9 @@ class DecisionRow(Base):
     rationale: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     decided_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utcnow)
     model_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    # The active prototype threshold captured when this recommendation was made. Nullable
+    # for historical rows created before risk-budget calibration existed.
+    calibrated_threshold_used: Mapped[Optional[float]] = mapped_column(nullable=True)
     # Addendum 2: the full URCSForecast that was in force when this decision was made.
     # Stored on the decision rather than the audit entry because the audit entry already
     # references a decision -- this way the forecast is available for a NO_ACTION_NEEDED
@@ -207,6 +225,7 @@ class DecisionRow(Base):
             rationale=rationale or None,
             decided_at=decision.decided_at,
             model_version=decision.model_version,
+            calibrated_threshold_used=decision.calibrated_threshold_used,
             urcs_forecast=urcs_forecast.model_dump(mode="json") if urcs_forecast else None,
             evidence_revision=evidence_revision,
         )
@@ -220,6 +239,7 @@ class DecisionRow(Base):
             drafted_packet=self.drafted_packet,
             decided_at=as_utc(self.decided_at),
             model_version=self.model_version,
+            calibrated_threshold_used=self.calibrated_threshold_used,
         )
 
 
@@ -259,14 +279,16 @@ class AuditLogRow(Base):
 
     def to_schema(self) -> AuditLogEntry:
         decision = self.decision.to_schema()
-        if self.edited_packet:
+        if self.edited_packet is not None:
             decision = decision.model_copy(update={"drafted_packet": self.edited_packet})
         return AuditLogEntry(
             id=self.id,
             dispute_id=self.dispute_id,
+            decision_id=self.decision_id,
             decision=decision,
             approved_by_human=self.approved_by_human,
             approved_at=as_utc(self.approved_at),
+            created_at=as_utc(self.created_at),
             submitted_to_razorpay=self.submitted_to_razorpay,
             would_be_razorpay_payload=self.would_be_razorpay_payload,
             withdrawn=self.withdrawn,

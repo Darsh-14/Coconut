@@ -39,9 +39,10 @@ export interface CalibrationResult {
 }
 
 export interface GuaranteeVerification {
-  alpha: number
-  observed_fp_rate_on_test: number
-  guarantee_held: boolean
+  alpha: number | null
+  observed_fp_rate_on_test: number | null
+  guarantee_held: boolean | null
+  n_contested: number
   coverage: number
   n_test: number
 }
@@ -179,14 +180,18 @@ export interface Decision {
   drafted_packet: string | null
   decided_at: string
   model_version: string
+  /** The active risk-budget threshold captured with this decision for replayability. */
+  calibrated_threshold_used: number | null
 }
 
 export interface AuditLogEntry {
   id: number
   dispute_id: string
+  decision_id: number
   decision: Decision
   approved_by_human: boolean
   approved_at: string | null
+  created_at: string
   submitted_to_razorpay: boolean
   would_be_razorpay_payload: Record<string, unknown> | null
   /** True when this entry retracts an earlier approval rather than granting one. */
@@ -214,6 +219,8 @@ export interface DisputeSummary {
 export interface DisputeDetail {
   dispute: Dispute
   latest_decision: Decision | null
+  /** Persisted identity used as an optimistic token for decision-bound writes. */
+  latest_decision_id: number | null
   decision_rationale: string | null
   audit_log: AuditLogEntry[]
   status: DisputeStatus
@@ -288,10 +295,10 @@ export const api = {
   listDisputes: () => request<DisputeSummary[]>('/disputes'),
   getDispute: (id: string) => request<DisputeDetail>(`/disputes/${id}`),
   decide: (id: string) => request<Decision>(`/disputes/${id}/decide`, { method: 'POST' }),
-  approve: (id: string, approved: boolean, editedPacket: string | null) =>
+  approve: (id: string, decisionId: number, approved: boolean, editedPacket: string | null) =>
     request<AuditLogEntry>(`/disputes/${id}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ approved, edited_packet: editedPacket }),
+      body: JSON.stringify({ decision_id: decisionId, approved, edited_packet: editedPacket }),
     }),
   evaluate: () => request<EvalMetrics>('/evaluate', { method: 'POST' }),
   urcsForecast: (id: string) => request<URCSForecast>(`/disputes/${id}/urcs-forecast`),
@@ -301,14 +308,17 @@ export const api = {
       body: JSON.stringify({ alpha, delta }),
     }),
   verifyGuarantee: () => request<GuaranteeVerification>('/verify-guarantee'),
-  savePacketDraft: (id: string, text: string) =>
-    request<{ text: string }>(`/disputes/${id}/packet-draft`, {
+  savePacketDraft: (id: string, decisionId: number, text: string) =>
+    request<{ decision_id: number; text: string }>(`/disputes/${id}/packet-draft`, {
       method: 'PUT',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ decision_id: decisionId, text }),
     }),
-  withdraw: (id: string) =>
-    request<AuditLogEntry>(`/disputes/${id}/withdraw`, { method: 'POST' }),
-  packetUrl: (id: string) => `/api/disputes/${id}/packet.txt`,
+  withdraw: (id: string, approvalId: number) =>
+    request<AuditLogEntry>(`/disputes/${id}/withdraw?approval_id=${approvalId}`, {
+      method: 'POST',
+    }),
+  packetUrl: (id: string, decisionId: number) =>
+    `/api/disputes/${id}/packet.txt?decision_id=${decisionId}`,
   wouldSubmitUrl: (id: string) => `/api/disputes/${id}/would-submit.json`,
   createDispute: (body: DisputeCreate) =>
     request<Dispute>('/disputes', { method: 'POST', body: JSON.stringify(body) }),

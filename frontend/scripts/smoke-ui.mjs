@@ -6,8 +6,8 @@
 // download, which would work against the repo's "clone and run in five minutes" goal.
 // To use it, with the backend and Vite dev server both running:
 //
-//   npm i -D playwright && npx playwright install chromium
-//   node scripts/smoke-ui.mjs
+//   npm install && npx playwright install chromium
+//   npm run verify:smoke
 //
 import { chromium } from 'playwright'
 
@@ -49,11 +49,34 @@ const rowCount = await page.locator('table tbody tr').count()
 log(`2. DISPUTES   rows=${rowCount}`)
 await page.screenshot({ path: `${SHOTS}/2-disputes.png` })
 
-// Prefer a dispute already decided CONTEST so the approve flow is exercised.
-// Fall back to the first row and decide it in the UI.
+// Prefer a decided, unactioned CONTEST so the approve flow is exercised. A completely
+// fresh seed has no decisions, so assess deterministic queue candidates until the model
+// produces one. Falling back to the first row is not enough: that row can legitimately
+// abstain, which would let the approval half of this smoke test disappear.
 const summaries = await (await page.request.get(`${BASE}/api/disputes`)).json()
-const decided = summaries.find((r) => r.recommendation === 'CONTEST')
-const targetId = (decided ?? summaries[0]).dispute_id
+let target = summaries.find(
+  (r) => r.recommendation === 'CONTEST' && !['approved', 'submitted'].includes(r.status),
+)
+target ??= summaries.find((r) => r.recommendation === 'CONTEST')
+
+if (!target) {
+  for (const candidate of summaries.filter((r) => !r.recommendation)) {
+    const response = await page.request.post(
+      `${BASE}/api/disputes/${candidate.dispute_id}/decide`,
+      { timeout: 300_000 },
+    )
+    if (!response.ok()) {
+      throw new Error(`assessment failed for ${candidate.dispute_id}: HTTP ${response.status()}`)
+    }
+    const decision = await response.json()
+    if (decision.recommendation === 'CONTEST') {
+      target = candidate
+      break
+    }
+  }
+}
+if (!target) throw new Error('the seeded queue produced no CONTEST case to exercise approval')
+const targetId = target.dispute_id
 
 // --- 3. case -------------------------------------------------------------
 await page.goto(`${BASE}/app/disputes/${targetId}`, { waitUntil: 'networkidle' })
@@ -107,7 +130,11 @@ if (recordsOk !== refCount) errors.push(`only ${recordsOk}/${refCount} evidence 
 
 // --- 4. approve, then the audit tab --------------------------------------
 const approve = page.getByRole('button', { name: /^Approve/ }).first()
-if (await approve.count()) {
+const alreadyActioned = await page.getByText('Human action recorded').count()
+if (!alreadyActioned) {
+  if (!(await approve.count())) {
+    throw new Error(`${targetId} is CONTEST but has no approval control`)
+  }
   const textarea = page.locator('textarea')
   if (await textarea.count()) {
     // Exercise the human-edit path: the edited text is what must be logged.
@@ -122,6 +149,16 @@ if (await approve.count()) {
     .first()
     .waitFor({ timeout: 60000 })
 }
+
+// Once an approval is recorded, the action card must not offer a second approval or a
+// rejection alongside the withdrawal control. That contradictory state was visible in
+// the landing page's own case screenshot.
+await page.getByText('Human action recorded').waitFor({ timeout: 60000 })
+const conflictingActions = await page.getByRole('button', { name: /^(Approve|Reject)/ }).count()
+if (conflictingActions) errors.push(`${conflictingActions} approve/reject controls remain after approval`)
+
+await page.getByRole('tab', { name: /Audit/ }).click()
+await page.getByText('Threshold', { exact: true }).first().waitFor({ timeout: 10000 })
 
 const showPayload = page.getByRole('button', { name: /Show payload/i }).first()
 if (await showPayload.count()) await showPayload.click()

@@ -1,10 +1,10 @@
-"""Score the held-out set once, and split it into calibration and test halves.
+"""Score the working and held-out datasets once for the risk-budget prototype.
 
 WHY A CACHE
 -----------
 Calibrating at a new risk budget must be instant -- the whole point of the slider is that
 it responds -- and the per-record scores do not depend on alpha at all. Alpha only chooses
-where to cut. So the expensive part (one NLI pass over the held-out set) runs once here,
+where to cut. So the expensive part (one NLI pass over both datasets) runs once here,
 and POST /calibrate replays the threshold search over the cached numbers in microseconds.
 
 WHAT IS CACHED, AND WHY THAT IS ENOUGH
@@ -25,28 +25,29 @@ Only the numeric threshold is calibrated.
 
 THE SPLIT -- AND A DELIBERATE DEVIATION FROM ADDENDUM 3 SECTION 29
 ------------------------------------------------------------------
-Section 29 says to split the held-out set 50/50 into calibration and test. Implemented
-literally, that does not work, and the reason is worth stating rather than hiding:
+Section 29 says to split the held-out set 50/50 into calibration and test. This repository
+instead preserves the previously established 79-record held-out set as one evaluation set
+and uses the 182-record working set for the threshold search. A literal half split would
+also be extremely small:
 
     held-out calibration half   40 records, of which 12 are contest-eligible
     Hoeffding slack at n=12     0.310
     above lambda = 0.55         n drops to 1, slack 1.073
-    smallest achievable alpha   0.539
 
-A guarantee of "at most 54% false positives" is worthless, and every budget a user would
-actually ask for comes back unachievable -- which would leave the system deferring 100% of
-cases forever. The binding constraint is n, not the model.
+The larger working set still contains only 42 model-contest-eligible records after the URCS
+short-circuit. At delta=0.1 its tightest Hoeffding-corrected statistic is about 0.71, so
+ordinary low-risk budgets remain unsupported. Sample size and score quality are both
+binding constraints.
 
-So calibration runs on the WORKING set and verification on the FULL held-out set. This is
-disjoint by construction (different files, no shared ids), it is exchangeable in the same
-way the original split was, and it is arguably more faithful to this project's own
-principle than the spec's instruction: spending held-out data to pick a threshold is
-tuning on held-out data, which is exactly what the rest of the repo refuses to do.
+Calibration therefore runs on the WORKING set and the empirical check on the FULL held-out
+set. They have no shared ids, but the working set was also used to develop the score and
+aggregation rule. The larger sample does not make it independent. This is a development-time,
+Hoeffding-corrected operating-point search -- not a formal Learn-then-Test guarantee. A
+formal release needs a calibration split held apart from score design and a family-wise
+multiple-testing procedure for the threshold grid.
 
-The consequence is stated in the README rather than buried: even at ~46 calibration
-points the slack is ~0.16, so only relatively loose budgets are achievable. That is the
-honest finite-sample reality of a distribution-free bound on a few hundred records, and
-the UI reports the smallest achievable alpha so the limit is visible instead of implied.
+The UI reports the smallest empirically supportable alpha so this limitation is visible
+instead of implied.
 
     python eval/build_conformal_cache.py
 """
@@ -54,6 +55,7 @@ the UI reports the smallest achievable alpha so the limit is visible instead of 
 from __future__ import annotations
 
 import json
+import platform
 import sys
 from pathlib import Path
 
@@ -62,7 +64,11 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.models.schemas import Dispute  # noqa: E402
-from app.services.conformal_calibrator import SCORE_CACHE  # noqa: E402
+from app.services.conformal_calibrator import (  # noqa: E402
+    SCORE_CACHE,
+    cache_rows_sha256,
+    expected_cache_metadata,
+)
 from app.services.decision_aggregator import (  # noqa: E402
     MIN_DISTINCT_SUPPORTING_EVIDENCE_TYPES,
 )
@@ -117,17 +123,33 @@ def score_file(path, engine, label: str) -> list[dict]:
 
 
 def main() -> int:
+    # Hash every input before loading the model. The run takes minutes; if source or code
+    # changes during it, associating old imported behaviour with new on-disk hashes would
+    # create an artifact that falsely validates.
+    metadata = expected_cache_metadata()
     engine = get_verification_engine()
     calibration = score_file(WORKING, engine, "working-set (calibration)")
     test = score_file(HELD_OUT, engine, "held-out (test)")
 
-    # The disjointness the guarantee depends on, asserted rather than assumed.
+    # The held-out empirical check must remain disjoint, asserted rather than assumed.
     overlap = {r["dispute_id"] for r in calibration} & {r["dispute_id"] for r in test}
     assert not overlap, f"calibration and test share ids: {sorted(overlap)[:5]}"
 
+    if expected_cache_metadata() != metadata:
+        raise RuntimeError(
+            "Cache inputs or pipeline code changed while scoring; discard this run and retry."
+        )
+
     payload = {
+        **metadata,
         "calibration": calibration,
         "test": test,
+        "rows_sha256": cache_rows_sha256(calibration, test),
+        "generation_runtime": {
+            "python": platform.python_version(),
+            "implementation": platform.python_implementation(),
+            "platform": platform.platform(),
+        },
         "calibration_source": "data/synthetic_disputes.json (working set)",
         "test_source": "eval/held_out_set.json",
         "structural_rule": (
@@ -135,16 +157,25 @@ def main() -> int:
             "all verdicts support and >= 2 distinct evidence types support"
         ),
     }
-    SCORE_CACHE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    # Replace atomically only after both splits finish. An interrupted five-minute model
+    # run must leave the last known-good cache intact rather than a truncated JSON file.
+    temporary = SCORE_CACHE.with_suffix(SCORE_CACHE.suffix + ".tmp")
+    temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(SCORE_CACHE)
 
     def eligible(rows):
-        return sum(1 for r in rows if r["score"] is not None)
+        return sum(
+            1
+            for r in rows
+            if r["score"] is not None and not r.get("urcs_auto_reject", False)
+        )
 
     print("")
     print(
-        f"calibration {len(calibration)} ({eligible(calibration)} contest-eligible)  "
-        f"test {len(test)} ({eligible(test)} contest-eligible)"
+        f"calibration {len(calibration)} ({eligible(calibration)} model-contest-eligible)  "
+        f"test {len(test)} ({eligible(test)} model-contest-eligible)"
     )
+    print(f"model {payload['model_version']}")
     print(f"wrote {SCORE_CACHE.name}")
     return 0
 

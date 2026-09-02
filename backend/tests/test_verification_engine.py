@@ -9,12 +9,14 @@ bank and therefore SUPPORTS contesting. If that mapping were ever flipped, every
 recommendation in the system would invert while still producing plausible confidences and
 every other test would still pass. That test asserts the direction explicitly.
 
-These load the real model, so they are slower than the rest of the suite.
+Tests carrying ``@pytest.mark.slow`` load the real model. The remaining contract and
+thread-safety tests use pure logic or a stub and stay in the fast suite.
 """
 
 from __future__ import annotations
 
 import time
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -22,6 +24,9 @@ import pytest
 from app.models.schemas import EvidenceItem
 from app.services.verification_engine import (
     GENERIC_PROBE,
+    MODEL_NAME,
+    MODEL_REVISION,
+    MODEL_VERSION,
     NLI_TO_VERDICT,
     SUBSTANTIATION_PROBES,
     VerificationEngine,
@@ -45,6 +50,7 @@ CLAIM_NOT_DELIVERED = (
 # -- Section 14's three hand-written cases -------------------------------------------
 
 
+@pytest.mark.slow
 def test_clear_support_for_the_merchant(engine):
     """Specific, corroborated evidence refuting the bank's claim must read as SUPPORT."""
     evidence = [
@@ -65,6 +71,7 @@ def test_clear_support_for_the_merchant(engine):
     assert verdicts[0].evidence_index == 0
 
 
+@pytest.mark.slow
 def test_clear_contradiction_of_the_merchant(engine):
     """Evidence that confirms the bank's claim must read as CONTRADICT."""
     evidence = [
@@ -84,6 +91,7 @@ def test_clear_contradiction_of_the_merchant(engine):
     assert verdicts[0].confidence > 0.5
 
 
+@pytest.mark.slow
 def test_clearly_insufficient_evidence(engine):
     """Evidence that does not address the claim must not be able to drive a CONTEST.
 
@@ -116,6 +124,7 @@ def test_clearly_insufficient_evidence(engine):
     )
 
 
+@pytest.mark.slow
 def test_strong_evidence_does_clear_the_contest_gate(engine):
     """The counterpart to the test above: the gate must not reject everything."""
     evidence = [
@@ -133,6 +142,7 @@ def test_strong_evidence_does_clear_the_contest_gate(engine):
     assert verdicts[0].confidence > 0.65
 
 
+@pytest.mark.slow
 def test_vague_evidence_scores_below_the_contest_gate(engine):
     """On-topic but unsubstantiated evidence must not clear Section 10's 0.65 gate.
 
@@ -172,6 +182,7 @@ def test_label_inversion_is_not_reversed():
     assert NLI_TO_VERDICT["neutral"] == "neutral"
 
 
+@pytest.mark.slow
 def test_model_label_order_is_validated_on_load(engine):
     """_assert_label_order runs at load; reaching here means the order matched."""
     config = engine.model.model.config
@@ -182,9 +193,37 @@ def test_model_label_order_is_validated_on_load(engine):
     ]
 
 
+def test_model_loader_pins_the_evaluated_revision(monkeypatch):
+    """A moving Hub default branch must not silently change future decisions."""
+    import sentence_transformers
+
+    loaded: dict[str, str] = {}
+
+    class FakeCrossEncoder:
+        def __init__(self, model_name: str, *, revision: str) -> None:
+            loaded["model_name"] = model_name
+            loaded["revision"] = revision
+            self.model = SimpleNamespace(
+                config=SimpleNamespace(
+                    id2label={0: "contradiction", 1: "entailment", 2: "neutral"}
+                )
+            )
+
+    monkeypatch.setattr(sentence_transformers, "CrossEncoder", FakeCrossEncoder)
+
+    model = VerificationEngine().model
+
+    assert isinstance(model, FakeCrossEncoder)
+    assert loaded == {"model_name": MODEL_NAME, "revision": MODEL_REVISION}
+    assert MODEL_VERSION == (
+        "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+    )
+
+
 # -- verdict shape --------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_confidence_is_a_probability(engine):
     evidence = [
         EvidenceItem(type="delivery_proof", content="The parcel was signed for on 14 July 2026."),
@@ -194,6 +233,7 @@ def test_confidence_is_a_probability(engine):
         assert 0.0 <= verdict.confidence <= 1.0
 
 
+@pytest.mark.slow
 def test_indices_match_bundle_order(engine):
     evidence = [
         EvidenceItem(type="delivery_proof", content="The parcel was signed for on 14 July 2026."),
@@ -211,6 +251,7 @@ def test_empty_bundle_returns_no_verdicts(engine):
 # -- explainability -------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_highlighted_span_is_a_sentence_from_the_evidence(engine):
     content = (
         "The customer account was opened in 2023. The courier delivered the parcel on "
@@ -224,6 +265,7 @@ def test_highlighted_span_is_a_sentence_from_the_evidence(engine):
     assert span in content, "span must be copied verbatim from the evidence"
 
 
+@pytest.mark.slow
 def test_highlighted_span_picks_the_decisive_sentence(engine):
     """The delivery sentence, not the boilerplate, should be surfaced."""
     content = (

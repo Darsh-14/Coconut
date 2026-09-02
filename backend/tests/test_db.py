@@ -104,6 +104,7 @@ def test_decision_round_trips(session):
         ],
         drafted_packet="Draft text.",
         decided_at=datetime.now(timezone.utc),
+        calibrated_threshold_used=0.57,
     )
     session.add(DecisionRow.from_schema(decision, rationale="because"))
     session.commit()
@@ -114,7 +115,12 @@ def test_decision_round_trips(session):
     assert restored.confidence == 0.81
     assert len(restored.claim_verdicts) == 2
     assert restored.claim_verdicts[0].highlighted_span == "Signed for."
+    assert restored.model_version == (
+        "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+    )
+    assert row.model_version == restored.model_version
     assert row.rationale == "because"
+    assert restored.calibrated_threshold_used == 0.57
 
 
 # -- computed status (Section 8) -------------------------------------------------------
@@ -146,6 +152,34 @@ def test_status_is_decided_after_a_decision(session):
     _add_decision(session, "disp_synthetic_0001")
     session.expire_all()
     assert session.get(DisputeRow, "disp_synthetic_0001").computed_status() == "decided"
+
+
+def test_latest_decision_uses_id_to_break_timestamp_ties(session):
+    session.add(DisputeRow.from_schema(make_dispute()))
+    session.commit()
+    decided_at = datetime.now(timezone.utc)
+    first = DecisionRow(
+        dispute_id="disp_synthetic_0001",
+        recommendation="ACCEPT",
+        confidence=0.7,
+        claim_verdicts=[],
+        decided_at=decided_at,
+        model_version="test",
+    )
+    second = DecisionRow(
+        dispute_id="disp_synthetic_0001",
+        recommendation="CONTEST",
+        confidence=0.8,
+        claim_verdicts=[],
+        decided_at=decided_at,
+        model_version="test",
+    )
+    session.add_all([first, second])
+    session.commit()
+    session.expire_all()
+
+    row = session.get(DisputeRow, "disp_synthetic_0001")
+    assert row.latest_decision.id == second.id
 
 
 def test_status_is_approved_then_submitted(session):
@@ -213,6 +247,7 @@ def test_audit_entry_stores_the_would_be_payload(session):
     assert entry.would_be_razorpay_payload == payload
     assert entry.submitted_to_razorpay is True
     assert entry.approved_by_human is True
+    assert entry.created_at.tzinfo is not None
 
 
 def test_edited_packet_overrides_the_drafted_packet_in_the_audit_view(session):

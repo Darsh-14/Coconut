@@ -194,7 +194,7 @@ def test_aggregate_short_circuits_to_no_action_on_a_cap_breach():
         EvidenceItem(type="communication_log", content="Customer confirmed receipt."),
     ]
 
-    without_caps = aggregate(verdicts, evidence)
+    without_caps = aggregate(verdicts, evidence, threshold=0.5)
     assert without_caps.recommendation == "CONTEST", "precondition: this bundle is a CONTEST"
 
     breaching = history(NPCI_RULES["cap_per_payer_payee_30d"])
@@ -208,14 +208,14 @@ def test_aggregate_short_circuits_to_no_action_on_a_cap_breach():
     assert "RGNB" in result.rationale
 
 
-def test_aggregate_is_unchanged_when_no_dispute_is_supplied():
-    """Every pre-existing caller passes no dispute and must behave exactly as before."""
+def test_aggregate_without_a_dispute_skips_urcs():
+    """An explicit threshold still applies when no dispute is available for URCS."""
     from app.models.schemas import ClaimVerdict
     from app.services.decision_aggregator import aggregate
 
     verdicts = [ClaimVerdict(evidence_index=0, label="contradict", confidence=0.9)]
     evidence = [EvidenceItem(type="delivery_proof", content="Never shipped.")]
-    result = aggregate(verdicts, evidence)
+    result = aggregate(verdicts, evidence, threshold=0.5)
     assert result.recommendation == "ACCEPT"
     assert result.urcs_forecast is None
 
@@ -227,7 +227,13 @@ def test_card_rail_disputes_still_reach_section_ten():
 
     verdicts = [ClaimVerdict(evidence_index=0, label="contradict", confidence=0.9)]
     evidence = [EvidenceItem(type="delivery_proof", content="Never shipped.")]
-    result = aggregate(verdicts, evidence, make("d1", rail="card"), history(20))
+    result = aggregate(
+        verdicts,
+        evidence,
+        make("d1", rail="card"),
+        history(20),
+        threshold=0.5,
+    )
     assert result.recommendation == "ACCEPT"
     assert result.urcs_forecast is not None
     assert result.urcs_forecast.predicted_disposition == "UNKNOWN"

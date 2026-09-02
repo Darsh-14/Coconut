@@ -1,5 +1,45 @@
 import { Moon, Sun } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+
+type Theme = 'dark' | 'light'
+
+const STORAGE_KEY = 'recourse.theme'
+const THEME_EVENT = 'recourse:theme-change'
+
+function currentTheme(): Theme {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+}
+
+/**
+ * Both the desktop sidebar and the mobile bar stay mounted across the `lg` breakpoint.
+ * A component-local useState therefore let the hidden toggle go stale: switch themes,
+ * resize, and the newly visible button described the old theme. This tiny external store
+ * makes the document's actual theme the single source of truth and also follows changes
+ * made in another tab.
+ */
+function subscribeTheme(onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY) return
+    document.documentElement.dataset.theme = event.newValue === 'light' ? 'light' : 'dark'
+    onChange()
+  }
+  window.addEventListener(THEME_EVENT, onChange)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener(THEME_EVENT, onChange)
+    window.removeEventListener('storage', onStorage)
+  }
+}
+
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme
+  try {
+    localStorage.setItem(STORAGE_KEY, theme)
+  } catch {
+    // A browser blocking site data should not stop the theme applying for this session.
+  }
+  window.dispatchEvent(new Event(THEME_EVENT))
+}
 
 /**
  * Lifted out of App.tsx when the landing and sign-in pages arrived: they render outside
@@ -7,22 +47,12 @@ import { useEffect, useState } from 'react'
  * left the two public pages with no way to switch.
  */
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? 'dark')
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    try {
-      localStorage.setItem('recourse.theme', theme)
-    } catch {
-      // A browser blocking site data should not stop the theme applying for this session.
-    }
-  }, [theme])
-
+  const theme = useSyncExternalStore(subscribeTheme, currentTheme, () => 'dark')
   const isDark = theme === 'dark'
   return (
     <button
       type="button"
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      onClick={() => applyTheme(isDark ? 'light' : 'dark')}
       className={`pressable focus-ring flex items-center gap-2.5 rounded-[var(--radius-control)] text-[13px] text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)] ${
         compact ? 'p-2' : 'w-full px-2.5 py-2'
       }`}

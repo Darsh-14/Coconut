@@ -4,26 +4,7 @@
  */
 
 import { Inbox, type LucideIcon } from 'lucide-react'
-
-type Tone = 'win' | 'warn' | 'risk' | 'accent' | 'mute'
-
-const TONE_SOFT: Record<Tone, string> = {
-  win: 'tone-win',
-  warn: 'tone-warn',
-  risk: 'tone-risk',
-  accent: 'tone-accent',
-  mute: '',
-}
-
-const TONE_DOT: Record<Tone, string> = {
-  win: 'bg-[var(--win)]',
-  warn: 'bg-[var(--warn)]',
-  risk: 'bg-[var(--risk)]',
-  accent: 'bg-[var(--accent)]',
-  mute: 'bg-[var(--fg-3)]',
-}
-
-export const toneDot = (tone: Tone) => TONE_DOT[tone]
+import { TONE_DOT, TONE_SOFT, type Tone } from './uiTokens'
 
 /** Small status chip. `mute` renders as plain neutral text — colour means state only. */
 export function Badge({
@@ -170,7 +151,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 /** Table skeleton: the layout is known, so show its shape rather than a spinner. */
 export function TableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
-    <div className="divide-y" style={{ borderColor: 'var(--line)' }}>
+    <div className="divide-y divide-[var(--line)]">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 px-4 py-3.5">
           <Skeleton className="h-3.5 w-14" />
@@ -283,7 +264,7 @@ export function Segmented<T extends string>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(o.key)}
-            className={`pressable rounded-[var(--radius-inner)] px-3 py-1.5 text-[12.5px] ${
+            className={`pressable focus-ring rounded-[var(--radius-inner)] px-3 py-1.5 text-[12.5px] ${
               active
                 ? 'bg-[var(--surface)] text-[var(--fg)] shadow-[var(--shadow-line)]'
                 : 'text-[var(--fg-2)] hover:text-[var(--fg)]'
@@ -349,7 +330,7 @@ export function CaseRow({
     <button
       type="button"
       onClick={onClick}
-      className="pressable flex w-full items-center justify-between gap-4 rounded-[var(--radius-inner)] px-2.5 py-2 text-left hover:bg-[var(--surface-2)]"
+      className="pressable focus-ring flex w-full items-center justify-between gap-4 rounded-[var(--radius-inner)] px-2.5 py-2 text-left hover:bg-[var(--surface-2)]"
     >
       <span className="min-w-0">
         <span className="flex items-center gap-2">

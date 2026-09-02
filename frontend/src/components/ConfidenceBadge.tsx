@@ -1,6 +1,7 @@
 import type { Recommendation, VerdictLabel } from '../api/client'
 import { phaseCopy, RECOMMENDATIONS, statusLabel, VERDICTS } from '../lib/labels'
-import { Badge, Meter, toneDot } from './ui'
+import { Badge, Meter } from './ui'
+import { toneDot } from './uiTokens'
 
 /** Section 12: support = green, contradict = red, neutral = grey. */
 export function VerdictBadge({

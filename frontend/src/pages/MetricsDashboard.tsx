@@ -54,7 +54,7 @@ export default function MetricsDashboard() {
     <div className="space-y-5">
       <PageHeader
         title="Performance"
-        sub="79 held-out disputes, never seen during tuning. Contest is the positive class."
+        sub="79 held-out disputes, not used to fit thresholds. Contest is the positive class."
         action={
           <Button variant="primary" onClick={run} disabled={running}>
             {running ? 'Running…' : metrics ? 'Run again' : 'Run evaluation'}
@@ -92,7 +92,7 @@ export default function MetricsDashboard() {
           </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
-          <Compare label="Conformal" sub="calibrated threshold" {...REFERENCE.heldOut} highlight />
+          <Compare label="Risk budget" sub="prototype threshold" {...REFERENCE.heldOut} highlight />
           <Compare label="Section 10" sub="hand-picked 0.7 / 0.65" {...REFERENCE.section10} />
           <Compare label="Naive engine" sub="rejected" {...REFERENCE.naive} warn />
         </div>
@@ -129,7 +129,7 @@ export default function MetricsDashboard() {
             />
             <Metric label="F1" value={formatPercent(shown.f1)} sub="the two balanced" />
             <Metric
-              label="Coverage"
+              label="Model coverage"
               value={formatPercent(shown.coverage)}
               sub={`decides ${shown.n_evaluated - cm.flagged_human - shown.auto_resolved} of ${shown.n_evaluated} on the merits`}
             />

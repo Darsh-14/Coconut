@@ -42,8 +42,6 @@ export function EvidenceDocumentViewer({
 
   useEffect(() => {
     let live = true
-    setDoc(null)
-    setError(null)
     api
       .evidenceDocument(disputeId, index)
       .then((d) => live && setDoc(d))
@@ -54,7 +52,11 @@ export function EvidenceDocumentViewer({
   }, [disputeId, index])
 
   return (
-    <Dialog labelledBy="evidence-doc-title" onClose={onClose}>
+    <Dialog
+      labelledBy={doc ? 'evidence-doc-title' : undefined}
+      label="Evidence record"
+      onClose={onClose}
+    >
         {error ? (
           <div className="p-5">
             <p className="text-[13px] text-[var(--risk)]">{error}</p>

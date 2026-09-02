@@ -5,8 +5,8 @@
 // which would work against the repo's "clone and run in five minutes" goal. With the
 // backend and Vite dev server both running:
 //
-//   npm i -D playwright && npx playwright install chromium
-//   node scripts/landing-ui.mjs
+//   npm install && npx playwright install chromium
+//   npm run verify:landing
 //
 // What it guards, and why each check is here:
 //

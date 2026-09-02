@@ -22,7 +22,7 @@
  * still agrees with these, including the confusion matrix.
  */
 
-/** The shipped operating point: conformal-calibrated thresholds, on the held-out split. */
+/** The shipped prototype operating point: risk-budget threshold on the held-out split. */
 export const RECORDED = {
   precision: 0.692,
   recall: 0.75,
@@ -44,8 +44,8 @@ export const BASELINES = {
   naive: { precision: 0.481, coverage: 0.423 },
 } as const
 
-/** The share of the queue handed back to a person rather than decided. */
-export const ABSTAIN_RATE = 1 - RECORDED.coverage
+/** The share genuinely handed to a person; model coverage excludes NPCI rule outcomes. */
+export const HUMAN_REVIEW_RATE = RECORDED.matrix.flagged_human / RECORDED.nEvaluated
 
 /**
  * Pre-formatted to three decimals, so no two surfaces round the same number differently.

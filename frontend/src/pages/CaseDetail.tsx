@@ -18,7 +18,9 @@ export default function CaseDetail() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'deciding' | 'approving' | null>(null)
   const [packet, setPacket] = useState('')
+  const [savedPacket, setSavedPacket] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const [draftError, setDraftError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('evidence')
   const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved'>('idle')
 
@@ -27,8 +29,11 @@ export default function CaseDetail() {
       const next = await api.getDispute(disputeId)
       setDetail(next)
       // Prefer the merchant's saved working copy over the model's original draft.
-      setPacket(next.edited_packet ?? next.latest_decision?.drafted_packet ?? '')
+      const nextPacket = next.edited_packet ?? next.latest_decision?.drafted_packet ?? ''
+      setPacket(nextPacket)
+      setSavedPacket(nextPacket)
       setDraftState('idle')
+      setDraftError(null)
       setError(null)
     } catch (e) {
       setError((e as Error).message)
@@ -36,6 +41,7 @@ export default function CaseDetail() {
   }, [disputeId])
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- load updates state only after I/O
     void load()
   }, [load])
 
@@ -48,24 +54,48 @@ export default function CaseDetail() {
    *
    * Saving a draft is explicitly not approving it — nothing here touches the audit log.
    */
-  const decisionId = detail?.latest_decision?.decided_at ?? null
+  const decisionId = detail?.latest_decision_id ?? null
+  const decisionIsStale = detail?.decision_is_stale ?? true
+  const decisionIsActioned = detail?.status === 'approved' || detail?.status === 'submitted'
+  const modelDraft = detail?.latest_decision?.drafted_packet ?? ''
   useEffect(() => {
-    if (!decisionId) return
-    const original = detail?.edited_packet ?? detail?.latest_decision?.drafted_packet ?? ''
-    if (packet === original) return
+    if (!decisionId || decisionIsStale || decisionIsActioned || busy !== null) return
+    if (packet === savedPacket) return
 
-    setDraftState('saving')
+    let cancelled = false
     const timer = setTimeout(() => {
+      setDraftState('saving')
+      // Sending an empty value clears edited_packet. Persisting the model text as a human
+      // edit would make "Revert to draft" reappear after the next reload.
+      const draftText = packet === modelDraft ? '' : packet
       api
-        .savePacketDraft(disputeId, packet)
-        .then(() => setDraftState('saved'))
-        .catch(() => setDraftState('idle'))
+        .savePacketDraft(disputeId, decisionId, draftText)
+        .then(() => {
+          if (cancelled) return
+          setSavedPacket(packet)
+          setDraftState('saved')
+          setDraftError(null)
+        })
+        .catch((e: Error) => {
+          if (cancelled) return
+          setDraftState('idle')
+          setDraftError(`Draft not saved: ${e.message}`)
+        })
     }, 800)
-    return () => clearTimeout(timer)
-    // detail is deliberately not a dependency: it changes on every reload and would
-    // re-fire the timer against text that has not moved.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packet, disputeId, decisionId])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [
+    packet,
+    savedPacket,
+    disputeId,
+    decisionId,
+    decisionIsStale,
+    decisionIsActioned,
+    busy,
+    modelDraft,
+  ])
 
   async function runDecide() {
     setBusy('deciding')
@@ -81,10 +111,17 @@ export default function CaseDetail() {
   }
 
   async function runWithdraw() {
+    if (!detail) return
+    const approvalId = standingApprovalId(detail.audit_log)
+    if (!approvalId) {
+      setNotice('No standing approval remains. Reloading the case.')
+      await load()
+      return
+    }
     setBusy('approving')
     setNotice(null)
     try {
-      await api.withdraw(disputeId)
+      await api.withdraw(disputeId, approvalId)
       await load()
       setTab('audit')
       setNotice('Approval withdrawn. The case is back in the queue.')
@@ -96,15 +133,29 @@ export default function CaseDetail() {
   }
 
   async function runApprove(approved: boolean) {
+    if (!detail?.latest_decision_id) return
+    const recommendation = detail.latest_decision?.recommendation
+    if (approved && recommendation === 'CONTEST' && !packet.trim()) {
+      setTab('packet')
+      setDraftError('A contest cannot be approved with an empty representment packet.')
+      return
+    }
     setBusy('approving')
     setNotice(null)
     try {
-      await api.approve(disputeId, approved, packet || null)
+      await api.approve(
+        disputeId,
+        detail.latest_decision_id,
+        approved,
+        approved && recommendation === 'CONTEST' ? packet : null,
+      )
       await load()
       setTab('audit')
       setNotice(
         approved
-          ? 'Payload built and logged — not transmitted.'
+          ? recommendation === 'CONTEST'
+            ? 'Payload built and logged — not transmitted.'
+            : 'Recommendation approval recorded; no representment was needed.'
           : 'Recorded as rejected.',
       )
     } catch (e) {
@@ -140,7 +191,16 @@ export default function CaseDetail() {
   const countdown = countdownTo(dispute.respond_by)
   const reason = reasonCopy(dispute.reason_code)
   const isContest = decision?.recommendation === 'CONTEST'
-  const actioned = detail.status === 'approved' || detail.status === 'submitted'
+  const actioned = decisionIsActioned
+  const currentDecisionEvents = detail.audit_log.filter(
+    (entry) => entry.decision_id === detail.latest_decision_id,
+  )
+  const latestDecisionEvent = currentDecisionEvents.at(-1)
+  const rejectedCurrent = Boolean(
+    latestDecisionEvent &&
+      !latestDecisionEvent.approved_by_human &&
+      !latestDecisionEvent.withdrawn,
+  )
 
   const tabs: Array<{ key: Tab; label: string; count?: number }> = [
     { key: 'evidence', label: 'Evidence', count: dispute.evidence_bundle.length },
@@ -219,7 +279,12 @@ export default function CaseDetail() {
                   <EvidenceSummary verdicts={decision?.claim_verdicts ?? []} />
                 )}
                 {decision && (
-                  <Button size="sm" onClick={runDecide} disabled={busy !== null}>
+                  <Button
+                    size="sm"
+                    onClick={runDecide}
+                    disabled={busy !== null || actioned}
+                    title={actioned ? 'Withdraw the standing approval before re-assessing' : undefined}
+                  >
                     {busy === 'deciding' ? 'Re-assessing…' : 'Re-assess'}
                   </Button>
                 )}
@@ -231,14 +296,18 @@ export default function CaseDetail() {
             {tab === 'evidence' && (
               <>
                 {detail.decision_is_stale && (
-                  <StaleNotice busy={busy === 'deciding'} onRun={runDecide} />
+                  <StaleNotice
+                    busy={busy !== null}
+                    actioned={actioned}
+                    onRun={actioned ? runWithdraw : runDecide}
+                  />
                 )}
                 <EvidenceClaimMap
                   disputeId={dispute.dispute_id}
                   evidence={dispute.evidence_bundle}
                   verdicts={decision?.claim_verdicts ?? []}
                   stale={detail.decision_is_stale}
-                  onChanged={() => void load()}
+                  onChanged={actioned ? undefined : () => void load()}
                 />
                 {decision && <HowItWorks />}
               </>
@@ -251,15 +320,20 @@ export default function CaseDetail() {
                     Written from the verdicts. Your edits are what get logged.
                   </p>
                   <span className="flex items-center gap-3">
-                    {draftState !== 'idle' && (
+                    {(draftState !== 'idle' || packet !== savedPacket) && (
                       <span className="text-[11px] text-[var(--fg-3)]">
-                        {draftState === 'saving' ? 'Saving…' : 'Saved'}
+                        {draftState === 'saving'
+                          ? 'Saving…'
+                          : packet !== savedPacket
+                            ? 'Unsaved changes'
+                            : 'Saved'}
                       </span>
                     )}
                     {decision.drafted_packet && packet !== decision.drafted_packet && (
                       <button
                         type="button"
                         onClick={() => setPacket(decision.drafted_packet ?? '')}
+                        disabled={detail.decision_is_stale || actioned}
                         className="text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
                       >
                         Revert to draft
@@ -270,10 +344,21 @@ export default function CaseDetail() {
                 <textarea
                   value={packet}
                   onChange={(e) => setPacket(e.target.value)}
+                  disabled={detail.decision_is_stale || actioned}
                   rows={20}
                   spellCheck={false}
                   className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--surface-2)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--fg-2)] outline-none transition focus:bg-[var(--surface)] focus:shadow-[var(--shadow-line)]"
                 />
+                {draftError && (
+                  <p className="mt-2 text-[11.5px] text-[var(--risk)]">{draftError}</p>
+                )}
+                {(detail.decision_is_stale || actioned) && (
+                  <p className="mt-2 text-[11.5px] text-[var(--fg-3)]">
+                    {detail.decision_is_stale
+                      ? 'Re-assess this evidence before editing or exporting its packet.'
+                      : 'Withdraw the standing approval before editing this packet.'}
+                  </p>
+                )}
               </Surface>
             )}
 
@@ -318,32 +403,51 @@ export default function CaseDetail() {
 
           {decision && (
             <Surface className="p-4">
-              <Button
-                variant="primary"
-                className="w-full py-2.5"
-                onClick={() => runApprove(true)}
-                disabled={busy !== null}
-              >
-                {busy === 'approving'
-                  ? 'Recording…'
-                  : RECOMMENDATIONS[decision.recommendation].action}
-              </Button>
-              <Button
-                className="mt-2 w-full"
-                onClick={() => runApprove(false)}
-                disabled={busy !== null}
-              >
-                Reject
-              </Button>
-              {actioned && (
+              {actioned ? (
                 <>
-                  <Button className="mt-2 w-full" onClick={runWithdraw} disabled={busy !== null}>
+                  <p
+                    className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]"
+                  >
+                    Human action recorded
+                  </p>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--fg-2)]">
+                    {detail.status === 'submitted'
+                      ? 'Representment prepared and logged — not transmitted.'
+                      : 'Recommendation approved and recorded.'}
+                  </p>
+                  <Button className="mt-3 w-full" onClick={runWithdraw} disabled={busy !== null}>
                     {busy === 'approving' ? 'Working…' : 'Withdraw approval'}
                   </Button>
                   <p className="mt-2.5 text-[11px] leading-relaxed text-[var(--fg-3)]">
                     Withdrawing returns this to the queue. Nothing was ever transmitted, so
                     there is nothing to retract on Razorpay's side.
                   </p>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="primary"
+                    className="w-full py-2.5"
+                    onClick={() => runApprove(true)}
+                    disabled={busy !== null || detail.decision_is_stale}
+                  >
+                    {busy === 'approving'
+                      ? 'Recording…'
+                      : RECOMMENDATIONS[decision.recommendation].action}
+                  </Button>
+                  <Button
+                    className="mt-2 w-full"
+                    onClick={() => runApprove(false)}
+                    disabled={busy !== null || detail.decision_is_stale || rejectedCurrent}
+                  >
+                    {rejectedCurrent ? 'Rejected' : 'Reject'}
+                  </Button>
+                  {detail.decision_is_stale && (
+                    <p className="mt-2.5 text-[11px] leading-relaxed text-[var(--fg-3)]">
+                      Evidence changed after this assessment. Re-assess before recording a
+                      human action.
+                    </p>
+                  )}
                 </>
               )}
 
@@ -352,20 +456,25 @@ export default function CaseDetail() {
                 className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t pt-3"
                 style={{ borderColor: 'var(--line)' }}
               >
-                {isContest && (
+                {isContest && !detail.decision_is_stale && detail.latest_decision_id && (
                   <a
-                    href={api.packetUrl(dispute.dispute_id)}
+                    href={api.packetUrl(dispute.dispute_id, detail.latest_decision_id)}
                     download
-                    className="text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                    className="focus-ring rounded text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
                   >
                     Download packet
                   </a>
+                )}
+                {isContest && detail.decision_is_stale && (
+                  <span className="text-[11.5px] text-[var(--fg-3)]">
+                    Packet export locked until re-assessment
+                  </span>
                 )}
                 {detail.audit_log.some((e) => e.would_be_razorpay_payload) && (
                   <a
                     href={api.wouldSubmitUrl(dispute.dispute_id)}
                     download
-                    className="text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+                    className="focus-ring rounded text-[11.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
                   >
                     Download &ldquo;would submit&rdquo; payload
                   </a>
@@ -381,6 +490,15 @@ export default function CaseDetail() {
 
 // --- pieces ---------------------------------------------------------------------------
 
+function standingApprovalId(entries: DisputeDetail['audit_log']): number | null {
+  let standing: number | null = null
+  for (const entry of entries) {
+    if (entry.withdrawn) standing = null
+    else if (entry.approved_by_human) standing = entry.id
+  }
+  return standing
+}
+
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -391,18 +509,26 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /** Shown when the bundle moved after the standing decision was computed. */
-function StaleNotice({ busy, onRun }: { busy: boolean; onRun: () => void }) {
+function StaleNotice({
+  busy,
+  actioned,
+  onRun,
+}: {
+  busy: boolean
+  actioned: boolean
+  onRun: () => void
+}) {
   return (
     <div
       className="surface mb-2.5 flex flex-wrap items-center justify-between gap-3 p-3.5"
       style={{ boxShadow: 'var(--shadow-line), inset 2px 0 0 0 var(--warn)' }}
     >
       <p className="text-[12.5px] text-[var(--fg-2)]">
-        Evidence changed after this assessment. Per-item verdicts are hidden until it runs
-        again.
+        Evidence changed after this assessment. Per-item verdicts and decision-bound actions
+        are locked until {actioned ? 'the standing approval is withdrawn' : 'it runs again'}.
       </p>
       <Button onClick={onRun} disabled={busy}>
-        {busy ? 'Re-assessing…' : 'Re-assess'}
+        {busy ? 'Working…' : actioned ? 'Withdraw approval' : 'Re-assess'}
       </Button>
     </div>
   )

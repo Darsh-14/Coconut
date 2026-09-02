@@ -31,9 +31,9 @@ Three deliberate choices, each with a reason:
    verdict or confidence.
 2. **The aggregation rule is a plain conditional, not a model.** A merchant has to be able
    to read why the system said what it said; a judge has to be able to check it.
-3. **The system abstains.** 71% of the held-out set is never auto-decided — 51 of 79 go
-   to a human, and 5 more are resolved by NPCI's own rules before the merchant is
-   involved. Coverage is reported as a first-class metric rather than hidden.
+3. **The system abstains.** The model decides 23 of 79 cases on their evidence; 51 go to a
+   human, and 5 more are resolved by NPCI's own rules before the merchant is involved.
+   Model coverage and deterministic resolution are reported separately rather than blurred.
 
 If asked why not Gemini/Claude for the verdict: cost and determinism at eval scale, plus
 the fact that the decision needs to be auditable and reproducible — not a stylistic
@@ -41,7 +41,7 @@ preference.
 
 ## Build quality
 
-- 132 tests. The valuable ones are not coverage padding: boundary tests on strict
+- 300+ tests. The valuable ones are not coverage padding: boundary tests on strict
   inequalities, an SDK stub that raises on any network access, a leakage check between the
   data splits, injected timeouts on the drafting path.
 - Every safety constraint is enforced in code and guarded by a test — see the table at the
@@ -98,30 +98,32 @@ The discarded idea was the Evidence Gap Advisor — telling a merchant which mis
 would flip a borderline case. Justt already markets ROI-based fight-or-accept decisioning,
 so it was not the differentiator it looked like. What replaced it is in the beat below.
 
-## The headline beat — the risk budget dial
+## The headline beat — the risk-budget prototype
 
 > "Most chargeback tools report a win rate. That tells you what happened, not what will
 > happen. So instead of me picking a confidence threshold and hoping — watch this.
 >
-> [drag to a workable budget] I tell the system the maximum false-positive rate I'll
+> [drag to a workable budget] I tell the system the maximum contest-error rate I'll
 > tolerate on disputes it contests automatically. It calibrates its own threshold on a
-> calibration split, and tells me what that costs in coverage. [drag to 5%] At 5% it can't
-> do it, and it says so rather than pretending.
+> development sample, and tells me what that costs in coverage. [drag to 5%] At 5% the
+> sample cannot support it, and the system says so rather than pretending.
 >
-> This is conformal risk control. It's used in drug discovery and medical AI; as far as I
-> can find, nobody has applied it to payment disputes."
+> This is a Hoeffding-corrected operating-point search inspired by conformal risk control.
+> The current implementation is deliberately labelled a prototype, not a deployment
+> guarantee."
 
 **Then the part that must not be cut for time:**
 
 > "And I'll be straight about what it showed me. The tightest budget this data supports is
-> about 72% — which is not a useful promise. The method is right; the confidence score
+> about 71% — which is not a useful operating point. The confidence score
 > underneath it has no dynamic range, so there's nothing for a threshold to bite on. That's
 > the same AUC-0.57 ceiling I found three different ways. Calibration didn't fix the model.
 > It made the model's limits impossible to hide — and it still beat my hand-picked
 > thresholds on the held-out set, 0.69 precision against 0.63.
 >
-> Also: my calibration data is synthetic, and the guarantee assumes exchangeability, so
-> real-world drift would break it."
+> Also: calibration reuses synthetic development data and the threshold grid does not yet
+> control family-wise error. The held-out result is an empirical check. Formal
+> Learn-then-Test is future work, after a genuinely independent calibration split exists."
 
 That last paragraph is the pitch. In a track whose bar is honest measurement, being the one
 candidate who names their own ceiling out loud is worth more than a better number.
@@ -155,6 +157,8 @@ abstaining on thin evidence.
 
 ## Closing line
 
-> "It says 'I don't know' on seven cases in ten. That's the feature. The number I care
-> about isn't the precision — it's that the set I tuned on and the set I'd never seen
-> scored within a tenth of a percent of each other."
+> "It decides 23 of 79 cases on their evidence, resolves five under deterministic NPCI
+> caps, and sends 51 to a person. That abstention is the feature. The number I care about
+> isn't the precision — it's that the set I tuned on and the separate set not used to fit
+> thresholds scored
+> within a tenth of a percent of each other."

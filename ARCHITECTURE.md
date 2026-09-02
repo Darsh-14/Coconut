@@ -36,7 +36,7 @@ sequenceDiagram
     F->>A: POST /disputes/{id}/decide
     A->>N: verify_bundle(claim, evidence, reason_code)
     N-->>A: ClaimVerdict[] (label, confidence, span)
-    A->>A: aggregate() — Section 10 rule
+    A->>A: aggregate() — Phase-0 risk-budget rule
     alt CONTEST
         A->>L: draft packet (timeout-bounded)
         L-->>A: prose, or nothing
@@ -45,7 +45,7 @@ sequenceDiagram
     A->>DB: append Decision
     A-->>F: Decision
     U->>F: edit draft, Approve
-    F->>A: POST /disputes/{id}/approve
+    F->>A: POST /disputes/{id}/approve {decision_id, approved, edited_packet}
     A->>A: build would_be_razorpay_payload
     A->>DB: append AuditLogEntry
     Note over A: no network call — dispute is synthetic
@@ -186,19 +186,26 @@ at load rather than trusted.
 
 ---
 
-## Calibrated thresholds, not chosen ones
+## Development-time risk budgeting, not a formal guarantee
 
 `conformal_calibrator.py`
 
-Section 10's `0.7` and `0.65` were picked. They are now superseded by a single threshold
-calibrated to a stated risk budget, using Learn-then-Test style bounded risk control with a
-Hoeffding correction. The structural rules Section 10 also specified — unanimity, >= 2
-distinct evidence types, and min-not-average confidence — are design choices rather than
-tuned numbers, so calibration does not touch them.
+Section 10's `0.7` and `0.65` were picked. Phase 0 intentionally supersedes more than those
+numbers: both decision branches use one threshold selected against an empirical
+contest-error (false-discovery) rate plus a Hoeffding correction, and the unanimous-support
+branch gates on the minimum support confidence rather than Section 10's average. The
+weakest-link gate matches the score used by the risk-budget search; unanimity and >= 2
+distinct evidence types remain structural constraints.
 
-Measured on the same held-out set, only the threshold changing:
+This implementation is a **prototype operating-point search**, not a valid finite-sample
+Learn-then-Test guarantee. The working set used for this search was also used to develop the
+score and aggregation rule, and scanning 50 thresholds needs a family-wise
+multiple-testing procedure before a simultaneous claim can be made. The disjoint held-out
+split below is an empirical evaluation only.
 
-| | Section 10 | Calibrated |
+Measured on the same held-out set and model, comparing the complete operating rules:
+
+| | Legacy Section 10 (average gate) | Phase 0 (weakest-link gate) |
 |---|---|---|
 | Precision | 0.625 | **0.692** |
 | Recall | 0.625 | **0.750** |
@@ -207,42 +214,43 @@ Measured on the same held-out set, only the threshold changing:
 
 ### The finding that matters more than the improvement
 
-**The tightest budget this data supports is 0.719.** Every budget a user would actually ask
-for comes back unachievable, and the reason is not the method:
+**The tightest budget this development sample supports is 0.710.** Every budget a user
+would actually ask for comes back unsupported:
 
 | Threshold | n | precision | Hoeffding slack | bound |
 |---|---|---|---|---|
-| 0.50 | 24 | 0.500 | 0.219 | 0.719 |
-| 0.55 | 1 | 1.000 | 1.073 | 2.073 |
-| 0.65+ | 1 | 1.000 | 1.073 | 2.073 |
+| 0.50 | 21 | 0.524 | 0.234 | 0.710 |
+| 0.55 | 1 | 1.000 | 1.073 | 1.073 |
+| 0.65+ | 1 | 1.000 | 1.073 | 1.073 |
 
-The contest scores have almost no dynamic range: p25 0.498, median 0.500, p75 0.502, and
-exactly one of 48 calibration points above 0.55. So the [0.50, 0.99] grid has two usable
+The contest scores have almost no dynamic range: p25 0.49785, median 0.4999, p75 0.5027, and
+exactly one of 42 model-eligible calibration points above 0.55. So the [0.50, 0.99] grid has two usable
 settings — take everything, or take one case. And precision does not improve as the
 threshold rises; it sits near 0.50 at every cut.
 
-Rank-normalising the score to spread it across the grid was tried, and moved the floor only
-from 0.719 to 0.683 — because the ordering carries no information about correctness either.
-This is the third independent confirmation of the AUC ≈ 0.57 ceiling documented below: a
-threshold search cannot manufacture a guarantee from a score that does not discriminate.
+Rank-normalising the score to spread it across the grid was also tried and did not make its
+ordering informative. This is another confirmation of the AUC ≈ 0.57 ceiling documented
+below: a threshold search cannot manufacture information from a score that does not
+discriminate.
 
-The honest conclusion is that a tight, meaningful conformal guarantee on this system needs a
-better-calibrated confidence signal — fine-tuning, or a richer probe set — not a better
-threshold search. The default risk budget is set to 0.75 rather than something flattering,
-specifically so the limitation is visible in the product instead of hidden behind a number
-nobody could justify.
+The honest conclusion is that a useful operating point needs a better-calibrated confidence
+signal — fine-tuning, or a richer probe set — not a better threshold search. A future formal
+risk claim additionally needs independent calibration data and multiplicity control. The
+default risk budget is set to 0.75 rather than something flattering so the current
+limitation stays visible.
 
 ### Deviating from Addendum 3 Section 29
 
 The spec says to split the held-out set 50/50 into calibration and test. Implemented
-literally that gives 12 contest-eligible calibration points, a slack of 0.31, and a floor of
-0.539 — a guarantee of "at most 54% false positives", which is worthless. So calibration
-runs on the working set and verification on the full held-out set: disjoint by construction,
-exchangeable in the same way, and it avoids spending held-out data to pick a threshold,
-which is what the rest of this repo refuses to do.
+literally that gives only 12 contest-eligible calibration points. The prototype instead
+runs threshold selection on the working set and its empirical check on the full held-out
+set. They are disjoint, but the working set is not independent of score development, so
+this choice trades away the right to make a formal claim in exchange for a larger
+development sample.
 
-`GET /verify-guarantee` exists so the system can prove itself wrong, and reads only the test
-split. `test_conformal_calibrator.py` asserts the two id sets do not intersect.
+`GET /verify-guarantee` keeps its historical route name for compatibility. It reports only
+whether the chosen budget held empirically on the test split;
+`test_conformal_calibrator.py` asserts the two id sets do not intersect.
 
 ---
 
@@ -262,7 +270,7 @@ forecast = forecast_urcs_disposition(dispute, payer_history)
 if forecast.predicted_disposition == "AUTO_REJECT":
     -> NO_ACTION_NEEDED, confidence 1.0     # certainty about NPCI, not belief about evidence
 else:
-    -> Section 10's rule, unchanged
+    -> Phase-0 risk-budget rule
 ```
 
 Three properties worth naming:
@@ -299,19 +307,27 @@ this codebase; they are visible in the abstention path, the audit trail, and the
 learned model. A merchant needs to read why the system said what it said.
 
 ```
-if any verdict is `contradict` with confidence > 0.7      -> ACCEPT
+if no calibrated threshold is active                     -> NEEDS_HUMAN_REVIEW
+if any verdict is `contradict` with confidence >= lambda -> ACCEPT
 elif all verdicts are `support`
-     and average(confidence) > 0.65
+     and min(confidence) >= lambda
      and >= 2 distinct evidence types among them          -> CONTEST
 else                                                      -> NEEDS_HUMAN_REVIEW
 
 overall_confidence = min(confidence over the verdicts that DROVE the decision)
 ```
 
-Two details that are easy to get wrong and are pinned by tests:
+This is an intentional operating-rule change, not a threshold-only substitution. The legacy
+Section 10 baseline used `> 0.7` for contradiction and `average(confidence) > 0.65` for
+unanimous support; its `min()` calculated only the confidence reported after the branch had
+already fired. Phase 0 uses the weakest link as the CONTEST gate because it is the exact score
+against which the risk-budget operating point is selected.
 
-- The thresholds are **strict** inequalities. Exactly 0.7 must not trigger ACCEPT; exactly
-  0.65 must not trigger CONTEST.
+Three details that are easy to get wrong and are pinned by tests:
+
+- The active threshold comparisons are inclusive (`>=`).
+- With no supported active threshold, the engine abstains rather than falling back to a
+  picked default.
 - The `min()` is over the verdicts that *drove* the decision, not all of them — a
   low-confidence verdict that didn't participate must not drag the reported number down.
 
@@ -335,9 +351,16 @@ both return 404 on a standard test account; server-side card payments require pe
 PCI-DSS enablement. So payments come from a real Checkout interaction, and disputes are
 generated.
 
-**Consequence for `/approve`:** approving a CONTEST builds the exact contest payload,
+**Consequence for `/approve`:** approving the current decision requires its `decision_id`;
+approving a CONTEST builds the exact contest payload,
 stores it in `would_be_razorpay_payload`, sets `submitted_to_razorpay = True`, and makes no
 network call. The flag means *"prepared and logged as if submitted"*, never *"sent"*.
+
+Draft saves and packet exports carry the same decision token, and withdrawal requires the
+specific standing `approval_id`. Stale tabs therefore fail with `409` instead of mutating a
+newer assessment or approval. A per-dispute process lock makes each local SQLite
+load/check/commit sequence atomic; a multi-worker deployment must replace it with database
+compare-and-swap or row locking.
 
 This is enforced in two independent layers:
 

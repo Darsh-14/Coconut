@@ -123,7 +123,7 @@ export default function Login() {
                 <dt className="num text-[24px] leading-none" style={{ color: 'var(--warn)' }}>
                   {HEADLINE.coverage}
                 </dt>
-                <dd className="mt-1.5 text-[11.5px] text-[var(--fg-3)]">auto-decided</dd>
+                <dd className="mt-1.5 text-[11.5px] text-[var(--fg-3)]">model coverage</dd>
               </div>
               <div>
                 <dt className="num text-[24px] leading-none">{HEADLINE.nEvaluated}</dt>

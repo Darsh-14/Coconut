@@ -117,6 +117,40 @@ def _seed_disputes() -> list[Dispute]:
     return [strong, weak]
 
 
+def _withdraw_standing_approval(client, dispute_id: str) -> None:
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    if detail["status"] in {"approved", "submitted"}:
+        standing = None
+        for entry in detail["audit_log"]:
+            if entry["withdrawn"]:
+                standing = None
+            elif entry["approved_by_human"]:
+                standing = entry["id"]
+        assert standing is not None
+        response = client.post(
+            f"/disputes/{dispute_id}/withdraw", params={"approval_id": standing}
+        )
+        assert response.status_code == 200, response.text
+
+
+def _decide(client, dispute_id: str):
+    """Start from an actionable case even when this module-scoped fixture has history."""
+    _withdraw_standing_approval(client, dispute_id)
+    return client.post(f"/disputes/{dispute_id}/decide")
+
+
+def _approve(client, dispute_id: str, approved: bool, edited_packet=None):
+    detail = client.get(f"/disputes/{dispute_id}").json()
+    return client.post(
+        f"/disputes/{dispute_id}/approve",
+        json={
+            "decision_id": detail["latest_decision_id"],
+            "approved": approved,
+            "edited_packet": edited_packet,
+        },
+    )
+
+
 # -- GET /disputes ---------------------------------------------------------------------
 
 
@@ -170,7 +204,8 @@ def test_unknown_dispute_returns_404(client):
 def test_approve_before_decide_is_rejected(client):
     """Approving something that was never assessed must not silently create an entry."""
     response = client.post(
-        "/disputes/disp_synthetic_9002/approve", json={"approved": True, "edited_packet": None}
+        "/disputes/disp_synthetic_9002/approve",
+        json={"decision_id": 1, "approved": True, "edited_packet": None},
     )
     assert response.status_code == 409
 
@@ -180,14 +215,16 @@ def test_approve_before_decide_is_rejected(client):
 
 @pytest.mark.slow
 def test_decide_returns_a_well_formed_decision(client):
-    response = client.post("/disputes/disp_synthetic_9001/decide")
+    response = _decide(client, "disp_synthetic_9001")
     assert response.status_code == 200
     decision = response.json()
 
     assert decision["dispute_id"] == "disp_synthetic_9001"
     assert decision["recommendation"] in {"CONTEST", "ACCEPT", "NEEDS_HUMAN_REVIEW"}
     assert 0.0 <= decision["confidence"] <= 1.0
-    assert decision["model_version"] == "cross-encoder/nli-deberta-v3-base"
+    assert decision["model_version"] == (
+        "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+    )
     assert decision["decided_at"]
 
     assert len(decision["claim_verdicts"]) == 2
@@ -199,7 +236,7 @@ def test_decide_returns_a_well_formed_decision(client):
 
 @pytest.mark.slow
 def test_decide_persists_and_advances_status(client):
-    client.post("/disputes/disp_synthetic_9001/decide")
+    _decide(client, "disp_synthetic_9001")
     detail = client.get("/disputes/disp_synthetic_9001").json()
     assert detail["latest_decision"] is not None
     assert detail["status"] in {"decided", "approved", "submitted"}
@@ -209,7 +246,7 @@ def test_decide_persists_and_advances_status(client):
 @pytest.mark.slow
 def test_highlighted_spans_come_from_the_evidence(client):
     """An explanation that is not verbatim from the evidence is not an explanation."""
-    decision = client.post("/disputes/disp_synthetic_9001/decide").json()
+    decision = _decide(client, "disp_synthetic_9001").json()
     detail = client.get("/disputes/disp_synthetic_9001").json()
     contents = [e["content"] for e in detail["dispute"]["evidence_bundle"]]
     for verdict in decision["claim_verdicts"]:
@@ -224,12 +261,9 @@ def test_highlighted_spans_come_from_the_evidence(client):
 @pytest.mark.slow
 def test_approving_records_the_would_be_payload_and_does_not_transmit(client):
     """Section 7: build the payload, store it, never send it."""
-    decision = client.post("/disputes/disp_synthetic_9001/decide").json()
+    decision = _decide(client, "disp_synthetic_9001").json()
 
-    response = client.post(
-        "/disputes/disp_synthetic_9001/approve",
-        json={"approved": True, "edited_packet": None},
-    )
+    response = _approve(client, "disp_synthetic_9001", True)
     assert response.status_code == 200
     entry = response.json()
 
@@ -248,11 +282,8 @@ def test_approving_records_the_would_be_payload_and_does_not_transmit(client):
 
 @pytest.mark.slow
 def test_rejecting_stores_no_payload(client):
-    client.post("/disputes/disp_synthetic_9001/decide")
-    entry = client.post(
-        "/disputes/disp_synthetic_9001/approve",
-        json={"approved": False, "edited_packet": None},
-    ).json()
+    _decide(client, "disp_synthetic_9001")
+    entry = _approve(client, "disp_synthetic_9001", False).json()
 
     assert entry["approved_by_human"] is False
     assert entry["approved_at"] is None
@@ -263,20 +294,17 @@ def test_rejecting_stores_no_payload(client):
 @pytest.mark.slow
 def test_edited_packet_is_what_gets_recorded(client):
     """The human edits the draft; the audit trail must show the edit, not the draft."""
-    client.post("/disputes/disp_synthetic_9001/decide")
-    entry = client.post(
-        "/disputes/disp_synthetic_9001/approve",
-        json={"approved": True, "edited_packet": "Counsel-revised representment text."},
+    _decide(client, "disp_synthetic_9001")
+    entry = _approve(
+        client, "disp_synthetic_9001", True, "Counsel-revised representment text."
     ).json()
     assert entry["decision"]["drafted_packet"] == "Counsel-revised representment text."
 
 
 @pytest.mark.slow
 def test_audit_trail_accumulates(client):
-    client.post("/disputes/disp_synthetic_9001/decide")
-    client.post(
-        "/disputes/disp_synthetic_9001/approve", json={"approved": True, "edited_packet": None}
-    )
+    _decide(client, "disp_synthetic_9001")
+    _approve(client, "disp_synthetic_9001", True)
     detail = client.get("/disputes/disp_synthetic_9001").json()
     assert len(detail["audit_log"]) >= 1
     assert detail["status"] in {"approved", "submitted"}
@@ -361,6 +389,39 @@ def test_evidence_downloads_as_an_attachment(client):
     body = response.text
     assert "The recipient signed for the parcel" in body
     assert "Synthetic record" in body, "an exported record must carry its own disclaimer"
+
+
+# --- risk-budget calibration -----------------------------------------------------------
+
+
+def test_calibration_and_empirical_verification_are_callable(client):
+    calibrated = client.post("/calibrate", json={"alpha": 0.75, "delta": 0.1})
+    assert calibrated.status_code == 200, calibrated.text
+    result = calibrated.json()
+    assert result["achievable"] is True
+    assert result["calibrated_threshold"] is not None
+    assert result["calibration_set_size"] > 0
+
+    checked = client.get("/verify-guarantee")
+    assert checked.status_code == 200, checked.text
+    body = checked.json()
+    assert body["alpha"] == 0.75
+    assert body["n_test"] > 0
+    assert body["n_contested"] >= 0
+
+
+def test_unachievable_budget_is_explicitly_not_evaluable(client):
+    calibrated = client.post("/calibrate", json={"alpha": 0.05, "delta": 0.1})
+    assert calibrated.status_code == 200, calibrated.text
+    assert calibrated.json()["achievable"] is False
+
+    checked = client.get("/verify-guarantee").json()
+    assert checked["observed_fp_rate_on_test"] is None
+    assert checked["guarantee_held"] is None
+    assert checked["n_contested"] == 0
+
+    # Leave the module-scoped app usable for later tests or interactive debugging.
+    assert client.post("/calibrate", json={"alpha": 0.75, "delta": 0.1}).status_code == 200
 
 
 # --- backing a dispute with a real test-mode payment -------------------------------------

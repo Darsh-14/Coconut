@@ -154,16 +154,25 @@ def ready() -> JSONResponse:
     """Readiness, as distinct from liveness.
 
     /health answers "is this process up". This answers "can it actually decide a case
-    right now" -- which is a different question while the model is still loading, and the
-    one a load balancer or a deploy script should gate on. 503 until the model is in
-    memory, so a rollout does not send traffic into a fifteen-second stall.
+    right now" -- which is a different question while the model is still loading, the
+    score cache is invalid, or the database is unavailable. A load balancer or deploy
+    script should gate on this endpoint.
     """
+    from app.services.conformal_calibrator import active_state
     from app.services.verification_engine import model_is_loaded
 
     loaded = model_is_loaded()
+    calibrated = bool(active_state().get("calibrated"))
+    database = _database_health()
+    is_ready = loaded and calibrated and database == "ok"
     return JSONResponse(
-        status_code=200 if loaded else 503,
-        content={"ready": loaded, "model_loaded": loaded, "database": _database_health()},
+        status_code=200 if is_ready else 503,
+        content={
+            "ready": is_ready,
+            "model_loaded": loaded,
+            "calibrated": calibrated,
+            "database": database,
+        },
     )
 
 
