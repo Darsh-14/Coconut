@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import { useMemo } from 'react'
 import { paths } from '../lib/routes'
 import { useNavigate } from 'react-router-dom'
@@ -15,6 +16,7 @@ import {
   BigFigure,
   Button,
   CaseRow,
+  EmptyState,
   PageHeader,
   Progress,
   Skeleton,
@@ -24,7 +26,7 @@ import { toneDot } from '../components/uiTokens'
 
 export default function Overview() {
   const navigate = useNavigate()
-  const { rows, error, stats, batch, assessNext, stopBatch, loading } = useDisputes()
+  const { rows, error, stats, batch, assessNext, stopBatch, refresh, loading } = useDisputes()
 
   const urgent = useMemo(
     () =>
@@ -51,7 +53,7 @@ export default function Overview() {
         sub="Where the money is, and what Coconut would do about it."
         action={
           batch ? (
-            <div className="w-52">
+            <div className="w-full sm:w-52" aria-live="polite">
               <div className="flex items-baseline justify-between text-[11.5px]">
                 <span className="text-[var(--fg-2)]">Assessing</span>
                 <span className="num text-[var(--fg-3)]">
@@ -59,12 +61,12 @@ export default function Overview() {
                 </span>
               </div>
               <div className="mt-1.5">
-                <Progress value={batch.done / batch.total} />
+                <Progress value={batch.done / batch.total} label="Dispute assessment progress" />
               </div>
               <button
                 type="button"
                 onClick={stopBatch}
-                className="mt-1.5 text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
+                className="focus-ring mt-1.5 rounded text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
               >
                 Stop
               </button>
@@ -80,14 +82,22 @@ export default function Overview() {
       />
 
       {error && (
-        <Surface className="p-5 text-[13px] text-[var(--risk)]">{error}</Surface>
+        <Surface>
+          <EmptyState
+            icon={AlertTriangle}
+            tone="risk"
+            title="Could not load the overview"
+            detail={error}
+            action={<Button onClick={() => void refresh()}>Try again</Button>}
+          />
+        </Surface>
       )}
 
       {!error && (
         <div className="space-y-4">
           {/* --- the hero figure ------------------------------------------------- */}
           <Surface className="overflow-hidden">
-            <div className="grid gap-8 p-7 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div className="grid gap-8 p-5 sm:grid-cols-[auto_1fr] sm:items-center sm:p-7">
               <BigFigure
                 value={formatInrCompact(stats.atRisk)}
                 label={`at stake across ${stats.total} open disputes`}
@@ -120,6 +130,7 @@ export default function Overview() {
                 contest={stats.contestCount}
                 accept={stats.accept}
                 review={stats.review}
+                noAction={stats.noAction}
                 total={stats.assessed}
               />
             )}
@@ -230,6 +241,11 @@ function ExposureByReason({
         </div>
       ) : (
         <ul className="space-y-2 px-2.5 pb-1">
+          {buckets.length === 0 && (
+            <li className="py-8 text-center text-[12.5px] text-[var(--fg-3)]">
+              No exposure to group yet.
+            </li>
+          )}
           {buckets.map((b) => (
             <li key={b.code}>
               <div className="flex items-baseline justify-between gap-3 text-[12.5px]">
@@ -337,11 +353,13 @@ function Split({
   contest,
   accept,
   review,
+  noAction,
   total,
 }: {
   contest: number
   accept: number
   review: number
+  noAction: number
   total: number
 }) {
   const pct = (n: number) => `${(n / total) * 100}%`
@@ -349,6 +367,7 @@ function Split({
     { label: 'Contest', n: contest, v: 'win' },
     { label: 'Concede', n: accept, v: 'warn' },
     { label: 'Unclear', n: review, v: 'accent' },
+    { label: 'Rule-resolved', n: noAction, v: 'fg-3' },
   ]
   return (
     <div className="border-t px-7 py-4" style={{ borderColor: 'var(--line)' }}>
@@ -408,7 +427,7 @@ function Panel({
           <button
             type="button"
             onClick={onAll}
-            className="text-[11.5px] text-[var(--accent)] hover:underline"
+            className="focus-ring rounded text-[11.5px] text-[var(--accent)] hover:underline"
           >
             All
           </button>

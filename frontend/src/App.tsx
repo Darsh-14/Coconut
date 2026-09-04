@@ -63,8 +63,11 @@ function AppShell() {
   const location = useLocation()
   return (
     <div className="flex min-h-full">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <Sidebar />
-      <main className="min-w-0 flex-1">
+      <main id="main-content" className="min-w-0 flex-1" tabIndex={-1}>
         <MobileBar />
         <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
           {/* Keyed on the route so recovering from a crash on one page does not leave the
@@ -112,7 +115,7 @@ function Sidebar() {
           </span>
         </NavLink>
 
-        <nav className="space-y-0.5">
+        <nav className="space-y-0.5" aria-label="Primary navigation">
           <NavItem to={paths.overview} icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Overview
           </NavItem>
@@ -170,7 +173,7 @@ function MobileBar() {
         </div>
       </div>
 
-      <nav className="mt-2.5 flex gap-1 overflow-x-auto">
+      <nav className="mt-2.5 flex gap-1 overflow-x-auto" aria-label="Primary navigation">
         <MobileTab to={paths.overview}>Overview</MobileTab>
         <MobileTab to={paths.disputes}>Disputes</MobileTab>
         <MobileTab to={paths.metrics}>Performance</MobileTab>

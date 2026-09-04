@@ -39,5 +39,15 @@ Thumbs.db
 # --- per-account Razorpay test artefacts (regenerate with data/backfill_razorpay_backing.py) ---
 backend/data/razorpay_backing.json
 
+# --- private real-dispute research data: never commit ---
+# The only committed real-data-shaped records belong under data/examples/ and must be
+# fictional/sanitized. Raw exports, normalized rows, splits, and trained artifacts stay
+# local even after pseudonymization because free-text evidence can still be identifying.
+backend/data/private/
+backend/data/real/
+backend/eval/artifacts/real/
+backend/eval/real_runs/
+backend/training/private/
+
 # Tuning cache: regenerable via `python eval/tune_thresholds.py --build-cache`
 backend/eval/.signal_cache.json

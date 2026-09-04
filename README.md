@@ -522,6 +522,43 @@ recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
 
 ---
 
+## Real-outcome research pipeline (offline)
+
+The running demo deliberately remains synthetic. A separate offline path now accepts a
+merchant-authorised historical export, removes direct identifiers, keeps the merchant's
+action separate from the processor's final status, creates group-disjoint chronological
+splits, and evaluates a simple reproducible baseline. It never seeds the demo database,
+never calls Razorpay, and never turns an observed `accepted -> lost` row into an invented
+"would have lost if contested" label.
+
+```powershell
+# From backend/. Capture a private value; do not paste it into Git or command history.
+$env:COCONUT_DATA_HMAC_KEY = (& ..\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))").Trim()
+
+python data/import_real_disputes.py --input <merchant-export.jsonl> --output data/private/normalized.jsonl
+python data/export_annotation_batch.py --input data/private/normalized.jsonl --output data/private/tasks-v1.jsonl --rubric-version evidence-v1
+python data/audit_annotation_agreement.py --input data/private/reviews-v1.jsonl --output data/private/agreement-v1.json
+python data/import_adjudications.py --records data/private/normalized.jsonl --annotations data/private/reviews-v1.jsonl --output data/private/adjudicated-v1.jsonl --rubric-version evidence-v1
+python data/split_real_disputes.py --input data/private/adjudicated-v1.jsonl --output-dir data/private/splits
+python eval/train_real_baseline.py --splits-dir data/private/splits --output eval/artifacts/real/baseline-v1.json
+```
+
+Raw exports, normalized rows, splits, and model artifacts are ignored by Git. Only disputes
+that were actually contested and later resolved `won` or `lost` are eligible for the binary
+baseline. Its threshold is selected on the calibration split; the newest test split is
+fingerprinted and used only for the final report. The report includes Wilson confidence
+intervals, support, coverage, population win capture, selective accuracy, PR-AUC, Brier
+score, and an explicit `claimable_precision: null` when the evidence is insufficient. The
+annotation tools blind reviewers to outcomes, measure agreement, and require consensus or
+expert adjudication. Optional pre-decision structured signals use explicit true/false/unknown
+states and are rejected if timestamped after the decision cutoff.
+
+No real merchant records are included in this repository, so this addition does **not**
+change or improve the recorded 0.692 synthetic precision by itself. See
+[the real-data contract, privacy checklist, and release gates](docs/REAL_DATA_PIPELINE.md).
+
+---
+
 ## Running the evaluation
 
 ```bash
@@ -566,10 +603,11 @@ recommends.
 
 | Metric | Value |
 |---|---|
-| Precision | **0.692** |
-| Recall | **0.750** |
+| Precision | **0.692** (9/13; Wilson 95% CI **0.424–0.873**) |
+| Selective recall | **0.750** (excludes deferrals and URCS outcomes) |
 | F1 | **0.720** |
 | Coverage | **0.291** |
+| Population automatic win capture | **0.281** (9/32 labelled winnable cases) |
 | False-positive cost estimate | **₹6,000** |
 | Records evaluated | 79 |
 
@@ -582,11 +620,14 @@ recommends.
 | Flagged to human | 51 | routed to a person instead of guessed |
 | URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
 
-**How to read these.** Model coverage of 0.291 means 23 of 79 cases are decided on their
+**How to read these.** The interval matters: thirteen CONTEST calls are too few to support a
+production-grade precision claim, even though the point estimate is 0.692. Model coverage of
+0.291 means 23 of 79 cases are decided on their
 evidence. Another 5 are resolved separately by deterministic NPCI caps, and 51 go to a
 person. That restraint is intended, not hidden: a copilot that is right on roughly seven
 of every ten contests it does make is more useful than one that guesses confidently on
-everything.
+everything. The Section 11 recall is selective—it omits deferred cases—so automatic win
+capture is shown separately against all 32 labelled winnable cases.
 
 **The useful generalisation check** is not just precision but its agreement out of sample.
 That comparison is stated below against the *hand-picked* Section 10 thresholds,

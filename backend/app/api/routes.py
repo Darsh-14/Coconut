@@ -78,7 +78,8 @@ from app.services.razorpay_client import (
     get_razorpay_client,
     is_placeholder_payment_id,
 )
-from app.services.verification_engine import get_verification_engine
+from app.services.synthetic_win_gate import apply_synthetic_win_gate
+from app.services.verification_engine import MODEL_VERSION, get_verification_engine
 
 logger = logging.getLogger("coconut.api")
 
@@ -528,6 +529,7 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
     starting_revision = row.evidence_revision or 0
     verdicts = engine.verify_bundle(row.claim_text, evidence, row.reason_code)
     result = aggregate(verdicts, evidence, dispute, history, threshold)
+    result, gate = apply_synthetic_win_gate(result, dispute)
 
     # Only CONTEST decisions get a drafted representment (Section 12).
     packet = None
@@ -546,6 +548,16 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
         threshold=threshold,
         aggregation_result=result,
     )
+    if gate.applied:
+        decision = Decision.model_validate(
+            {
+                **decision.model_dump(mode="python"),
+                "model_version": (
+                    f"{MODEL_VERSION}+"
+                    f"{gate.model_version or 'synthetic-win-gate-unavailable'}"
+                ),
+            }
+        )
 
     # Model inference can be slow. Re-check mutable inputs immediately before persisting
     # so a calibration, evidence edit, payer-history update, or action that landed while

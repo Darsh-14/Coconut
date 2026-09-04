@@ -48,12 +48,16 @@ export function EvidenceClaimMap({
   // Which record is open, by bundle index. null = none.
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const [removing, setRemoving] = useState<number | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   async function remove(index: number) {
     setRemoving(index)
+    setRemoveError(null)
     try {
       await api.removeEvidence(disputeId, index)
       onChanged?.()
+    } catch (error) {
+      setRemoveError(`Could not remove evidence: ${(error as Error).message}`)
     } finally {
       setRemoving(null)
     }
@@ -61,6 +65,11 @@ export function EvidenceClaimMap({
 
   return (
     <>
+      {removeError && (
+        <p className="mb-2.5 text-[11.5px] text-[var(--risk)]" role="alert">
+          {removeError}
+        </p>
+      )}
       <ol className="space-y-2.5">
         {evidence.map((item, index) => {
           const verdict = byIndex.get(index)
@@ -107,7 +116,7 @@ export function EvidenceClaimMap({
                       disabled={removing !== null}
                       title="Remove this evidence"
                       aria-label={`Remove ${evidenceLabel(item.type)}`}
-                      className="focus-ring rounded px-1 text-[14px] leading-none text-[var(--fg-3)] transition hover:text-[var(--risk)]"
+                      className="focus-ring grid size-8 place-items-center rounded text-[16px] leading-none text-[var(--fg-3)] transition hover:bg-[var(--risk-soft)] hover:text-[var(--risk)]"
                     >
                       &times;
                     </button>
@@ -229,7 +238,7 @@ function AddEvidence({ disputeId, onAdded }: { disputeId: string; onAdded: () =>
           value={type}
           onChange={(e) => setType(e.target.value as EvidenceType)}
           aria-label="Evidence type"
-          className="rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12px] outline-none"
+          className="focus-ring rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12px] outline-none"
         >
           {EVIDENCE_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -242,14 +251,14 @@ function AddEvidence({ disputeId, onAdded }: { disputeId: string; onAdded: () =>
           onChange={(e) => setSourceRef(e.target.value)}
           placeholder="reference (optional)"
           aria-label="Source reference"
-          className="num min-w-40 flex-1 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12px] outline-none"
+          className="focus-ring num min-w-40 flex-1 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12px] outline-none"
         />
-        <label className="focus-ring cursor-pointer rounded-[var(--radius-control)] px-2.5 py-1.5 text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]">
+        <label className="file-picker cursor-pointer rounded-[var(--radius-control)] px-2.5 py-1.5 text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]">
           Read a file
           <input
             type="file"
             accept=".txt,.csv,.md,.json,.log,text/*"
-            className="hidden"
+            className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) void readFile(f)
@@ -264,10 +273,15 @@ function AddEvidence({ disputeId, onAdded }: { disputeId: string; onAdded: () =>
         rows={4}
         aria-label="Evidence text"
         placeholder="The exact text the model will score."
-        className="mt-2.5 w-full resize-y rounded-[var(--radius-control)] bg-[var(--surface-2)] p-3 text-[13px] leading-[1.6] outline-none transition focus:bg-[var(--surface)] focus:shadow-[var(--shadow-line)]"
+        aria-invalid={Boolean(error)}
+        className="focus-ring mt-2.5 w-full resize-y rounded-[var(--radius-control)] bg-[var(--surface-2)] p-3 text-[13px] leading-[1.6] outline-none transition focus:bg-[var(--surface)]"
       />
 
-      {error && <p className="mt-2 text-[11.5px] text-[var(--risk)]">{error}</p>}
+      {error && (
+        <p className="mt-2 text-[11.5px] text-[var(--risk)]" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="mt-2.5 flex justify-end gap-2">
         <Button onClick={() => setOpen(false)} disabled={busy}>

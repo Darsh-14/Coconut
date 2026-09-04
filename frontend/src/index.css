@@ -25,6 +25,7 @@
 }
 
 :root {
+  color-scheme: light;
   --bg: #fbfbfb;
   --surface: #ffffff;
   --surface-2: #f5f5f6;
@@ -34,7 +35,7 @@
 
   --fg: #0b0b0c;
   --fg-2: #57585c;
-  --fg-3: #8a8b90;
+  --fg-3: #707279;
 
   --accent: #5e6ad2;
   --accent-fg: #ffffff;
@@ -68,6 +69,7 @@
  * result.
  */
 :root[data-theme='dark'] {
+  color-scheme: dark;
   --bg: #0a0a0a;
   --surface: rgba(23, 23, 23, 0.72);
   --surface-solid: #171717;
@@ -79,7 +81,7 @@
 
   --fg: #f7f8f8;
   --fg-2: #9b9ea6;
-  --fg-3: #6c7079;
+  --fg-3: #8d919b;
 
   --accent: #7b85e0;
   --accent-fg: #0b0b0c;
@@ -104,10 +106,47 @@ body,
 }
 
 body {
+  min-width: 320px;
   background: var(--bg);
   color: var(--fg);
   font-feature-settings: 'cv01', 'ss03';
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+/* Visually absent until keyboard focus, then placed above every sticky material layer. */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: var(--radius-control);
+  background: var(--fg);
+  color: var(--bg);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8125rem;
+  box-shadow: var(--shadow-pop);
+  transition: transform 0.16s var(--ease-out);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.file-picker:focus-within {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 
 /* Display sizes get negative tracking; it is most of what makes headings look engineered

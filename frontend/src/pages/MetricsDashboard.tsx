@@ -54,7 +54,7 @@ export default function MetricsDashboard() {
     <div className="space-y-5">
       <PageHeader
         title="Performance"
-        sub="79 held-out disputes, not used to fit thresholds. Contest is the positive class."
+        sub="79 synthetic held-out disputes. Contest is the positive class; support and coverage matter alongside precision."
         action={
           <Button variant="primary" onClick={run} disabled={running}>
             {running ? 'Running…' : metrics ? 'Run again' : 'Run evaluation'}
@@ -64,13 +64,13 @@ export default function MetricsDashboard() {
 
       <RiskBudgetDial />
 
-      {running && <Progress />}
+      {running && <Progress label="Evaluation in progress" />}
       {error && (
         <Surface
           className="flex flex-wrap items-center justify-between gap-3 p-4"
           style={{ boxShadow: 'var(--shadow-line), inset 2px 0 0 0 var(--risk)' }}
         >
-          <span className="flex items-center gap-2 text-[13px] text-[var(--risk)]">
+          <span className="flex items-center gap-2 text-[13px] text-[var(--risk)]" role="alert">
             <AlertTriangle size={15} strokeWidth={1.6} aria-hidden="true" />
             {error}
           </span>
@@ -81,14 +81,15 @@ export default function MetricsDashboard() {
         </Surface>
       )}
 
-      {/* The headline claim: the tuned set and the unseen set agree. */}
+      {/* A transparent reference point for the recorded baseline. */}
       <Surface className="overflow-hidden">
         <div className="px-5 pb-1 pt-4">
           <h2 className="text-[13px]" style={{ fontVariationSettings: "'wght' 590" }}>
-            Calibrated beats hand-picked
+            Recorded baseline comparison
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
-            Same held-out set, same model. Only the threshold changed.
+            Same synthetic held-out set and zero-shot model; this reference predates the
+            optional learned safety gate used by a live run.
           </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
@@ -112,7 +113,7 @@ export default function MetricsDashboard() {
             className="size-1.5 rounded-full"
             style={{ background: isLive ? 'var(--win)' : 'var(--fg-3)' }}
           />
-          <p className="text-[12px] text-[var(--fg-3)]">
+          <p className="text-[12px] text-[var(--fg-3)]" role="status" aria-live="polite">
             {isLive ? 'Live run, just now' : 'Last recorded run'}
           </p>
         </div>
@@ -141,6 +142,15 @@ export default function MetricsDashboard() {
                 Every case accounted for
               </h2>
               <table className="mt-3 w-full text-[13px]">
+                <caption className="sr-only">Evaluation confusion matrix</caption>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">Tone</th>
+                    <th scope="col">Outcome</th>
+                    <th scope="col">Count</th>
+                    <th scope="col">Meaning</th>
+                  </tr>
+                </thead>
                 <tbody>
                   <MatrixRow tone="win" cell="TP" n={cm.tp} meaning="Contested, and winnable" />
                   <MatrixRow tone="risk" cell="FP" n={cm.fp} meaning="Contested, and not — the costly error" />
@@ -178,8 +188,11 @@ export default function MetricsDashboard() {
           </div>
 
           <p className="text-[11.5px] text-[var(--fg-3)]">
-            Zero-shot, not fine-tuned. Ground truth is generated, not observed from real
-            bank adjudications.
+            {isLive
+              ? 'Live runs use the current zero-shot NLI pipeline plus its synthetic-trained contest safety gate.'
+              : 'The recorded baseline uses the zero-shot NLI pipeline without the optional learned safety gate.'}{' '}
+            Ground truth is generated, not observed from real bank adjudications, so a small
+            high-precision result is not a production benchmark.
           </p>
       </div>
     </div>

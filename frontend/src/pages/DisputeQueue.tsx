@@ -1,4 +1,4 @@
-import { AlertTriangle, Inbox, SearchX } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Inbox, Search, SearchX } from 'lucide-react'
 import { paths } from '../lib/routes'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -6,6 +6,7 @@ import {
   countdownTo,
   formatInr,
   parseApiDate,
+  type DisputeSummary,
   type Recommendation,
 } from '../api/client'
 import { phaseCopy, railCopy, reasonCopy, RECOMMENDATIONS, statusLabel } from '../lib/labels'
@@ -25,6 +26,7 @@ import { toneDot } from '../components/uiTokens'
 
 type Filter = 'all' | 'unassessed' | Recommendation
 type SortKey = 'deadline' | 'amount'
+const PAGE_SIZE = 25
 
 export default function DisputeQueue() {
   const navigate = useNavigate()
@@ -33,6 +35,7 @@ export default function DisputeQueue() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<SortKey>('deadline')
+  const [page, setPage] = useState(1)
 
   const filters = useMemo(
     () => [
@@ -75,6 +78,10 @@ export default function DisputeQueue() {
     )
   }, [rows, filter, sort, search])
 
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const pageRows = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
   return (
     <div>
       {filing && (
@@ -92,7 +99,7 @@ export default function DisputeQueue() {
         sub={`${stats.total} open. Contesting costs ₹1,500 a case, win or lose.`}
         action={
           batch ? (
-            <div className="w-52">
+            <div className="w-full sm:w-52" aria-live="polite">
               <div className="flex items-baseline justify-between text-[11.5px]">
                 <span className="text-[var(--fg-2)]">Assessing</span>
                 <span className="num text-[var(--fg-3)]">
@@ -100,18 +107,18 @@ export default function DisputeQueue() {
                 </span>
               </div>
               <div className="mt-1.5">
-                <Progress value={batch.done / batch.total} />
+                <Progress value={batch.done / batch.total} label="Dispute assessment progress" />
               </div>
               <button
                 type="button"
                 onClick={stopBatch}
-                className="mt-1.5 text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
+                className="focus-ring mt-1.5 rounded text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
               >
                 Stop
               </button>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {stats.unassessed > 0 && (
                 <>
                   <Button onClick={() => assessNext(15)}>Assess 15</Button>
@@ -129,28 +136,57 @@ export default function DisputeQueue() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         {/* Five filters do not fit a phone; let the strip scroll rather than the page. */}
         <div className="-mx-1 max-w-full overflow-x-auto px-1">
-          <Segmented options={filters} value={filter} onChange={setFilter} />
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search id, reason, payment"
-            aria-label="Search disputes"
-            className="w-52 rounded-[var(--radius-control)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12.5px] outline-none transition focus:bg-[var(--surface)] focus:shadow-[var(--shadow-line)]"
+          <Segmented
+            options={filters}
+            value={filter}
+            onChange={(next) => {
+              setFilter(next)
+              setPage(1)
+            }}
+            ariaLabel="Filter disputes"
+            mode="filters"
           />
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
-          className="surface cursor-pointer px-2.5 py-1.5 text-[12.5px] text-[var(--fg-2)]"
-          aria-label="Sort disputes"
-        >
-          <option value="deadline">Soonest deadline</option>
-          <option value="amount">Largest amount</option>
-        </select>
+        </div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <label className="relative min-w-0 flex-1 sm:flex-none">
+            <span className="sr-only">Search disputes</span>
+            <Search
+              size={14}
+              strokeWidth={1.7}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--fg-3)]"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setPage(1)
+              }}
+              placeholder="Search id, reason, payment"
+              className="focus-ring w-full rounded-[var(--radius-control)] bg-[var(--surface-2)] py-1.5 pl-8 pr-2.5 text-[12.5px] outline-none transition focus:bg-[var(--surface)] sm:w-60"
+            />
+          </label>
+          <select
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value as SortKey)
+              setPage(1)
+            }}
+            className="surface focus-ring min-w-0 cursor-pointer px-2.5 py-1.5 text-[12.5px] text-[var(--fg-2)]"
+            aria-label="Sort disputes"
+          >
+            <option value="deadline">Soonest deadline</option>
+            <option value="amount">Largest amount</option>
+          </select>
         </div>
       </div>
+
+      {!loading && !error && visible.length > 0 && (
+        <p className="mb-2 text-[11.5px] text-[var(--fg-3)]" aria-live="polite">
+          {visible.length} {visible.length === 1 ? 'dispute' : 'disputes'} in this view
+        </p>
+      )}
 
       <Surface className="overflow-hidden">
         {error ? (
@@ -173,7 +209,17 @@ export default function DisputeQueue() {
                 : 'Change the filter above, or assess what is still pending.'
             }
             action={
-              stats.unassessed > 0 ? (
+              search ? (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSearch('')
+                    setPage(1)
+                  }}
+                >
+                  Clear search
+                </Button>
+              ) : stats.unassessed > 0 ? (
                 <Button variant="primary" size="sm" onClick={() => assessNext(15)}>
                   Assess 15 disputes
                 </Button>
@@ -181,7 +227,13 @@ export default function DisputeQueue() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="divide-y divide-[var(--line)] md:hidden">
+              {pageRows.map((row) => (
+                <MobileCase key={row.dispute_id} row={row} />
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[56rem] text-[13px]">
               <thead>
                 <tr
@@ -197,7 +249,7 @@ export default function DisputeQueue() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {visible.map((row) => {
+                {pageRows.map((row) => {
                   const countdown = countdownTo(row.respond_by)
                   const reason = reasonCopy(row.reason_code)
                   const rec = row.recommendation ? RECOMMENDATIONS[row.recommendation] : null
@@ -293,9 +345,162 @@ export default function DisputeQueue() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+            <QueuePagination
+              page={currentPage}
+              pages={pageCount}
+              total={visible.length}
+              onChange={setPage}
+            />
+          </>
         )}
       </Surface>
     </div>
+  )
+}
+
+/** Phone layout: the same information hierarchy as the table without a sideways scroll. */
+function MobileCase({ row }: { row: DisputeSummary }) {
+  const countdown = countdownTo(row.respond_by)
+  const reason = reasonCopy(row.reason_code)
+  const recommendation = row.recommendation ? RECOMMENDATIONS[row.recommendation] : null
+  const noAction = row.recommendation === 'NO_ACTION_NEEDED'
+
+  return (
+    <Link
+      to={paths.dispute(row.dispute_id)}
+      aria-label={`Open ${reason.short}, ${formatInr(row.amount)}, case ${row.dispute_id}`}
+      className={`focus-ring pressable block p-4 transition-colors hover:bg-[var(--surface-2)] ${
+        noAction ? 'opacity-65' : ''
+      }`}
+    >
+      <span className="flex items-start justify-between gap-4">
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span
+              className="truncate text-[14px]"
+              style={{ fontVariationSettings: "'wght' 560" }}
+            >
+              {reason.short}
+            </span>
+            <Badge title={phaseCopy(row.phase).meaning}>{phaseCopy(row.phase).label}</Badge>
+            <Badge title={railCopy(row.rail).meaning}>{railCopy(row.rail).label}</Badge>
+          </span>
+          <span className="num mt-1.5 block text-[11px] text-[var(--fg-3)]">
+            {row.dispute_id.replace('disp_synthetic_', '')}
+            {row.payment_is_real && (
+              <span className="ml-1.5 text-[var(--win)]" title="Backed by a real test-mode payment">
+                • test payment
+              </span>
+            )}
+          </span>
+        </span>
+        <span
+          className="num shrink-0 text-[14px]"
+          style={{ fontVariationSettings: "'wght' 560" }}
+        >
+          {formatInr(row.amount)}
+        </span>
+      </span>
+
+      <span
+        className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3"
+        style={{ borderColor: 'var(--line)' }}
+      >
+        <span>
+          <span className="block text-[10px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+            Due
+          </span>
+          <span
+            className={`num mt-0.5 block text-[12px] ${
+              countdown.urgent ? 'text-[var(--risk)]' : 'text-[var(--fg-2)]'
+            }`}
+          >
+            {countdown.label}
+          </span>
+        </span>
+        <span className="text-right">
+          <span className="block text-[10px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
+            Coconut
+          </span>
+          <span className="mt-0.5 inline-flex items-center justify-end gap-1.5 text-[12px]">
+            {noAction ? (
+              <span className="text-[var(--fg-3)]">
+                URCS auto-reject{row.urcs_reason_code && ` (${row.urcs_reason_code})`}
+              </span>
+            ) : recommendation ? (
+              <>
+                <span className={`size-1.5 shrink-0 rounded-full ${toneDot(recommendation.tone)}`} />
+                <span style={{ fontVariationSettings: "'wght' 510" }}>
+                  {recommendation.label}
+                </span>
+                {row.confidence != null && row.recommendation !== 'NEEDS_HUMAN_REVIEW' && (
+                  <span className="num text-[var(--fg-3)]">
+                    {(row.confidence * 100).toFixed(0)}%
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-[var(--fg-3)]">—</span>
+            )}
+          </span>
+        </span>
+        <span className="col-span-2 text-[11px] text-[var(--fg-3)]">
+          {statusLabel(row.status)}
+        </span>
+      </span>
+    </Link>
+  )
+}
+
+function QueuePagination({
+  page,
+  pages,
+  total,
+  onChange,
+}: {
+  page: number
+  pages: number
+  total: number
+  onChange: (page: number) => void
+}) {
+  if (pages <= 1) return null
+  const start = (page - 1) * PAGE_SIZE + 1
+  const end = Math.min(total, page * PAGE_SIZE)
+
+  return (
+    <nav
+      className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3"
+      style={{ borderColor: 'var(--line)' }}
+      aria-label="Queue pages"
+    >
+      <p className="text-[11.5px] text-[var(--fg-3)]">
+        Showing <span className="num">{start}–{end}</span> of{' '}
+        <span className="num">{total}</span>
+      </p>
+      <span className="flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={page === 1}
+          onClick={() => onChange(page - 1)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft size={14} aria-hidden="true" />
+        </Button>
+        <span className="num min-w-16 text-center text-[11.5px] text-[var(--fg-2)]">
+          {page} / {pages}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={page === pages}
+          onClick={() => onChange(page + 1)}
+          aria-label="Next page"
+        >
+          <ChevronRight size={14} aria-hidden="true" />
+        </Button>
+      </span>
+    </nav>
   )
 }

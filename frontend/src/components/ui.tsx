@@ -57,6 +57,7 @@ export function Button({
   return (
     <button
       {...props}
+      type={props.type ?? 'button'}
       className={`inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-control)] font-medium transition duration-[160ms] ease-[var(--ease-out)] focus-visible:focus-ring disabled:cursor-not-allowed ${
         size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-[13px]'
       } ${VARIANTS[variant]} ${className}`}
@@ -117,9 +118,16 @@ export function Metric({
 }
 
 /** A determinate or indeterminate progress line. */
-export function Progress({ value }: { value?: number }) {
+export function Progress({ value, label = 'Progress' }: { value?: number; label?: string }) {
   return (
-    <div className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--surface-3)]">
+    <div
+      className="h-[3px] w-full overflow-hidden rounded-full bg-[var(--surface-3)]"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={value == null ? undefined : Math.round(Math.min(1, Math.max(0, value)) * 100)}
+    >
       {value == null ? (
         <div className="breathe h-full w-1/3 rounded-full bg-[var(--accent)]" />
       ) : (
@@ -185,7 +193,11 @@ export function EmptyState({
   action?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+    <div
+      className="flex flex-col items-center gap-3 px-6 py-16 text-center"
+      role={tone === 'risk' ? 'alert' : 'status'}
+      aria-live={tone === 'risk' ? 'assertive' : 'polite'}
+    >
       <Icon
         size={22}
         strokeWidth={1.5}
@@ -234,7 +246,7 @@ export function PageHeader({
         </h1>
         {sub && <p className="mt-2 text-[13px] text-[var(--fg-2)]">{sub}</p>}
       </div>
-      {action}
+      {action && <div className="w-full sm:w-auto">{action}</div>}
     </header>
   )
 }
@@ -244,26 +256,54 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  ariaLabel = 'View',
+  mode = 'tabs',
 }: {
   options: Array<{ key: T; label: string; count?: number }>
   value: T
   onChange: (key: T) => void
+  ariaLabel?: string
+  mode?: 'tabs' | 'filters'
 }) {
   return (
     <div
       className="inline-flex gap-0.5 rounded-[var(--radius-control)] p-0.5"
       style={{ background: 'var(--surface-2)' }}
-      role="tablist"
+      role={mode === 'tabs' ? 'tablist' : 'group'}
+      aria-label={ariaLabel}
     >
-      {options.map((o) => {
+      {options.map((o, index) => {
         const active = o.key === value
         return (
           <button
             key={o.key}
             type="button"
-            role="tab"
-            aria-selected={active}
+            role={mode === 'tabs' ? 'tab' : undefined}
+            aria-selected={mode === 'tabs' ? active : undefined}
+            aria-pressed={mode === 'filters' ? active : undefined}
+            tabIndex={mode === 'tabs' ? (active ? 0 : -1) : undefined}
             onClick={() => onChange(o.key)}
+            onKeyDown={(event) => {
+              if (mode !== 'tabs') return
+              let next = index
+              if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                next = (index + 1) % options.length
+              } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                next = (index - 1 + options.length) % options.length
+              } else if (event.key === 'Home') {
+                next = 0
+              } else if (event.key === 'End') {
+                next = options.length - 1
+              } else {
+                return
+              }
+              event.preventDefault()
+              onChange(options[next].key)
+              const controls = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                'button[role="tab"]',
+              )
+              controls?.[next]?.focus()
+            }}
             className={`pressable focus-ring rounded-[var(--radius-inner)] px-3 py-1.5 text-[12.5px] ${
               active
                 ? 'bg-[var(--surface)] text-[var(--fg)] shadow-[var(--shadow-line)]'
@@ -332,14 +372,17 @@ export function CaseRow({
       onClick={onClick}
       className="pressable focus-ring flex w-full items-center justify-between gap-4 rounded-[var(--radius-inner)] px-2.5 py-2 text-left hover:bg-[var(--surface-2)]"
     >
-      <span className="min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="text-[13px]" style={{ fontVariationSettings: "'wght' 510" }}>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className="truncate text-[13px]"
+            style={{ fontVariationSettings: "'wght' 510" }}
+          >
             {title}
           </span>
-          <span className="num text-[11px] text-[var(--fg-3)]">{id}</span>
+          <span className="num shrink-0 text-[11px] text-[var(--fg-3)]">{id}</span>
         </span>
-        <span className="mt-0.5 block text-[11.5px] text-[var(--fg-3)]">{meta}</span>
+        <span className="mt-0.5 block truncate text-[11.5px] text-[var(--fg-3)]">{meta}</span>
       </span>
       <span className="shrink-0 text-right">{right}</span>
     </button>

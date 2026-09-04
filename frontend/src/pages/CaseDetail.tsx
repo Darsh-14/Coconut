@@ -16,6 +16,7 @@ export default function CaseDetail() {
   const { disputeId = '' } = useParams()
   const [detail, setDetail] = useState<DisputeDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'deciding' | 'approving' | null>(null)
   const [packet, setPacket] = useState('')
   const [savedPacket, setSavedPacket] = useState('')
@@ -34,6 +35,11 @@ export default function CaseDetail() {
       setSavedPacket(nextPacket)
       setDraftState('idle')
       setDraftError(null)
+      setTab((current) =>
+        current === 'packet' && next.latest_decision?.recommendation !== 'CONTEST'
+          ? 'evidence'
+          : current,
+      )
       setError(null)
     } catch (e) {
       setError((e as Error).message)
@@ -100,11 +106,12 @@ export default function CaseDetail() {
   async function runDecide() {
     setBusy('deciding')
     setNotice(null)
+    setActionError(null)
     try {
       await api.decide(disputeId)
       await load()
     } catch (e) {
-      setError((e as Error).message)
+      setActionError((e as Error).message)
     } finally {
       setBusy(null)
     }
@@ -120,13 +127,14 @@ export default function CaseDetail() {
     }
     setBusy('approving')
     setNotice(null)
+    setActionError(null)
     try {
       await api.withdraw(disputeId, approvalId)
       await load()
       setTab('audit')
       setNotice('Approval withdrawn. The case is back in the queue.')
     } catch (e) {
-      setError((e as Error).message)
+      setActionError((e as Error).message)
     } finally {
       setBusy(null)
     }
@@ -142,6 +150,7 @@ export default function CaseDetail() {
     }
     setBusy('approving')
     setNotice(null)
+    setActionError(null)
     try {
       await api.approve(
         disputeId,
@@ -159,7 +168,7 @@ export default function CaseDetail() {
           : 'Recorded as rejected.',
       )
     } catch (e) {
-      setError((e as Error).message)
+      setActionError((e as Error).message)
     } finally {
       setBusy(null)
     }
@@ -228,7 +237,7 @@ export default function CaseDetail() {
           <p className="num mt-2 text-[12px] text-[var(--fg-3)]">{dispute.dispute_id}</p>
         </div>
 
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <p
             className="num text-[24px] leading-none tracking-[-0.028em]"
             style={{ fontVariationSettings: "'wght' 570" }}
@@ -266,13 +275,38 @@ export default function CaseDetail() {
             <NotAssessed busy={busy === 'deciding'} onRun={runDecide} />
           )}
 
+          {actionError && (
+            <Surface
+              className="flex flex-wrap items-center justify-between gap-3 p-3.5"
+              style={{ boxShadow: 'var(--shadow-line), inset 2px 0 0 0 var(--risk)' }}
+            >
+              <p className="text-[12.5px] text-[var(--risk)]" role="alert">
+                {actionError}
+              </p>
+              <Button size="sm" onClick={() => setActionError(null)}>
+                Dismiss
+              </Button>
+            </Surface>
+          )}
+
           {notice && (
-            <p className="rise surface p-3.5 text-[12.5px] text-[var(--fg-2)]">{notice}</p>
+            <p
+              className="rise surface p-3.5 text-[12.5px] text-[var(--fg-2)]"
+              role="status"
+              aria-live="polite"
+            >
+              {notice}
+            </p>
           )}
 
           {/* Tabs, so evidence, draft and audit are not one endless scroll. */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <Segmented options={tabs} value={tab} onChange={setTab} />
+            <Segmented
+              options={tabs}
+              value={tab}
+              onChange={setTab}
+              ariaLabel="Case sections"
+            />
             {tab === 'evidence' && (
               <div className="flex items-center gap-3">
                 {!detail.decision_is_stale && (
@@ -292,7 +326,12 @@ export default function CaseDetail() {
             )}
           </div>
 
-          <div key={tab} className="rise">
+          <div
+            key={tab}
+            className="rise"
+            role="tabpanel"
+            aria-label={tabs.find((item) => item.key === tab)?.label}
+          >
             {tab === 'evidence' && (
               <>
                 {detail.decision_is_stale && (
@@ -321,7 +360,7 @@ export default function CaseDetail() {
                   </p>
                   <span className="flex items-center gap-3">
                     {(draftState !== 'idle' || packet !== savedPacket) && (
-                      <span className="text-[11px] text-[var(--fg-3)]">
+                      <span className="text-[11px] text-[var(--fg-3)]" aria-live="polite">
                         {draftState === 'saving'
                           ? 'Saving…'
                           : packet !== savedPacket
@@ -334,7 +373,7 @@ export default function CaseDetail() {
                         type="button"
                         onClick={() => setPacket(decision.drafted_packet ?? '')}
                         disabled={detail.decision_is_stale || actioned}
-                        className="text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
+                        className="focus-ring rounded text-[11.5px] text-[var(--fg-3)] hover:text-[var(--fg)]"
                       >
                         Revert to draft
                       </button>
@@ -347,10 +386,14 @@ export default function CaseDetail() {
                   disabled={detail.decision_is_stale || actioned}
                   rows={20}
                   spellCheck={false}
-                  className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--surface-2)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--fg-2)] outline-none transition focus:bg-[var(--surface)] focus:shadow-[var(--shadow-line)]"
+                  aria-label="Representment packet"
+                  aria-invalid={Boolean(draftError)}
+                  className="focus-ring mt-3 w-full rounded-[var(--radius-control)] bg-[var(--surface-2)] p-4 font-mono text-[12px] leading-[1.7] text-[var(--fg-2)] outline-none transition focus:bg-[var(--surface)]"
                 />
                 {draftError && (
-                  <p className="mt-2 text-[11.5px] text-[var(--risk)]">{draftError}</p>
+                  <p className="mt-2 text-[11.5px] text-[var(--risk)]" role="alert">
+                    {draftError}
+                  </p>
                 )}
                 {(detail.decision_is_stale || actioned) && (
                   <p className="mt-2 text-[11.5px] text-[var(--fg-3)]">
@@ -546,7 +589,7 @@ function NotAssessed({ busy, onRun }: { busy: boolean; onRun: () => void }) {
             First run after startup loads the model — about fifteen seconds.
           </p>
           <div className="mt-3">
-            <Progress />
+            <Progress label="Assessment in progress" />
           </div>
         </>
       ) : (
@@ -565,7 +608,7 @@ function NotAssessed({ busy, onRun }: { busy: boolean; onRun: () => void }) {
 function HowItWorks() {
   return (
     <details className="group mt-3">
-      <summary className="cursor-pointer list-none text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]">
+      <summary className="focus-ring cursor-pointer list-none rounded text-[12px] text-[var(--fg-3)] transition hover:text-[var(--fg)]">
         How each verdict is reached
         <span className="ml-1.5 inline-block transition group-open:rotate-90">&rsaquo;</span>
       </summary>
@@ -624,7 +667,7 @@ function BackLink() {
   return (
     <Link
       to={paths.disputes}
-      className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
+      className="focus-ring inline-flex items-center gap-1.5 rounded text-[12.5px] text-[var(--fg-3)] transition hover:text-[var(--fg)]"
     >
       <span aria-hidden="true">&larr;</span> Disputes
     </Link>

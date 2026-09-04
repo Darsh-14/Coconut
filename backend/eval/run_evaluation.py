@@ -44,6 +44,7 @@ from app.services.conformal_calibrator import (  # noqa: E402
     has_calibrated,
 )
 from app.services.decision_aggregator import aggregate  # noqa: E402
+from app.services.synthetic_win_gate import apply_synthetic_win_gate  # noqa: E402
 from app.services.verification_engine import (  # noqa: E402
     VerificationEngine,
     get_verification_engine,
@@ -97,6 +98,7 @@ def run_evaluation(
         # The held-out file is the payer history for its own records: NPCI's window is
         # counted within the set being evaluated, never across the split boundary.
         result = aggregate(verdicts, record.evidence_bundle, record, records)
+        result, _ = apply_synthetic_win_gate(result, record)
 
         is_positive = record.ground_truth_label == "contest_win"
         if result.recommendation == "CONTEST":
