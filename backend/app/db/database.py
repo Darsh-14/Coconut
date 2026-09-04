@@ -16,7 +16,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import BACKEND_ROOT, get_settings
 
-logger = logging.getLogger("recourse.db")
+logger = logging.getLogger("coconut.db")
 
 
 class Base(DeclarativeBase):
@@ -26,7 +26,7 @@ class Base(DeclarativeBase):
 def _resolve_url() -> str:
     """Resolve DATABASE_URL, anchoring a relative SQLite path to backend/.
 
-    Without this, `sqlite:///./recourse.db` would create a different database file
+    Without this, `sqlite:///./coconut.db` would create a different database file
     depending on the directory uvicorn or pytest happened to be started from -- a
     genuinely confusing bug where seeded data appears to vanish.
     """
@@ -85,7 +85,7 @@ def _add_missing_columns() -> None:
 
     `create_all` only creates missing TABLES -- it will not alter one that already exists.
     So every time a column was added to a model, the running database silently went stale
-    and the fix was to delete recourse.db, which also threw away every decision and audit
+    and the fix was to delete coconut.db, which also threw away every decision and audit
     entry recorded against it. For an app that argues its audit trail is the point, losing
     the audit trail to a schema change is not an acceptable upgrade path.
 

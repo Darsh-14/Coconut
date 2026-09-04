@@ -48,7 +48,7 @@ export default function Overview() {
     <div>
       <PageHeader
         title="Overview"
-        sub="Where the money is, and what Recourse would do about it."
+        sub="Where the money is, and what Coconut would do about it."
         action={
           batch ? (
             <div className="w-52">

@@ -53,7 +53,7 @@ export default function Landing() {
                 Know which chargebacks are worth fighting.
               </h1>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-[1.55] text-[var(--fg-2)]">
-                Recourse checks every piece of evidence against the bank&rsquo;s actual
+                Coconut checks every piece of evidence against the bank&rsquo;s actual
                 claim, recommends contest or accept, and abstains when the evidence
                 doesn&rsquo;t settle it.
               </p>
@@ -79,9 +79,9 @@ export default function Landing() {
         {/* --- the product, immediately -------------------------------------------- */}
         <Band tinted>
           <div className="py-14">
-            <Shot name="queue" alt="The Recourse dispute queue" priority />
+            <Shot name="queue" alt="The Coconut dispute queue" priority />
             <p className="reveal mt-4 text-[12.5px] text-[var(--fg-3)]">
-              Filtered by what Recourse concluded. Deadlines in red.
+              Filtered by what Coconut concluded. Deadlines in red.
             </p>
           </div>
         </Band>
@@ -166,7 +166,7 @@ export default function Landing() {
               URCS auto-rejects the overflow — no human involved.
             </p>
             <p>
-              Recourse forecasts that from the rules and tells you not to spend the
+              Coconut forecasts that from the rules and tells you not to spend the
               representment fee.
             </p>
           </Feature>
@@ -480,7 +480,7 @@ function Nav({ entry }: { entry: string }) {
       <div className="mx-auto flex h-14 max-w-[72rem] items-center justify-between gap-4 px-5 sm:px-8">
         <div className="flex items-center gap-2.5">
           <Mark size={26} />
-          <span className="w-bold text-[14.5px] tracking-[-0.02em]">Recourse</span>
+          <span className="w-bold text-[14.5px] tracking-[-0.02em]">Coconut</span>
         </div>
 
         <nav className="hidden items-center gap-0.5 md:flex">
@@ -767,7 +767,7 @@ function Footer({ entry }: { entry: string }) {
           <div>
             <div className="flex items-center gap-2.5">
               <Mark size={24} />
-              <span className="w-semi text-[13.5px]">Recourse</span>
+              <span className="w-semi text-[13.5px]">Coconut</span>
             </div>
             <p className="mt-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
               Explainable chargeback defence,

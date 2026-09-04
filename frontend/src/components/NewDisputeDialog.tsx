@@ -165,7 +165,7 @@ export function NewDisputeDialog({
           </div>
 
           <p className="text-[11px] leading-relaxed text-[var(--fg-3)]">
-            Filed disputes exist only inside Recourse. Like the seeded ones they can never
+            Filed disputes exist only inside Coconut. Like the seeded ones they can never
             reach Razorpay's live dispute workflow. Evidence is attached on the case page
             afterwards.
           </p>

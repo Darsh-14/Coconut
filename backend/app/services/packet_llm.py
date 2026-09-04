@@ -29,7 +29,7 @@ from typing import Optional, Sequence
 from app.config import get_settings
 from app.models.schemas import ClaimVerdict, Dispute
 
-logger = logging.getLogger("recourse.packet.llm")
+logger = logging.getLogger("coconut.packet.llm")
 
 # Preference order when discovering a Gemini model. Lite/fast variants first: this is a
 # short prose-rewriting task, not reasoning -- the reasoning already happened in the NLI

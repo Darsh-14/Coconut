@@ -34,7 +34,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.main import APP_VERSION, app as api_app
 
-logger = logging.getLogger("recourse.server")
+logger = logging.getLogger("coconut.server")
 
 # backend/app/server.py -> backend/app -> backend -> repo root -> frontend/dist
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -68,7 +68,7 @@ async def lifespan(_: FastAPI):
 
 
 site = FastAPI(
-    title="Recourse",
+    title="Coconut",
     version=APP_VERSION,
     docs_url=None,  # the API's own /api/docs is the one to use
     redoc_url=None,

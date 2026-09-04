@@ -165,7 +165,7 @@ def main() -> int:
             try:
                 link = client.create_payment_link(
                     amount_paise=dispute["amount"],
-                    description=f"Recourse test backing for {dispute_id}",
+                    description=f"Coconut test backing for {dispute_id}",
                     reference_id=f"ref_{dispute_id.rsplit('_', 1)[-1]}_{int(datetime.now().timestamp())}",
                 )
             except RazorpayError as exc:

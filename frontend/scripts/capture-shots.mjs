@@ -111,8 +111,8 @@ for (const theme of ['dark', 'light']) {
   })
   await context.addInitScript(
     ([session, chosen]) => {
-      localStorage.setItem('recourse.session', session)
-      localStorage.setItem('recourse.theme', chosen)
+      localStorage.setItem('coconut.session', session)
+      localStorage.setItem('coconut.theme', chosen)
     },
     [SESSION, theme],
   )

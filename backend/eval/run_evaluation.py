@@ -160,7 +160,7 @@ def format_report(metrics: EvalMetrics) -> str:
     return "\n".join(
         [
             "",
-            "=== Recourse evaluation (held-out set) ===",
+            "=== Coconut evaluation (held-out set) ===",
             f"  n_evaluated   : {metrics.n_evaluated}",
             f"  decided on merits: {decided}   to human: {cm['flagged_human']}"
             f"   URCS auto-resolved: {metrics.auto_resolved}",

@@ -26,7 +26,7 @@ from app.db.models import AuditLogRow, DecisionRow, DisputeRow
 from app.models.schemas import Dispute
 from app.services.razorpay_client import is_placeholder_payment_id
 
-logger = logging.getLogger("recourse.seed")
+logger = logging.getLogger("coconut.seed")
 
 WORKING_SET = BACKEND_ROOT / "data" / "synthetic_disputes.json"
 
@@ -147,7 +147,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print("Seeding Recourse database from the working set")
+    print("Seeding Coconut database from the working set")
     seed(reset=args.reset, rebase=not args.no_rebase)
     return 0
 

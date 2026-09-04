@@ -2,7 +2,7 @@
 #
 # Without this, `docker build` ships the whole working tree to the daemon — including
 # .venv and node_modules, which are hundreds of megabytes and are rebuilt inside the image
-# anyway — and `COPY backend/` would bake the developer's recourse.db into the image, so
+# anyway — and `COPY backend/` would bake the developer's coconut.db into the image, so
 # every container would start with one person's local decisions and audit trail instead of
 # seeding itself.
 

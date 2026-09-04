@@ -1,6 +1,6 @@
 """Persistence-layer tests (CLAUDE.md Section 13, phase 4).
 
-Runs against a throwaway SQLite file so the developer's recourse.db is never touched.
+Runs against a throwaway SQLite file so the developer's coconut.db is never touched.
 
 The load-bearing test is test_held_out_records_are_never_seeded: the working/held-out split
 is only meaningful if held-out records genuinely cannot reach the queue, and a structural

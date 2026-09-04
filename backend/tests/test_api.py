@@ -4,7 +4,7 @@ Section 14 requires an integration test hitting /disputes/{id}/decide against a 
 dispute and asserting a well-formed Decision comes back, plus a smoke test that /evaluate
 runs end to end and returns metrics within sane bounds.
 
-Runs against a temporary database so the developer's recourse.db is untouched. The model
+Runs against a temporary database so the developer's coconut.db is untouched. The model
 is real (not mocked) for the decide test -- mocking it would defeat the purpose of an
 integration test -- so that test is slow.
 
@@ -274,7 +274,7 @@ def test_approving_records_the_would_be_payload_and_does_not_transmit(client):
         payload = entry["would_be_razorpay_payload"]
         assert payload is not None, "a CONTEST approval must log what it would have sent"
         assert entry["submitted_to_razorpay"] is True
-        assert "NOT transmitted" in payload["_recourse_note"]
+        assert "NOT transmitted" in payload["_coconut_note"]
         assert payload["amount"] == 249900
     else:
         assert entry["would_be_razorpay_payload"] is None

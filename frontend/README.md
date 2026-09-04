@@ -1,6 +1,6 @@
-# Recourse frontend
+# Coconut frontend
 
-The reviewer interface for Recourse: dispute queue, evidence-to-verdict inspection,
+The reviewer interface for Coconut: dispute queue, evidence-to-verdict inspection,
 representment editing, append-only human actions, evaluation metrics, and the public landing
 page. It is a React 19 + TypeScript application built with Vite and Tailwind CSS.
 

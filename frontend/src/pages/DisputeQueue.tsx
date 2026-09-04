@@ -192,7 +192,7 @@ export default function DisputeQueue() {
                   <th className="px-4 py-2.5 font-normal">Claim</th>
                   <th className="px-4 py-2.5 text-right font-normal">Amount</th>
                   <th className="px-4 py-2.5 font-normal">Due</th>
-                  <th className="px-4 py-2.5 font-normal">Recourse</th>
+                  <th className="px-4 py-2.5 font-normal">Coconut</th>
                   <th className="px-4 py-2.5 font-normal">Status</th>
                 </tr>
               </thead>

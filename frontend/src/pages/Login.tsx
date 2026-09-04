@@ -40,7 +40,7 @@ export default function Login() {
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
         <Link to={paths.landing} className="focus-ring flex items-center gap-2.5 rounded">
           <Mark size={28} />
-          <span className="w-bold text-[14px] tracking-[-0.02em]">Recourse</span>
+          <span className="w-bold text-[14px] tracking-[-0.02em]">Coconut</span>
         </Link>
         <ThemeToggle compact />
       </header>

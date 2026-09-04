@@ -1,14 +1,14 @@
-# CLAUDE.md — Recourse: Explainable Chargeback Defense Copilot
+# CLAUDE.md — Coconut: Explainable Chargeback Defense Copilot
 
 ## 1. What you're building and for whom
 
-Recourse is a submission for Razorpay's AI Buildathon, Track 2 (AI Risk Manager), evaluated
+Coconut is a submission for Razorpay's AI Buildathon, Track 2 (AI Risk Manager), evaluated
 by a technical panel that is judging: does it actually work end to end, are the metrics real
 and reproducible, and is the repo clean enough that a stranger can clone it and have it
 running in under five minutes. A narrow, fully-working loop beats a broad, half-working one.
 Do not add scope beyond what's specified here.
 
-The product: a Razorpay merchant gets a payment dispute (chargeback). Recourse ingests the
+The product: a Razorpay merchant gets a payment dispute (chargeback). Coconut ingests the
 dispute, gathers the available evidence, checks each piece of evidence against the specific
 claim the bank is making, recommends CONTEST or ACCEPT with a confidence score and a full
 audit trail, drafts the representment text if contesting, and — when the evidence genuinely
@@ -71,7 +71,7 @@ before anything is treated as final.
       "amount": amount_in_paise,   # e.g. 19900 = ₹199.00
       "currency": "INR",
       "receipt": receipt_id,
-      "notes": {"purpose": "recourse-synthetic-dispute-backing"}
+      "notes": {"purpose": "coconut-synthetic-dispute-backing"}
   })
   payment = client.payment.fetch(payment_id)
   ```
@@ -98,7 +98,7 @@ before anything is treated as final.
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
 RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxx
-DATABASE_URL=sqlite:///./recourse.db
+DATABASE_URL=sqlite:///./coconut.db
 ASSUMED_REPRESENTMENT_COST_INR=1500
 ```
 
@@ -107,7 +107,7 @@ ASSUMED_REPRESENTMENT_COST_INR=1500
 ## 5. Repository structure
 
 ```
-recourse/
+Coconut/
 ├── README.md
 ├── ARCHITECTURE.md
 ├── CLAUDE.md                        (this file)

@@ -17,7 +17,7 @@
  * overstate what it knows.
  */
 
-const KEY = 'recourse.session'
+const KEY = 'coconut.session'
 
 export type Session = {
   merchant: string

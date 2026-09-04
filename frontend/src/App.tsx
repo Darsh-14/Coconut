@@ -104,7 +104,7 @@ function Sidebar() {
               className="block text-[15px] tracking-[-0.02em]"
               style={{ fontVariationSettings: "'wght' 600" }}
             >
-              Recourse
+              Coconut
             </span>
             <span className="mt-1 block text-[10.5px] tracking-[0.04em] text-[var(--fg-3)]">
               CHARGEBACK DEFENCE
@@ -161,7 +161,7 @@ function MobileBar() {
             className="text-[14px] tracking-[-0.02em]"
             style={{ fontVariationSettings: "'wght' 600" }}
           >
-            Recourse
+            Coconut
           </span>
         </NavLink>
         <div className="flex items-center gap-1">

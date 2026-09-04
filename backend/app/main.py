@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for Recourse.
+"""FastAPI application entrypoint for Coconut.
 
 Run from the ``backend/`` directory:
 
@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import ConfigError, get_settings
 
-logger = logging.getLogger("recourse")
+logger = logging.getLogger("coconut")
 
 APP_VERSION = "0.1.0"
 
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     """
     settings = get_settings()
     logger.info(
-        "Recourse starting up | razorpay_key_id=%s... | test_mode=enforced | anthropic_configured=%s",
+        "Coconut starting up | razorpay_key_id=%s... | test_mode=enforced | anthropic_configured=%s",
         settings.razorpay_key_id[:14],
         settings.anthropic_configured,
     )
@@ -68,11 +68,11 @@ async def lifespan(app: FastAPI):
     # load mid-interaction, which the UI had to apologise for. A daemon thread so a slow
     # or unreachable model hub delays nothing and blocks no shutdown; /health reports
     # whether it has finished.
-    if os.getenv("RECOURSE_SKIP_WARMUP") != "1":
+    if os.getenv("COCONUT_SKIP_WARMUP") != "1":
         threading.Thread(target=_warm_up_model, name="model-warmup", daemon=True).start()
 
     yield
-    logger.info("Recourse shutting down")
+    logger.info("Coconut shutting down")
 
 
 def _warm_up_model() -> None:
@@ -82,7 +82,7 @@ def _warm_up_model() -> None:
 
 
 app = FastAPI(
-    title="Recourse",
+    title="Coconut",
     description=(
         "Explainable chargeback defense copilot. Test-mode only; never auto-submits to "
         "Razorpay or a bank."

@@ -25,7 +25,7 @@ const browser = await chromium.launch()
 const SESSION = JSON.stringify({ merchant: 'Kettle & Grain', at: new Date().toISOString() })
 async function newPage(opts) {
   const p = await browser.newPage(opts)
-  await p.addInitScript((s) => localStorage.setItem('recourse.session', s), SESSION)
+  await p.addInitScript((s) => localStorage.setItem('coconut.session', s), SESSION)
   return p
 }
 const errors = []
@@ -194,7 +194,7 @@ await syncedTheme.close()
 
 // --- light theme still works ---------------------------------------------
 const light = await newPage({ viewport: { width: 1280, height: 900 } })
-await light.addInitScript(() => localStorage.setItem('recourse.theme', 'light'))
+await light.addInitScript(() => localStorage.setItem('coconut.theme', 'light'))
 await light.goto(`${BASE}/app/disputes`, { waitUntil: 'networkidle' })
 await light.locator('table tbody tr').first().waitFor({ timeout: 30000 })
 const lightBg = await light.evaluate(() => getComputedStyle(document.body).backgroundColor)

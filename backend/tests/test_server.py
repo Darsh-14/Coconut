@@ -110,7 +110,7 @@ def test_client_routes_serve_the_app_shell_not_json(client, path):
     [
         "/../.env",
         "/../../.env",
-        "/../backend/recourse.db",
+        "/../backend/coconut.db",
         "/..%2F.env",
         "/%2e%2e%2f.env",
     ],

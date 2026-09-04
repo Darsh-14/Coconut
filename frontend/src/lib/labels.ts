@@ -81,7 +81,7 @@ export function phaseCopy(phase: string) {
   )
 }
 
-// --- what Recourse concluded ----------------------------------------------------------
+// --- what Coconut concluded -----------------------------------------------------------
 
 interface RecommendationCopy {
   label: string

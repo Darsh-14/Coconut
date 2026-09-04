@@ -22,9 +22,9 @@ def skip_model_warmup():
     outlives its test tries to register an atexit hook during interpreter shutdown. Tests
     that need real inference get it through the engine itself.
     """
-    os.environ["RECOURSE_SKIP_WARMUP"] = "1"
+    os.environ["COCONUT_SKIP_WARMUP"] = "1"
     yield
-    os.environ.pop("RECOURSE_SKIP_WARMUP", None)
+    os.environ.pop("COCONUT_SKIP_WARMUP", None)
 
 
 @pytest.fixture(autouse=True)

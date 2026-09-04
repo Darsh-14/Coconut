@@ -327,7 +327,7 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=30, help="Records per API call (25-40).")
     args = parser.parse_args()
 
-    print(f"Recourse synthetic dispute generation (source={args.source})")
+    print(f"Coconut synthetic dispute generation (source={args.source})")
 
     if args.source == "api":
         raw = generate_via_api(args.n, args.batch_size)

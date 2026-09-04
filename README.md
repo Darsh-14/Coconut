@@ -1,6 +1,6 @@
-# Recourse — Explainable Chargeback Defense Copilot
+# Coconut — Explainable Chargeback Defense Copilot
 
-Recourse takes a payment dispute, checks each piece of evidence against the specific claim
+Coconut takes a payment dispute, checks each piece of evidence against the specific claim
 the bank is making, and recommends **CONTEST** or **ACCEPT** with a confidence score and a
 full audit trail — or says **NEEDS_HUMAN_REVIEW** when the evidence genuinely doesn't
 resolve the claim, instead of guessing. If contesting, it drafts the representment text. A
@@ -193,7 +193,7 @@ cosmetic:
 
 **The consequence is the whole idea.** On UPI rails a meaningful share of dispute outcomes
 is decided by a deterministic rules engine, not by human judgement — which makes them
-predictable *exactly*, in advance, rather than statistically. So Recourse forecasts NPCI's
+predictable *exactly*, in advance, rather than statistically. So Coconut forecasts NPCI's
 disposition before the merchant spends anything, and recommends `NO_ACTION_NEEDED` when
 URCS is expected to reject the chargeback on the merchant's behalf.
 
@@ -220,8 +220,8 @@ NPCI's rules engine did would inflate the headline number.
 **Prerequisites:** Python 3.12+ and Node 18+. Tested on Python 3.13 / Node 24.
 
 ```bash
-git clone <repo-url>
-cd recourse
+git clone https://github.com/Darsh-14/Coconut.git
+cd Coconut
 cp .env.example .env
 ```
 
@@ -313,7 +313,7 @@ Before pushing a copy to a Space, prepend this configuration to the Space's root
 
 ```yaml
 ---
-title: Recourse
+title: Coconut
 sdk: docker
 app_port: 8000
 models:
@@ -324,7 +324,7 @@ models:
 Compose volumes do not transfer to Spaces. Its default disk is ephemeral, so persistence
 requires a [Storage Bucket](https://huggingface.co/docs/hub/en/storage-buckets) mounted at
 `/data`, with `HF_HOME=/data/models` and
-`DATABASE_URL=sqlite:////data/recourse.db`. The container runs as UID 1000 to match the
+`DATABASE_URL=sqlite:////data/coconut.db`. The container runs as UID 1000 to match the
 documented Docker Spaces convention for writable mounted storage.
 
 Three things to decide before putting this on a public URL, none of them blockers but none
@@ -386,7 +386,7 @@ security.
 | **Landing** (`/`) | What this is, what it measured, and what it deliberately will not do |
 | **Sign in** (`/login`) | The front door. Pre-filled; any credentials continue |
 | **Overview** | Money at stake, what closes soonest, what is worth contesting, exposure by dispute type |
-| **Disputes** | The queue — filter by what Recourse concluded, sort by deadline or value |
+| **Disputes** | The queue — filter by what Coconut concluded, sort by deadline or value |
 | **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
 | **Performance** | The held-out evaluation, re-runnable live |
 

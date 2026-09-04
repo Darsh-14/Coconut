@@ -3,8 +3,8 @@ import { useSyncExternalStore } from 'react'
 
 type Theme = 'dark' | 'light'
 
-const STORAGE_KEY = 'recourse.theme'
-const THEME_EVENT = 'recourse:theme-change'
+const STORAGE_KEY = 'coconut.theme'
+const THEME_EVENT = 'coconut:theme-change'
 
 function currentTheme(): Theme {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'

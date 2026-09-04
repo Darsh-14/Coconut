@@ -1,5 +1,5 @@
 /**
- * Typed client for the Recourse API.
+ * Typed client for the Coconut API.
  *
  * Types mirror backend/app/models/schemas.py (CLAUDE.md Section 6). All requests go to
  * relative /api/* paths, which the Vite dev server proxies to the backend, so no base-URL

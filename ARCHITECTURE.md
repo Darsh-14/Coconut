@@ -1,6 +1,6 @@
 # Architecture
 
-How Recourse is put together, and — more usefully — what didn't work and what the numbers
+How Coconut is put together, and — more usefully — what didn't work and what the numbers
 said. Every figure here was measured on this repo, not estimated.
 
 ---

@@ -188,7 +188,7 @@ def test_build_contest_payload_shape():
     assert payload["amount"] == 249900
     assert payload["summary"] == "The evidence establishes delivery."
     assert payload["shipping_proof"] == ["pod_123", "otp_456"]
-    assert "NOT transmitted" in payload["_recourse_note"]
+    assert "NOT transmitted" in payload["_coconut_note"]
 
 
 def test_build_contest_payload_handles_no_evidence_refs():

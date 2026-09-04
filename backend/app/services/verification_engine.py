@@ -84,7 +84,7 @@ import numpy as np
 
 from app.models.schemas import ClaimVerdict, EvidenceItem, VerdictLabel
 
-logger = logging.getLogger("recourse.verification")
+logger = logging.getLogger("coconut.verification")
 
 MODEL_NAME = "cross-encoder/nli-deberta-v3-base"
 # Pin the exact weights used for the recorded evaluation. A model repository name alone

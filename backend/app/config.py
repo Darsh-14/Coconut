@@ -55,7 +55,7 @@ class Settings:
         # accepting unsigned ones -- an unauthenticated write path into the queue would be
         # a way for anyone who can reach the port to inject disputes.
         self.razorpay_webhook_secret: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
-        self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./recourse.db").strip()
+        self.database_url: str = os.getenv("DATABASE_URL", "sqlite:///./coconut.db").strip()
         self.assumed_representment_cost_inr: float = self._float_env(
             "ASSUMED_REPRESENTMENT_COST_INR", default=1500.0
         )
@@ -112,7 +112,7 @@ class Settings:
             raise ConfigError(
                 "REFUSING TO START: RAZORPAY_KEY_ID must be a test-mode key beginning with "
                 f"{TEST_MODE_KEY_PREFIX!r}, but it begins with "
-                f"{self.razorpay_key_id[:8]!r}. Recourse is a test-mode-only system "
+                f"{self.razorpay_key_id[:8]!r}. Coconut is a test-mode-only system "
                 "(see CLAUDE.md Section 2, hard constraint 1); it never talks to Razorpay live."
             )
 

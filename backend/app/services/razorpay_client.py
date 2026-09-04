@@ -32,12 +32,12 @@ import razorpay
 
 from app.config import Settings, get_settings
 
-logger = logging.getLogger("recourse.razorpay")
+logger = logging.getLogger("coconut.razorpay")
 
 # Synthetic dispute ids are minted by data/generate_synthetic_disputes.py with this prefix.
 SYNTHETIC_DISPUTE_PREFIX = "disp_synthetic_"
 # Disputes filed by hand through POST /disputes. Like synthetic ones these exist only
-# inside Recourse; may_reach_razorpay() blocks both, and everything else, from the network.
+# inside Coconut; may_reach_razorpay() blocks both, and everything else, from the network.
 MANUAL_DISPUTE_PREFIX = "disp_manual_"
 # Placeholder payment ids, before phase-2 backfill.
 PENDING_PAYMENT_PREFIX = "pay_PENDING_"
@@ -125,7 +125,7 @@ class RazorpayClient:
             "amount": amount_paise,
             "currency": "INR",
             "receipt": receipt,
-            "notes": {"purpose": "recourse-synthetic-dispute-backing"},
+            "notes": {"purpose": "coconut-synthetic-dispute-backing"},
         }
         logger.info("order.create %s", payload)
         try:
@@ -170,7 +170,7 @@ class RazorpayClient:
             "currency": "INR",
             "description": description[:2048],
             "reference_id": reference_id,
-            "notes": {"purpose": "recourse-synthetic-dispute-backing"},
+            "notes": {"purpose": "coconut-synthetic-dispute-backing"},
         }
         logger.info("payment_link.create %s", payload)
         try:
@@ -301,8 +301,8 @@ def build_contest_payload(
         "summary": packet_text,
         "shipping_proof": evidence_refs or None,
         "action": "submit",
-        "_recourse_note": (
-            f"Representment drafted by Recourse for {dispute_id}. Human-approved. "
+        "_coconut_note": (
+            f"Representment drafted by Coconut for {dispute_id}. Human-approved. "
             "NOT transmitted: the dispute is synthetic."
         ),
     }

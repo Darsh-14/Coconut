@@ -82,14 +82,14 @@ export function BackingPayment({
         amount: order.amount,
         currency: order.currency,
         order_id: order.order_id,
-        name: 'Recourse',
+        name: 'Coconut',
         description: order.description,
         // Both paths ask the server what actually happened rather than trusting the
         // browser: success may still need confirming, and a dismissal may follow a
         // payment that did go through.
         handler: () => void settle().finally(() => setBusy(false)),
         modal: { ondismiss: () => void settle().finally(() => setBusy(false)) },
-        notes: { purpose: 'recourse-synthetic-dispute-backing', dispute_id: disputeId },
+        notes: { purpose: 'coconut-synthetic-dispute-backing', dispute_id: disputeId },
         theme: { color: '#4f46e5' },
       })
       checkout.open()

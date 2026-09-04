@@ -13,7 +13,7 @@ import './index.css'
 //
 // Applied before first paint, because a light flash on a dark-first product is the most
 // visible bug a theme can have.
-const stored = localStorage.getItem('recourse.theme')
+const stored = localStorage.getItem('coconut.theme')
 document.documentElement.dataset.theme = stored === 'light' ? 'light' : 'dark'
 
 createRoot(document.getElementById('root')!).render(

@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Kept in the console so the stack survives for whoever is debugging: the panel below
     // deliberately shows the message only, not a component trace.
-    console.error('Recourse crashed while rendering:', error, info.componentStack)
+    console.error('Coconut crashed while rendering:', error, info.componentStack)
   }
 
   render() {

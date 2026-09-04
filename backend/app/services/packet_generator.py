@@ -27,7 +27,7 @@ from typing import Optional, Sequence
 
 from app.models.schemas import ClaimVerdict, Dispute
 
-logger = logging.getLogger("recourse.packet")
+logger = logging.getLogger("coconut.packet")
 
 # Human-readable names for evidence types, for the drafted prose.
 EVIDENCE_TYPE_LABELS: dict[str, str] = {
@@ -146,7 +146,7 @@ def build_template_packet(
         [
             "",
             "---",
-            "Drafted by Recourse for human review. Not submitted to any party until a "
+            "Drafted by Coconut for human review. Not submitted to any party until a "
             "reviewer approves it.",
         ]
     )

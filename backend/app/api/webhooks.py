@@ -45,7 +45,7 @@ from app.db.database import get_session
 from app.db.models import DisputeRow
 from app.services.razorpay_client import is_placeholder_payment_id
 
-logger = logging.getLogger("recourse.webhooks")
+logger = logging.getLogger("coconut.webhooks")
 
 router = APIRouter()
 

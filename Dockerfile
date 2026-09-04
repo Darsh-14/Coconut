@@ -1,4 +1,4 @@
-# Recourse — one image, one process, one port.
+# Coconut — one image, one process, one port.
 #
 # The frontend is built in a Node stage and copied into the Python runtime, which serves it
 # alongside the API (see backend/app/server.py for why they are composed rather than
@@ -55,10 +55,10 @@ COPY --from=frontend /build/dist ./frontend/dist
 
 # Run as a non-root user. UID 1000 also matches Hugging Face Docker Spaces' documented
 # mounted-volume convention, so an attached model/database bucket remains writable.
-RUN useradd --create-home --uid 1000 recourse \
+RUN useradd --create-home --uid 1000 coconut \
     && mkdir -p /models \
-    && chown -R recourse:recourse /srv /models
-USER recourse
+    && chown -R coconut:coconut /srv /models
+USER coconut
 
 WORKDIR /srv/backend
 EXPOSE 8000

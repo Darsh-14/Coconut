@@ -33,7 +33,7 @@ from app.services.conformal_calibrator import get_active_calibrated_threshold
 from app.services.urcs_forecaster import forecast_urcs_disposition
 from app.services.verification_engine import MODEL_VERSION
 
-logger = logging.getLogger("recourse.aggregator")
+logger = logging.getLogger("coconut.aggregator")
 
 # ``None`` is a meaningful threshold: calibration found no supported operating point and
 # the model must defer. A sentinel lets a caller freeze that value for one decision rather

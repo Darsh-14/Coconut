@@ -80,7 +80,7 @@ from app.services.razorpay_client import (
 )
 from app.services.verification_engine import get_verification_engine
 
-logger = logging.getLogger("recourse.api")
+logger = logging.getLogger("coconut.api")
 
 router = APIRouter()
 
@@ -855,7 +855,7 @@ def export_packet(
         "",
         "-" * 72,
         "",
-        "Drafted by Recourse. This dispute is synthetic and was never transmitted to "
+        "Drafted by Coconut. This dispute is synthetic and was never transmitted to "
         "Razorpay or any bank (CLAUDE.md Section 7). Exporting is not proof of human "
         "approval; the audit log records approval separately, and the system never "
         "submits on its own.",
@@ -952,7 +952,7 @@ def create_backing_order(
                 amount=order["amount"],
                 currency=order["currency"],
                 key_id=settings.razorpay_key_id,
-                description=f"Recourse backing for {dispute_id}",
+                description=f"Coconut backing for {dispute_id}",
                 reused=True,
             )
         except RazorpayError:
@@ -972,7 +972,7 @@ def create_backing_order(
         amount=order["amount"],
         currency=order["currency"],
         key_id=settings.razorpay_key_id,
-        description=f"Recourse backing for {dispute_id}",
+        description=f"Coconut backing for {dispute_id}",
         reused=False,
     )
 

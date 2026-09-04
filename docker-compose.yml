@@ -5,7 +5,7 @@
 # parts to a setup whose whole claim is that a stranger can clone and run it in minutes.
 
 services:
-  recourse:
+  coconut:
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,14 +17,14 @@ services:
       # Anchored inside the named volume so the queue, decisions and audit trail survive
       # `docker compose down`. Left at the default it would live in the container's
       # writable layer and vanish with it.
-      DATABASE_URL: sqlite:////data/recourse.db
+      DATABASE_URL: sqlite:////data/coconut.db
     volumes:
       # The NLI model is ~750MB and is downloaded on first start. Named, so it is fetched
       # once for the life of the volume rather than on every rebuild.
       - model-cache:/models
-      - recourse-data:/data
+      - coconut-data:/data
     restart: unless-stopped
 
 volumes:
   model-cache:
-  recourse-data:
+  coconut-data:

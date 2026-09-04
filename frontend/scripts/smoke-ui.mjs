@@ -23,7 +23,7 @@ const browser = await chromium.launch()
 const SESSION = JSON.stringify({ merchant: 'Kettle & Grain', at: new Date().toISOString() })
 async function newPage(opts) {
   const p = await browser.newPage(opts)
-  await p.addInitScript((s) => localStorage.setItem('recourse.session', s), SESSION)
+  await p.addInitScript((s) => localStorage.setItem('coconut.session', s), SESSION)
   return p
 }
 const page = await newPage({ viewport: { width: 1440, height: 1000 } })
@@ -174,7 +174,7 @@ log('5. EVALUATION live results rendered')
 await page.screenshot({ path: `${SHOTS}/5-metrics.png`, fullPage: true })
 
 // --- 6. dark theme -------------------------------------------------------
-await page.evaluate(() => localStorage.setItem('recourse.theme', 'dark'))
+await page.evaluate(() => localStorage.setItem('coconut.theme', 'dark'))
 await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
 await page.screenshot({ path: `${SHOTS}/6-overview-dark.png` })
