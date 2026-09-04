@@ -96,7 +96,7 @@ export default function DisputeQueue() {
       )}
       <PageHeader
         title="Disputes"
-        sub={`${stats.total} open. Contesting costs ₹1,500 a case, win or lose.`}
+        sub={`${stats.total} open disputes`}
         action={
           batch ? (
             <div className="w-full sm:w-52" aria-live="polite">

@@ -109,9 +109,6 @@ function Sidebar() {
             >
               Coconut
             </span>
-            <span className="mt-1 block text-[10.5px] tracking-[0.04em] text-[var(--fg-3)]">
-              CHARGEBACK DEFENCE
-            </span>
           </span>
         </NavLink>
 

@@ -50,7 +50,7 @@ export default function Overview() {
     <div>
       <PageHeader
         title="Overview"
-        sub="Where the money is, and what Coconut would do about it."
+        sub="Where the money is."
         action={
           batch ? (
             <div className="w-full sm:w-52" aria-live="polite">
@@ -276,11 +276,7 @@ function ExposureByReason({
 
 /**
  * The recorded held-out result. Figures come from lib/headline.ts rather than literals,
- * because this card previously showed 62.5% / 21.5% under "Last recorded run" -- Section
- * 10's hand-picked thresholds, not the calibrated ones the system ships -- while claiming
- * in its own docstring to match the README and the Performance page. It did not, and a
- * reviewer crossing from the landing page would have caught the product disagreeing with
- * itself about its own accuracy.
+ * so the Overview, landing page and Performance page cannot drift independently.
  */
 function ModelCard({ onOpen }: { onOpen: () => void }) {
   return (

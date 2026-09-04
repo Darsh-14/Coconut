@@ -82,19 +82,11 @@ export default function Login() {
               </button>
             </form>
 
-            {/* The honest label. A demo that implied it authenticated would be a small lie
-                inside a product whose whole argument is that it does not overstate what it
-                knows — so it is stated here rather than left to be discovered. */}
             <div
               className="mt-4 rounded-[var(--radius-control)] border p-4 text-[12.5px] leading-[1.6] text-[var(--fg-2)]"
               style={{ borderColor: 'var(--line)', background: 'var(--surface-2)' }}
             >
-              <span className="w-semi text-[var(--fg)]">
-                A front door, not an account system.
-              </span>{' '}
-              Single-merchant demo, so authentication is deliberately out of scope. The
-              fields are pre-filled, any value continues, and no API route is protected by
-              this screen.
+              Demo mode: the fields are pre-filled and no account system is enforced.
             </div>
 
             <Link

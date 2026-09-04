@@ -78,29 +78,31 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
 export function Mark({ size = 32 }: { size?: number }) {
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-[9px]"
+      className="grid shrink-0 place-items-center"
       style={{
         width: size,
         height: size,
-        background:
-          'linear-gradient(160deg, var(--fg) 0%, color-mix(in srgb, var(--fg) 78%, var(--accent)) 100%)',
-        color: 'var(--bg)',
       }}
     >
-      <svg viewBox="0 0 24 24" style={{ width: size * 0.56, height: size * 0.56 }} fill="none" aria-hidden="true">
-        <path
-          d="M12 3.2l6.8 2.9v5.2c0 4-2.8 7.4-6.8 8.7-4-1.3-6.8-4.7-6.8-8.7V6.1L12 3.2z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M9.2 12.1l2.1 2.1 4.1-4.3"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg
+        viewBox="0 0 64 64"
+        style={{ width: size * 0.94, height: size * 0.94 }}
+        fill="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id="coconut-cutout">
+            <path d="M14 33C14 20 22 10 33 10c11 0 18 9 18 22 0 12-8 21-19 21-11 0-18-8-18-20Z" />
+          </clipPath>
+        </defs>
+        <path d="M25 17C28 10 35 7 43 8c-2 6-7 11-14 12" fill="#111" />
+        <path d="M14 33C14 20 22 10 33 10c11 0 18 9 18 22 0 12-8 21-19 21-11 0-18-8-18-20Z" fill="#111" />
+        <g clipPath="url(#coconut-cutout)">
+          <path d="M18 14h37v42H18z" fill="#000" opacity="0.15" />
+          <path d="M22 12c-2 14-1 29 5 43M31 10c-1 17 1 32 6 45M41 11c-1 17 2 30 7 41" stroke="#fff" strokeWidth="1.5" opacity="0.3" />
+          <path d="M15 35c7 4 15 5 23 3 6-1 11-4 16-8v21H15Z" fill="#000" opacity="0.45" />
+        </g>
+        <path d="M24 29c1-7 5-11 10-11 6 0 10 5 10 12 0 7-4 12-10 12-6 0-11-5-10-13Z" fill="#fff" />
       </svg>
     </span>
   )

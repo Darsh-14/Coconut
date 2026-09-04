@@ -11,8 +11,8 @@ import { BASELINES, RECORDED } from '../lib/headline'
  * never as a live one. Same figures as README.md's results table.
  */
 const REFERENCE = {
-  section10: BASELINES.section10,
-  heldOut: { precision: RECORDED.precision, coverage: RECORDED.coverage },
+  ungated: BASELINES.ungatedCurrent,
+  current: { precision: RECORDED.precision, coverage: RECORDED.coverage },
   naive: BASELINES.naive,
 }
 
@@ -49,12 +49,14 @@ export default function MetricsDashboard() {
   const shown = metrics ?? LAST_RUN
   const cm = shown.confusion_matrix
   const isLive = metrics !== null
+  const modelDecisions = cm.tp + cm.fp + cm.fn + cm.tn
+  const selectiveAccuracy = modelDecisions ? (cm.tp + cm.tn) / modelDecisions : 0
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Performance"
-        sub="79 synthetic held-out disputes. Contest is the positive class; support and coverage matter alongside precision."
+        sub={`${RECORDED.nEvaluated} held-out disputes`}
         action={
           <Button variant="primary" onClick={run} disabled={running}>
             {running ? 'Running…' : metrics ? 'Run again' : 'Run evaluation'}
@@ -85,16 +87,21 @@ export default function MetricsDashboard() {
       <Surface className="overflow-hidden">
         <div className="px-5 pb-1 pt-4">
           <h2 className="text-[13px]" style={{ fontVariationSettings: "'wght' 590" }}>
-            Recorded baseline comparison
+            Current gate versus baselines
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
-            Same synthetic held-out set and zero-shot model; this reference predates the
-            optional learned safety gate used by a live run.
+            The learned gate removes risky CONTEST calls from the same regenerated synthetic
+            held-out run. Higher precision therefore needs to be read with lower coverage.
           </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
-          <Compare label="Risk budget" sub="prototype threshold" {...REFERENCE.heldOut} highlight />
-          <Compare label="Section 10" sub="hand-picked 0.7 / 0.65" {...REFERENCE.section10} />
+          <Compare
+            label="Current gate"
+            sub={`${RECORDED.matrix.tp} / ${RECORDED.contestSupport} contests; small support`}
+            {...REFERENCE.current}
+            highlight
+          />
+          <Compare label="Ungated NLI" sub="same regenerated split" {...REFERENCE.ungated} />
           <Compare label="Naive engine" sub="rejected" {...REFERENCE.naive} warn />
         </div>
         <p
@@ -117,7 +124,7 @@ export default function MetricsDashboard() {
             {isLive ? 'Live run, just now' : 'Last recorded run'}
           </p>
         </div>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <Metric
               label="Precision"
               value={formatPercent(shown.precision)}
@@ -130,9 +137,14 @@ export default function MetricsDashboard() {
             />
             <Metric label="F1" value={formatPercent(shown.f1)} sub="the two balanced" />
             <Metric
+              label="Selective accuracy"
+              value={formatPercent(selectiveAccuracy)}
+              sub={`${cm.tp + cm.tn} of ${modelDecisions} model decisions`}
+            />
+            <Metric
               label="Model coverage"
               value={formatPercent(shown.coverage)}
-              sub={`decides ${shown.n_evaluated - cm.flagged_human - shown.auto_resolved} of ${shown.n_evaluated} on the merits`}
+              sub={`decides ${modelDecisions} of ${shown.n_evaluated} on the merits`}
             />
           </div>
 

@@ -15,7 +15,7 @@ import {
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mark, ThemeToggle } from '../components/ThemeToggle'
-import { HEADLINE } from '../lib/headline'
+import { HEADLINE, RECORDED } from '../lib/headline'
 import { paths } from '../lib/routes'
 import { isSignedIn } from '../lib/session'
 
@@ -53,9 +53,8 @@ export default function Landing() {
                 Know which chargebacks are worth fighting.
               </h1>
               <p className="mt-6 max-w-[46ch] text-[16px] leading-[1.55] text-[var(--fg-2)]">
-                Coconut checks every piece of evidence against the bank&rsquo;s actual
-                claim, recommends contest or accept, and abstains when the evidence
-                doesn&rsquo;t settle it.
+                Coconut checks the evidence against the bank&rsquo;s claim and only contests
+                when the case is clear.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-2.5">
@@ -64,7 +63,11 @@ export default function Landing() {
               </div>
 
               <div className="mt-11 flex flex-wrap gap-x-10 gap-y-5">
-                <Stat value={HEADLINE.precision} label="precision" tone="var(--win)" />
+                <Stat
+                  value={HEADLINE.precision}
+                  label={`observed precision · ${RECORDED.contestSupport} contests`}
+                  tone="var(--win)"
+                />
                 <Stat value={HEADLINE.coverage} label="model coverage" tone="var(--warn)" />
                 <Stat value={String(HEADLINE.nEvaluated)} label="held-out records" />
               </div>
@@ -81,7 +84,7 @@ export default function Landing() {
           <div className="py-14">
             <Shot name="queue" alt="The Coconut dispute queue" priority />
             <p className="reveal mt-4 text-[12.5px] text-[var(--fg-3)]">
-              Filtered by what Coconut concluded. Deadlines in red.
+              Disputes sorted by outcome and urgency.
             </p>
           </div>
         </Band>
@@ -91,43 +94,43 @@ export default function Landing() {
           <Section title="What&rsquo;s inside">
             <Group label="Decide">
               <Card icon={<Cpu size={16} strokeWidth={1.7} />} title="Verification engine">
-                Two signals per item: does it engage the claim, does it substantiate.
+                Two checks per item: does it address the claim, and does it prove it.
               </Card>
               <Card icon={<Scale size={16} strokeWidth={1.7} />} title="Decision aggregator">
-                A readable conditional. Confidence is the minimum, never the average.
+                Clear rules, with a weakest-link confidence check.
               </Card>
               <Card icon={<Gauge size={16} strokeWidth={1.7} />} title="Risk-budget calibration">
-                A development threshold derived from a stated budget, not picked by hand.
+                Choose the error budget and let the threshold follow.
               </Card>
               <Card icon={<FileSearch size={16} strokeWidth={1.7} />} title="Span explainability">
-                The exact sentence that drove each verdict, highlighted inline.
+                The exact sentence that drove the call is highlighted inline.
               </Card>
             </Group>
 
             <Group label="India-native rails" cols={3}>
               <Card icon={<Landmark size={16} strokeWidth={1.7} />} title="URCS forecast">
-                Predicts NPCI auto-rejection before a dispute reaches you.
+                Predicts NPCI auto-rejection before you act.
               </Card>
               <Card icon={<Wallet size={16} strokeWidth={1.7} />} title="Dispute budget">
-                Rolling 30-day counts against the CD1 and CD2 caps.
+                30-day counts against the CD1 and CD2 caps.
               </Card>
               <Card icon={<ShieldCheck size={16} strokeWidth={1.7} />} title="Dated provenance">
-                Every rule carries the date it was checked against the circulars.
+                Rules carry the date they were checked against NPCI circulars.
               </Card>
             </Group>
 
             <Group label="Operate">
               <Card icon={<ListChecks size={16} strokeWidth={1.7} />} title="Dispute queue">
-                Deadlines, rails, and what the engine concluded.
+                Deadlines, rails, and the current assessment.
               </Card>
               <Card icon={<PenLine size={16} strokeWidth={1.7} />} title="Representment drafting">
-                Rewrites prose for a decision already made. Cannot change it.
+                Drafts the packet after the decision is already made.
               </Card>
               <Card icon={<ClipboardCheck size={16} strokeWidth={1.7} />} title="Audit trail">
-                Every decision replayable, with the payload that was never sent.
+                Every decision is logged and replayable.
               </Card>
               <Card icon={<Radio size={16} strokeWidth={1.7} />} title="Signed webhooks">
-                Verified against the raw body. Fails closed without a secret.
+                Raw-body validation with a fail-closed default.
               </Card>
             </Group>
           </Section>
@@ -142,12 +145,11 @@ export default function Landing() {
             alt="The risk budget dial showing calibrated threshold, coverage and observed contest-error rate"
           >
             <p>
-              Say the most errors among auto-contested cases you&rsquo;ll accept. It calibrates its own
-              threshold and tells you what that costs in coverage.
+              Set the maximum contest-error rate you can tolerate, then let the system pick the
+              threshold and report the coverage trade-off.
             </p>
             <p>
-              When a budget isn&rsquo;t achievable, it says so instead of falling back to a
-              default.
+              If the budget is not achievable, it says so instead of hiding behind a default.
             </p>
           </Feature>
         </Band>
@@ -162,12 +164,11 @@ export default function Landing() {
             flip
           >
             <p>
-              NPCI caps disputes at 10 per customer and 5 per payer-payee every 30 days.
-              URCS auto-rejects the overflow — no human involved.
+              NPCI caps UPI disputes at a fixed rate over 30 days. URCS auto-rejects the
+              overflow without a human step.
             </p>
             <p>
-              Coconut forecasts that from the rules and tells you not to spend the
-              representment fee.
+              Coconut forecasts that outcome and tells you when the representment fee is not worth it.
             </p>
           </Feature>
         </Band>
@@ -191,26 +192,26 @@ export default function Landing() {
                   <Row
                     tone="var(--win)"
                     name="CONTEST"
-                    trigger="All verdicts support, above the calibrated threshold, two evidence types or more."
-                    action="Edit the draft, approve it."
+                    trigger="All support verdicts clear the threshold and use at least two evidence types."
+                    action="Approve the draft."
                   />
                   <Row
                     tone="var(--risk)"
                     name="ACCEPT"
-                    trigger="Evidence contradicts your own position at or above the threshold."
-                    action="Concede. Fighting loses twice."
+                    trigger="The evidence is against the merchant at or above threshold."
+                    action="Concede it."
                   />
                   <Row
                     tone="var(--warn)"
                     name="NEEDS_HUMAN_REVIEW"
-                    trigger="Anything else — including a risk budget this data cannot support."
-                    action="Decide it yourself. Roughly two cases in three."
+                    trigger="The case stays ambiguous or the chosen risk budget cannot support it."
+                    action="Review manually."
                   />
                   <Row
                     tone="var(--fg-3)"
                     name="NO_ACTION_NEEDED"
-                    trigger="URCS is forecast to auto-reject under CD1 or CD2."
-                    action="Nothing."
+                    trigger="URCS is likely to auto-reject under CD1 or CD2."
+                    action="Do nothing."
                   />
                 </tbody>
               </table>
@@ -220,7 +221,7 @@ export default function Landing() {
 
         {/* --- developers ----------------------------------------------------------- */}
         <Band tinted id="developers">
-          <Section title="For developers" sub="Every screen is this API and nothing else.">
+          <Section title="For developers" sub="API-first, no hidden state.">
             <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
               <ul className="reveal space-y-2.5">
                 {[
@@ -292,12 +293,12 @@ export default function Landing() {
                 <table className="w-full text-left text-[12.5px]">
                   <tbody className="divide-y divide-[var(--line)]">
                     {[
-                      ['TP', 9, 'CONTEST, and it was winnable'],
-                      ['FP', 4, 'CONTEST, and it was not'],
-                      ['FN', 3, 'ACCEPT, but it was winnable'],
-                      ['TN', 7, 'ACCEPT, correctly'],
-                      ['Human', 51, 'deferred rather than guessed'],
-                      ['URCS', 5, 'resolved by NPCI rules'],
+                      ['TP', RECORDED.matrix.tp, 'CONTEST, and it was winnable'],
+                      ['FP', RECORDED.matrix.fp, 'CONTEST, and it was not'],
+                      ['FN', RECORDED.matrix.fn, 'ACCEPT, but it was winnable'],
+                      ['TN', RECORDED.matrix.tn, 'ACCEPT, correctly'],
+                      ['Human', RECORDED.matrix.flagged_human, 'deferred rather than guessed'],
+                      ['URCS', RECORDED.autoResolved, 'resolved by NPCI rules'],
                     ].map(([key, count, meaning]) => (
                       <tr key={String(key)}>
                         <td className="num px-4 py-2.5 text-[var(--fg-3)]">{key}</td>
@@ -313,17 +314,18 @@ export default function Landing() {
 
               <div className="reveal space-y-4 text-[13px] leading-[1.65] text-[var(--fg-2)]">
                 <p>
-                  The model decides 23 cases on their evidence; 51 go to a person, and 5
-                  are resolved separately by NPCI rules. Those paths stay explicit.
+                  The model decides{' '}
+                  {RECORDED.nEvaluated - RECORDED.matrix.flagged_human - RECORDED.autoResolved}{' '}
+                  cases on the evidence; {RECORDED.matrix.flagged_human} are deferred and{' '}
+                  {RECORDED.autoResolved} are resolved by NPCI rules.
                 </p>
                 <p>
                   <span className="w-semi text-[var(--fg)]">
-                    The number that validates the work isn&rsquo;t the precision.
+                    The point is not just precision.
                   </span>{' '}
-                  It&rsquo;s that the set every threshold was tuned on and the set opened
-                  once, at the end, scored within a whisker of each other. The naive
-                  single-signal engine scored <span className="num">0.481</span> — worse
-                  than a coin flip, and inverted.
+                  It is that the held-out score stays stable without pretending the model can
+                  decide everything. The naive single-signal engine scored{' '}
+                  <span className="num">0.481</span> and was inverted.
                 </p>
                 <p className="text-[12px] text-[var(--fg-3)]">
                   False-positive cost at this operating point: ₹
@@ -339,31 +341,24 @@ export default function Landing() {
           <Section title="Questions you should ask">
             <div className="reveal grid gap-x-12 lg:grid-cols-2">
               <Faq q="Are these real Razorpay disputes?">
-                No. Test mode cannot fabricate a chargeback, so the dispute records are
-                generated. The payment underneath one is a real test-mode payment.
+                No. The dispute records are generated and the payment underneath is a real
+                test-mode payment.
               </Faq>
               <Faq q="Does it ever submit to Razorpay or a bank?">
-                Never. It builds the payload, logs it as &ldquo;would submit&rdquo;, and
-                stops. Enforced in two places, tested in both.
+                Never. It logs the payload as a would-submit action and stops.
               </Faq>
               <Faq q="Why isn't the decision an LLM?">
-                Determinism and cost. A local cross-encoder gives the same answer every time
-                and is free at evaluation scale. An LLM only rewrites prose afterwards.
+                Determinism and cost. A local cross-encoder is free to run at scale and gives
+                the same answer every time.
               </Faq>
               <Faq q="Is the sign-in real authentication?">
-                No, deliberately — single-merchant demo. Any credentials continue, nothing is
-                stored, and no API route is protected by it.
+                No. It is a single-merchant demo with pre-filled fields and no protected API.
               </Faq>
               <Faq q="What does the risk check show?">
-                It reports whether the observed contest-error rate on the cached test split
-                fell below the chosen budget. Because this prototype reuses development data
-                and tests several thresholds without a multiplicity correction, it is not a
-                formal finite-sample or deployment guarantee.
+                It shows whether the observed contest-error rate stayed under the chosen budget.
               </Faq>
               <Faq q="What did calibration reveal?">
-                That the tightest budget this data supports is about 71% — not a useful
-                promise. It didn&rsquo;t fix the model; it made the ceiling impossible to
-                hide.
+                That the tightest budget this data supports is not a strong operational promise.
               </Faq>
             </div>
           </Section>
@@ -374,7 +369,7 @@ export default function Landing() {
           <div className="reveal py-20 text-center">
             <h2 className="w-display text-[30px] leading-tight">See it decide a case end to end.</h2>
             <p className="mx-auto mt-3 max-w-[38ch] text-[13.5px] text-[var(--fg-2)]">
-              182 disputes are seeded and waiting.
+              The seeded queue is ready to review.
             </p>
             <div className="mt-7 flex justify-center">
               <Primary to={entry} large>
