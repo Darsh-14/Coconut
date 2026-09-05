@@ -200,12 +200,6 @@ export default function DisputeQueue() {
         </div>
       </div>
 
-      {!loading && !error && visible.length > 0 && (
-        <p className="mb-2 text-[11.5px] text-[var(--fg-3)]" aria-live="polite">
-          {visible.length} {visible.length === 1 ? 'dispute' : 'disputes'} in this view
-        </p>
-      )}
-
       <Surface className="overflow-hidden">
         {error ? (
           <EmptyState

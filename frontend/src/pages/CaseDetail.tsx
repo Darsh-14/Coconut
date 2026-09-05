@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { api, countdownTo, formatInr, parseApiDate, type DisputeDetail } from '../api/client'
 import { AuditTrail } from '../components/AuditTrail'
 import { BackingPayment } from '../components/BackingPayment'
+import { useDemo } from '../lib/demo'
 import { EvidenceClaimMap, EvidenceSummary } from '../components/EvidenceClaimMap'
 import { PhaseBadge, RecommendationBanner, StatusBadge } from '../components/ConfidenceBadge'
 import { UrcsBudgetStrip } from '../components/UrcsBudgetStrip'
@@ -13,6 +14,7 @@ import { Badge, Button, Progress, Segmented, Skeleton, Surface } from '../compon
 type Tab = 'evidence' | 'packet' | 'audit'
 
 export default function CaseDetail() {
+  const demo = useDemo()
   const { disputeId = '' } = useParams()
   const [detail, setDetail] = useState<DisputeDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -355,9 +357,6 @@ export default function CaseDetail() {
             {tab === 'packet' && isContest && (
               <Surface className="p-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-[12px] text-[var(--fg-3)]">
-                    Written from the verdicts. Your edits are what get logged.
-                  </p>
                   <span className="flex items-center gap-3">
                     {(draftState !== 'idle' || packet !== savedPacket) && (
                       <span className="text-[11px] text-[var(--fg-3)]" aria-live="polite">
@@ -431,7 +430,7 @@ export default function CaseDetail() {
             </dl>
           </Surface>
 
-          {!detail.payment_is_real && (
+          {!detail.payment_is_real && !demo && (
             <Surface className="p-4">
               <p className="mb-2.5 text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
                 Backing payment

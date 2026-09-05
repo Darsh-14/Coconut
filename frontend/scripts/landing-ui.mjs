@@ -120,8 +120,8 @@ check(page.url().endsWith('/login'), 'unauthenticated deep link redirects to /lo
 // --- 3. sign in ---------------------------------------------------------------------
 check(await page.getByRole('heading', { name: 'Open demo workspace' }).isVisible(), 'demo entry is explicit')
 check(await page.locator('input[type="password"]').count() === 0, 'demo does not collect a password')
-check((await page.locator('body').innerText()).includes('No server authentication'),
-      'demo entry states the authentication limitation')
+check((await page.locator('body').innerText()).includes('No account or password is required'),
+      'demo entry explains that credentials are not required')
 await page.locator('button[type=submit]').click()
 await page.waitForURL('**/app/disputes', { timeout: 5000 }).catch(() => {})
 check(page.url().includes('/app/disputes'), 'sign-in returns to the originally requested page', page.url())
@@ -155,10 +155,10 @@ const modelCard = await page
   .locator('text=How well it calls them')
   .locator('xpath=ancestor::*[contains(@class,"surface")][1]')
   .innerText()
-check(modelCard.includes('100.0%'), 'Overview quotes the shipped precision (100.0%)', modelCard.slice(0, 90))
-check(modelCard.includes('20.3%'), 'Overview quotes the shipped coverage (20.3%)')
+check(modelCard.includes('100.0%'), 'Home quotes the shipped precision (100.0%)', modelCard.slice(0, 90))
+check(modelCard.includes('20.3%'), 'Home quotes the shipped coverage (20.3%)')
 check(!modelCard.includes('62.5%') && !modelCard.includes('21.5%'),
-      'Overview does not quote the hand-picked thresholds as the recorded run')
+      'Home does not quote the hand-picked thresholds as the recorded run')
 
 // --- 5. nav ---------------------------------------------------------------------------
 await page.locator('aside a[href="/app/metrics"]').click()

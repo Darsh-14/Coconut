@@ -9,7 +9,7 @@ import {
   parseApiDate,
   type DisputeSummary,
 } from '../api/client'
-import { HUMAN_REVIEW_RATE, RECORDED } from '../lib/headline'
+import { RECORDED } from '../lib/headline'
 import { reasonCopy, RECOMMENDATIONS } from '../lib/labels'
 import { useDisputes } from '../lib/useDisputes'
 import {
@@ -49,8 +49,7 @@ export default function Overview() {
   return (
     <div>
       <PageHeader
-        title="Overview"
-        sub="Dispute exposure and pending actions."
+        title="Home"
         action={
           batch ? (
             <div className="w-full sm:w-52" aria-live="polite">
@@ -284,10 +283,6 @@ function ModelCard({ onOpen }: { onOpen: () => void }) {
       <h2 className="text-[13px]" style={{ fontVariationSettings: "'wght' 590" }}>
         How well it calls them
       </h2>
-      <p className="mt-1 text-[11.5px] text-[var(--fg-3)]">
-        Last recorded run, {RECORDED.nEvaluated} held-out disputes.
-      </p>
-
       <div className="mt-4 grid grid-cols-2 gap-4">
         <Inline
           value={`${(RECORDED.precision * 100).toFixed(1)}%`}
@@ -298,11 +293,6 @@ function ModelCard({ onOpen }: { onOpen: () => void }) {
           label="decided on the evidence"
         />
       </div>
-
-      <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-        It sends {(HUMAN_REVIEW_RATE * 100).toFixed(1)}% to a person; another{' '}
-        {RECORDED.autoResolved} are resolved by the rules engine.
-      </p>
 
       <Button className="mt-4 w-full" onClick={onOpen}>
         See the full evaluation

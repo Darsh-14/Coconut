@@ -8,7 +8,7 @@ human approves before anything is treated as final, and nothing is ever submitte
 Razorpay or a bank automatically. Built for Razorpay's AI Buildathon, Track 2 (AI Risk
 Manager).
 
-See [Demo readiness](docs/DEMO_READINESS.md) for running Docker and presenting four cases,
+See [the presentation guide](docs/DEMO_READINESS.md) for running Docker and presenting four cases,
 [manual model commands](docs/MANUAL_MODEL.md) for training, and
 [manual checks](docs/MANUAL_CHECKS.md) for tests. The Docker CLI is installed, but Docker
 Desktop currently reports that virtualization support is unavailable. Container execution
@@ -16,12 +16,14 @@ therefore remains unverified until the Docker engine can start.
 
 ## Latest updates
 
+An isolated, resettable demo is available: see [Demo workspace](docs/DEMO_WORKSPACE.md).
+It runs the existing engine on prepared sample cases using its own temporary database.
+
 - Run the website and backend together with Docker. Saved cases survive normal restarts.
 - Download the evidence-reading model before a presentation to reduce startup delays.
-- Open the review queue, UPI cases, performance report, or readiness page from navigation.
-- Search disputes from the workspace header. Queue filters remain in the page address.
+- Open Home, Disputes, or Performance from the primary navigation.
+- Search disputes from the workspace header and filter them in the queue.
 - Enter the demo without supplying an email or password. This is not secure account access.
-- Check service readiness and find the four presentation cases from one page.
 - Train manually with 24 additional synthetic examples. No improvement is claimed yet.
 
 The distinctive workflow combines claim-by-claim evidence checks, a decision gate that can
@@ -441,14 +443,12 @@ single-merchant demonstration local; it is not suitable for private merchant rec
 |---|---|
 | **Landing** (`/`) | What this is, what it measured, and what it deliberately will not do |
 | **Demo entry** (`/login`) | Continue without an account or password |
-| **Overview** | Money at stake, what closes soonest, what is worth contesting, exposure by dispute type |
+| **Home** | Money at stake, deadlines, contest candidates and exposure by dispute type |
 | **Disputes** | The queue — filter by what Coconut concluded, sort by deadline or value |
 | **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
 | **Performance** | The held-out evaluation, re-runnable live |
-| **Review queue / UPI cases** | Shortcuts to filtered disputes |
-| **Demo readiness** | Service availability and links to presentation cases |
 
-**The loop:** *Assess 25 disputes* on Overview → open a case from *Ready to contest* → read the
+**The loop:** *Assess 25 disputes* on Home → open a case from *Ready to contest* → read the
 per-evidence verdicts and the highlighted sentence that drove each → *Representment* tab, edit
 the draft → *Approve & prepare packet* → the *Audit* tab shows the "would submit to Razorpay"
 payload → *Performance* → *Run evaluation*.

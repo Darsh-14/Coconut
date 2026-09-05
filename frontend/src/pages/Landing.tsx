@@ -83,9 +83,6 @@ export default function Landing() {
         <Band tinted>
           <div className="py-14">
             <Shot name="queue" alt="The Coconut dispute queue" priority />
-            <p className="reveal mt-4 text-[12.5px] text-[var(--fg-3)]">
-              Disputes sorted by outcome and urgency.
-            </p>
           </div>
         </Band>
 

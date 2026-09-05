@@ -1,4 +1,4 @@
-import { BarChart3, House, ListFilter, LogOut, Users, Landmark, Activity, Search } from 'lucide-react'
+import { BarChart3, House, ListFilter, LogOut, Search } from 'lucide-react'
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Mark, ThemeToggle } from './components/ThemeToggle'
@@ -10,7 +10,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import MetricsDashboard from './pages/MetricsDashboard'
 import Overview from './pages/Overview'
-import DemoReadiness from './pages/DemoReadiness'
+import { DemoProvider, DemoWorkspace } from './components/DemoWorkspace'
 
 /**
  * Two shells, not one.
@@ -22,7 +22,7 @@ import DemoReadiness from './pages/DemoReadiness'
  */
 export default function App() {
   return (
-    <Routes>
+    <DemoProvider><Routes>
       <Route path={paths.landing} element={<Landing />} />
       <Route path={paths.login} element={<Login />} />
       <Route
@@ -34,7 +34,7 @@ export default function App() {
         }
       />
       <Route path="*" element={<BareNotFound />} />
-    </Routes>
+    </Routes></DemoProvider>
   )
 }
 
@@ -71,6 +71,7 @@ function AppShell() {
       <main id="main-content" className="min-w-0 flex-1" tabIndex={-1}>
         <MobileBar />
         <WorkspaceBar />
+        <DemoWorkspace />
         <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
           {/* Keyed on the route so recovering from a crash on one page does not leave the
               boundary latched shut when you navigate to another. */}
@@ -80,7 +81,6 @@ function AppShell() {
               <Route path="disputes" element={<DisputeQueue />} />
               <Route path="disputes/:disputeId" element={<CaseDetail />} />
               <Route path="metrics" element={<MetricsDashboard />} />
-              <Route path="readiness" element={<DemoReadiness />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
@@ -116,9 +116,8 @@ function Sidebar() {
         </NavLink>
 
         <nav className="space-y-0.5" aria-label="Primary navigation">
-          <p className="px-2.5 pb-2 text-[10px] uppercase tracking-wider text-[var(--fg-3)]">Workspace</p>
           <NavItem to={paths.overview} icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
-            Overview
+            Home
           </NavItem>
           <NavItem
             to={paths.disputes}
@@ -126,21 +125,16 @@ function Sidebar() {
           >
             Disputes
           </NavItem>
-          <NavItem to={paths.review} icon={<Users size={16} aria-hidden="true" />}>Review queue</NavItem>
-          <NavItem to={paths.upi} icon={<Landmark size={16} aria-hidden="true" />}>UPI cases</NavItem>
-          <p className="px-2.5 pb-2 pt-6 text-[10px] uppercase tracking-wider text-[var(--fg-3)]">Reports &amp; setup</p>
           <NavItem
             to={paths.metrics}
             icon={<BarChart3 size={16} strokeWidth={1.6} aria-hidden="true" />}
           >
             Performance
           </NavItem>
-          <NavItem to={paths.readiness} icon={<Activity size={16} aria-hidden="true" />}>Demo readiness</NavItem>
         </nav>
       </div>
 
       <div className="space-y-4">
-        <Guardrails />
         <div className="space-y-0.5">
           <ThemeToggle />
           <SignOut />
@@ -179,12 +173,9 @@ function MobileBar() {
       </div>
 
       <nav className="mt-2.5 flex gap-1 overflow-x-auto" aria-label="Primary navigation">
-        <MobileTab to={paths.overview}>Overview</MobileTab>
+        <MobileTab to={paths.overview}>Home</MobileTab>
         <MobileTab to={paths.disputes}>Disputes</MobileTab>
-        <MobileTab to={paths.review}>Review queue</MobileTab>
-        <MobileTab to={paths.upi}>UPI cases</MobileTab>
         <MobileTab to={paths.metrics}>Performance</MobileTab>
-        <MobileTab to={paths.readiness}>Readiness</MobileTab>
       </nav>
     </div>
   )
@@ -192,7 +183,7 @@ function MobileBar() {
 
 function MobileTab({ to, children }: { to: string; children: React.ReactNode }) {
   const location = useLocation()
-  const selected = navSelected(to, location.pathname, location.search)
+  const selected = navSelected(to, location.pathname)
   return (
     <NavLink
       to={to}
@@ -222,7 +213,7 @@ function NavItem({
   children: React.ReactNode
 }) {
   const location = useLocation()
-  const selected = navSelected(to, location.pathname, location.search)
+  const selected = navSelected(to, location.pathname)
   return (
     <NavLink
       to={to}
@@ -247,22 +238,14 @@ function NavItem({
   )
 }
 
-function navSelected(to: string, pathname: string, search: string) {
-  const [target, query] = to.split('?')
-  if (pathname !== target) return to === paths.disputes && pathname.startsWith(`${paths.disputes}/`)
-  const params = new URLSearchParams(search)
-  const inReview = params.get('filter') === 'NEEDS_HUMAN_REVIEW'
-  if (to === paths.review) return inReview
-  if (to === paths.upi) return !inReview && params.get('rail') === 'upi'
-  if (query) return false
-  return to !== paths.disputes || (!inReview && params.get('rail') !== 'upi')
+function navSelected(to: string, pathname: string) {
+  return pathname === to || (to === paths.disputes && pathname.startsWith(`${paths.disputes}/`))
 }
 
 function WorkspaceBar() {
   const navigate = useNavigate()
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-8" style={{ borderColor: 'var(--line)' }}>
-      <p className="text-[11px] text-[var(--fg-3)]">Test workspace · No server authentication</p>
+    <header className="flex justify-end border-b px-4 py-3 sm:px-8" style={{ borderColor: 'var(--line)' }}>
       <form className="flex w-full items-center gap-2 sm:w-72" role="search" onSubmit={(event) => {
         event.preventDefault()
         const query = String(new FormData(event.currentTarget).get('q') ?? '').trim()
@@ -272,28 +255,6 @@ function WorkspaceBar() {
         <button type="submit" aria-label="Search" className="focus-ring rounded p-2 text-[var(--fg-2)]"><Search size={16} /></button>
       </form>
     </header>
-  )
-}
-
-/** CLAUDE.md Section 2's hard constraints, as a status readout rather than a disclaimer. */
-function Guardrails() {
-  const items = [
-    { label: 'Test mode', tone: 'var(--win)' },
-    { label: 'Synthetic disputes', tone: 'var(--fg-3)' },
-    { label: 'Never auto-submits', tone: 'var(--warn)' },
-  ]
-  return (
-    <ul className="space-y-1.5 px-2.5">
-      {items.map((i) => (
-        <li
-          key={i.label}
-          className="flex items-center gap-2 text-[11px] tracking-[0.01em] text-[var(--fg-3)]"
-        >
-          <span className="size-1 rounded-full" style={{ background: i.tone }} />
-          {i.label}
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -325,7 +286,6 @@ function SignedInAs() {
   return (
     <p className="px-2.5 text-[10.5px] leading-snug text-[var(--fg-3)]">
       {session?.merchant ?? DEMO_MERCHANT}
-      <span className="mt-0.5 block opacity-70">Demo merchant · no account system</span>
     </p>
   )
 }

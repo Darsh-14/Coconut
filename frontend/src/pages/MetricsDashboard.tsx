@@ -89,9 +89,6 @@ export default function MetricsDashboard() {
           <h2 className="text-[13px]" style={{ fontVariationSettings: "'wght' 590" }}>
             Current gate versus baselines
           </h2>
-          <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
-            Recorded synthetic results. The contest gate increases precision and reduces coverage.
-          </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
           <Compare
@@ -103,12 +100,6 @@ export default function MetricsDashboard() {
           <Compare label="Ungated NLI" sub="same regenerated split" {...REFERENCE.ungated} />
           <Compare label="Naive engine" sub="rejected" {...REFERENCE.naive} warn />
         </div>
-        <p
-          className="border-t px-5 py-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]"
-          style={{ borderColor: 'var(--line)' }}
-        >
-          Historical single-signal baseline: {formatPercent(REFERENCE.naive.precision)} precision.
-        </p>
       </Surface>
 
       <div className="rise space-y-5">
@@ -189,16 +180,9 @@ export default function MetricsDashboard() {
                   maximumFractionDigits: 0,
                 })}
               </p>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-                Estimated cost of {cm.fp} incorrect contest recommendation{cm.fp === 1 ? '' : 's'}.
-              </p>
             </Surface>
           </div>
 
-          <p className="text-[11.5px] text-[var(--fg-3)]">
-            Synthetic labels, not bank outcomes. Precision is based on {cm.tp + cm.fp} contests;
-            deferred cases are excluded from selective recall and accuracy.
-          </p>
       </div>
     </div>
   )

@@ -50,7 +50,7 @@ Start the regular app using the [presentation guide](DEMO_READINESS.md), then ru
 docker compose exec coconut python data/prepare_demo.py
 ```
 
-Open **Demo readiness** and visit each case: contest, accept, human review, and UPI
+Open the case links printed by `prepare_demo.py`: contest, accept, human review, and UPI
 auto-reject. Review the evidence and approval state. Complete test Checkout on the contest
 case yourself, then run:
 

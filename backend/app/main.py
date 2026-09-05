@@ -53,7 +53,8 @@ async def lifespan(app: FastAPI):
     from app.db.seed import seed_if_empty
 
     try:
-        seed_if_empty()
+        if not getattr(app.state, 'demo', False):
+            seed_if_empty()
     except Exception as exc:  # noqa: BLE001 -- an unseeded app still runs
         logger.warning("could not seed the database at startup: %s", exc)
 
@@ -63,6 +64,10 @@ async def lifespan(app: FastAPI):
     from app.services.conformal_calibrator import bootstrap_from_cache
 
     bootstrap_from_cache()
+
+    if getattr(app.state, 'demo', False):
+        from app.demo_cases import reset_demo
+        reset_demo()
 
     # Load the model off the request path. The first /decide used to pay the whole ~15s
     # load mid-interaction, which the UI had to apologise for. A daemon thread so a slow
@@ -105,6 +110,11 @@ from app.api.webhooks import router as webhook_router  # noqa: E402
 
 app.include_router(api_router)
 app.include_router(webhook_router)
+
+
+@app.get('/workspace', tags=['ops'])
+def workspace():
+    return {'demo': bool(getattr(app.state, 'demo', False))}
 
 
 @app.get("/health", tags=["ops"])

@@ -13,9 +13,6 @@ export const paths = {
   disputes: '/app/disputes',
   dispute: (id: string) => `/app/disputes/${id}`,
   metrics: '/app/metrics',
-  readiness: '/app/readiness',
-  review: '/app/disputes?filter=NEEDS_HUMAN_REVIEW',
-  upi: '/app/disputes?rail=upi',
 } as const
 
 /** The prefix the authenticated shell is mounted under. */

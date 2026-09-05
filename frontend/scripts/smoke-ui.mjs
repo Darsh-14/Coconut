@@ -41,7 +41,7 @@ const log = (...a) => console.log(...a)
 // --- 1. overview ---------------------------------------------------------
 await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
-log(`1. OVERVIEW   heading=${JSON.stringify(await page.locator('h1').first().innerText())}`)
+log(`1. HOME       heading=${JSON.stringify(await page.locator('h1').first().innerText())}`)
 await page.screenshot({ path: `${SHOTS}/1-overview.png` })
 
 // --- 2. queue ------------------------------------------------------------
@@ -186,11 +186,11 @@ log('6. DARK       rendered')
 // Navigation and narrow-screen layout must work on the same live workspace.
 for (const width of [320, 375, 768]) {
   await page.setViewportSize({ width, height: 900 })
-  await page.goto(`${BASE}/app/readiness`, { waitUntil: 'networkidle' })
-  await page.getByRole('heading', { name: 'Demo readiness' }).waitFor()
+  await page.goto(`${BASE}/app/disputes`, { waitUntil: 'networkidle' })
+  await page.getByRole('heading', { name: 'Disputes' }).waitFor()
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)
-  if (overflow) errors.push(`readiness page overflows at ${width}px`)
-  await page.screenshot({ path: `${SHOTS}/readiness-${width}.png`, fullPage: true })
+  if (overflow) errors.push(`disputes page overflows at ${width}px`)
+  await page.screenshot({ path: `${SHOTS}/disputes-${width}.png`, fullPage: true })
 }
 
 log(`\nconsole errors: ${errors.length ? JSON.stringify(errors, null, 2) : 'none'}`)
