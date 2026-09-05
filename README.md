@@ -1,846 +1,470 @@
-# Coconut — Explainable Chargeback Defense Copilot
+# Coconut 🥥
 
-Coconut takes a payment dispute, checks each piece of evidence against the specific claim
-the bank is making, and recommends **CONTEST** or **ACCEPT** with a confidence score and a
-full audit trail — or says **NEEDS_HUMAN_REVIEW** when the evidence genuinely doesn't
-resolve the claim, instead of guessing. If contesting, it drafts the representment text. A
-human approves before anything is treated as final, and nothing is ever submitted to
-Razorpay or a bank automatically. Built for Razorpay's AI Buildathon, Track 2 (AI Risk
-Manager).
+### Evidence-aware dispute decisions for Razorpay merchants
 
-The Docker CLI is installed, but Docker Desktop currently reports that virtualization
-support is unavailable. Container execution therefore remains unverified until the Docker
-engine can start. Local startup, model, test, demo and evaluation commands are included in
-this README.
+**Razorpay AI Buildathon · Track 2: AI Risk Manager**
 
-## Latest updates
+**Evidence in. Defensible decision out.**
 
-An isolated, resettable demo runs the existing engine on prepared sample cases using its
-own temporary database. Build the frontend, then start it from `backend/` with:
+[Architecture](#architecture) · [Innovation](#why-this-is-different) ·
+[Results](#results) · [Judge's route](#demo) · [Run locally](#run-locally)
 
-```powershell
-..\.venv\Scripts\python.exe -m uvicorn app.demo:app --host 127.0.0.1 --port 8011
-```
+> Coconut reads the bank's claim, tests every merchant record against it, and recommends
+> **Contest**, **Accept**, **Human review**, or **No action** — with the exact evidence and
+> rule behind the decision.
 
-Open `http://127.0.0.1:8011` and choose **Try demo**. The regular server can remain on port
-8000; run the demo with a single worker.
+Most dispute tools help write a response. Coconut first asks the more important question:
+**should this dispute be fought at all?** A weak contest can lose the sale and add
+representment cost. Coconut protects the merchant from that second loss by acting only when
+the evidence clears an explicit risk policy and deferring when it does not.
 
-- Run the website and backend together with Docker. Saved cases survive normal restarts.
-- Download the evidence-reading model before a presentation to reduce startup delays.
-- Open Home, Disputes, or Performance from the primary navigation.
-- Search disputes from the workspace header and filter them in the queue.
-- Enter the demo without supplying an email or password. This is not secure account access.
-- Train manually with 24 additional synthetic examples. No improvement is claimed yet.
+| What goes in | What Coconut returns | What stays with the merchant |
+|---|---|---|
+| Bank claim, reason code, payment rail, evidence bundle and dispute history | A recommendation, confidence, evidence-level verdicts, highlighted proof and rationale | Final approval. Coconut never submits a dispute response automatically |
 
-The distinctive workflow combines claim-by-claim evidence checks, a decision gate that can
-defer to a person, UPI rule forecasts, editable response drafts, and an approval history.
-These are implemented features, not a claim of research priority over other products.
-Nothing is automatically sent to a bank. Use test payments and keep this demo local.
+![Coconut case view showing an NPCI rule decision, its source and the required human action](frontend/public/shots/case-light.png)
 
----
+## Objective — turn dispute evidence into a safe action
 
-## The problem
+Dispute operations are usually a manual search across order records, delivery documents,
+refund references and customer messages. The result depends on who reviews the case, how
+much time remains, and whether the evidence is merely present or actually proves the point.
 
-Chargebacks are adjudicated on evidence, but the economics push merchants toward not
-bothering:
+Coconut turns that work into one reviewable flow:
 
-- A representment costs staff time and a fixed fee per case (this repo assumes
-  **₹1,500**, configurable via `ASSUMED_REPRESENTMENT_COST_INR`). Below some ticket size,
-  contesting costs more than conceding.
-- So a large share of disputes are **never contested at all** — conceded by default, not
-  on the merits.
-- The ones that *are* contested are often contested badly: a representment that ships a
-  bare "delivered" scan with no signature, OTP or address match loses, and the merchant
-  pays the fee on top of the lost transaction.
+1. **Find the cases worth contesting.** It matches evidence to the specific bank claim
+   instead of treating every uploaded document as useful.
+2. **Avoid weak representments.** It accepts a likely loss and sends mixed evidence to a
+   person instead of forcing an answer.
+3. **Understand Indian payment rails.** It checks NPCI's deterministic UPI dispute caps
+   before spending compute or staff time on evidence review.
+4. **Show its work.** Every evidence item receives a verdict, confidence and highlighted
+   sentence, and every human action is recorded.
+5. **Prepare the response.** For a contestable case, it drafts an editable representment
+   packet while keeping the final action under human control.
 
-The expensive mistake is therefore **not** failing to contest. It's contesting cases you
-were going to lose — you pay twice. That is why this system optimises for precision on the
-cases it decides, and routes everything else to a human rather than guessing.
+## Why this is different
 
-The hard part is that "we have delivery proof" and "we have *good* delivery proof" look
-almost identical to a language model. Most of the engineering here is about that gap.
+| Common shortcut | Coconut's approach | Why it matters |
+|---|---|---|
+| “A delivery document exists” | Tests whether the document addresses this claim **and** contains reason-specific proof such as OTP, identity or address match | Document presence is not proof quality |
+| One forced AI answer | A first-class **Human review** result | Uncertainty becomes an operational route, not hidden confidence |
+| One model for every payment rail | Deterministic NPCI rules run before ML for eligible UPI cases | A known rule outcome should not be guessed statistically |
+| An LLM decides and explains itself | Local NLI decides; an optional LLM can only improve the wording of an already-decided packet | Drafting cannot silently alter risk decisions |
+| A magic confidence cutoff | The operator names a contest-error budget and Coconut selects the operating threshold from calibration data | The business risk is visible and adjustable |
+| A final label with no trail | Evidence verdicts, model revision, threshold, edits, approval and the simulated Razorpay payload are retained | A reviewer can reconstruct how the result was reached |
 
-### Where this sits next to Razorpay's own Agent Studio
+The reusable research idea is a **selective claim-verification loop**: measure whether each
+record engages the claim, measure whether it substantiates the merchant's position, combine
+those signals under an explicit risk policy, and abstain when the evidence cannot carry the
+decision.
 
-Razorpay's Agent Studio already ships a **Dispute Responder Agent**, alongside Abandoned
-Cart Conversion and Subscription Recovery agents, launched publicly with Anthropic on the
-Claude Agent SDK. This project is not pretending that space is empty.
+### Why it fits the AI Risk Manager track
 
-What it does instead is take a position those products do not: it optimises for **precision
-on the cases it decides and abstains on the rest**, and it adds a component built for the
-rails Razorpay actually runs on — see [UPI dispute forecasting](#upi-the-part-nobody-else-builds-for)
-below. Where an agent answers disputes, this decides which disputes are worth answering at
-all, and refuses to guess when the evidence will not carry it.
+Coconut treats dispute handling as a financial-risk decision rather than a writing task.
+It reduces avoidable contest cost, exposes uncertainty, gives UPI cases rail-specific
+treatment, and keeps the model, policy, draft and human action as separate reviewable
+stages. Razorpay integration is visible through test-mode orders, Checkout, signed webhooks
+and a simulated submission payload.
 
----
+<a id="architecture"></a>
 
-## Architecture
+## Architecture — rules first, model second, human last
+
+Read the diagram from left to right. The orange route handles a deterministic UPI outcome.
+The blue route evaluates evidence. Both end at a human-controlled action and a persisted
+audit record.
 
 ```mermaid
-flowchart TB
-    subgraph ingest["Ingest"]
-        D[Synthetic dispute<br/>claim_text + evidence_bundle]
-        P[Real test-mode<br/>Razorpay payment]
-        D -.backed by.-> P
+flowchart LR
+    A["Dispute<br/>claim · reason · rail · evidence"] --> B{"Eligible UPI<br/>case?"}
+
+    B -->|Yes| C["NPCI rules engine<br/>30-day CD1 / CD2 counters"]
+    C -->|Cap crossed| N["NO ACTION<br/>URCS expected to reject"]
+    C -->|Merchant must answer| D
+    B -->|No| D
+
+    subgraph VERIFY["1 · Evidence verification — local NLI"]
+        D["Split evidence into records"] --> E["Engagement signal<br/>Does it address the bank's claim?"]
+        D --> F["Substantiation signal<br/>Does it contain reason-specific proof?"]
+        E --> G["Per-record verdict<br/>support · contradict · neutral<br/>confidence · highlighted span"]
+        F --> G
     end
 
-    subgraph verify["Verification engine — local NLI, no LLM"]
-        E1["Signal 1 · ENGAGEMENT<br/>NLI(evidence, bank's claim)<br/>does it address the accusation?"]
-        E2["Signal 2 · SUBSTANTIATION<br/>NLI(sentence, reason-code probe)<br/>is it specific enough to prove it?"]
-        V["ClaimVerdict per evidence item<br/>support / contradict / neutral<br/>+ confidence + highlighted span"]
-        E1 --> V
-        E2 --> V
+    subgraph POLICY["2 · Explicit decision policy"]
+        G --> H{"Risk threshold +<br/>corroboration rule"}
+        H -->|Strong contradiction| I["ACCEPT"]
+        H -->|Unanimous, strong,<br/>2+ evidence types| J["CONTEST candidate"]
+        H -->|Mixed or incomplete| K["HUMAN REVIEW"]
+        J -. "Synthetic demo/eval only:<br/>safety gate may demote" .-> K
     end
 
-    subgraph decide["Decision aggregator — explicit rule"]
-        R{"any contradict > 0.7?"}
-        R -->|yes| ACC[ACCEPT]
-        R -->|no| S{"all support<br/>AND avg conf > 0.65<br/>AND >= 2 evidence types?"}
-        S -->|yes| CON[CONTEST]
-        S -->|no| HUM[NEEDS_HUMAN_REVIEW]
-    end
+    J --> L["Representment draft"]
+    Q["Optional Gemini / Anthropic"] -. "wording only" .-> L
 
-    subgraph human["Human in the loop"]
-        PKT[Representment draft<br/>Gemini / Anthropic / template]
-        APR[Reviewer approves or rejects]
-        AUD[("Audit log<br/>would_be_razorpay_payload<br/>logged, never sent")]
-    end
+    N --> M{"Human acknowledges,<br/>approves or rejects"}
+    I --> M
+    K --> M
+    L --> M
+    M --> O[("Audit log + simulated<br/>Razorpay payload")]
 
-    D --> E1
-    D --> E2
-    V --> R
-    CON --> PKT --> APR --> AUD
-    ACC --> APR
-    HUM --> APR
+    classDef rules fill:#fff3d6,stroke:#b36b00,color:#5c3600
+    classDef model fill:#eaf3ff,stroke:#2474c6,color:#123c66
+    classDef action fill:#ecf8ef,stroke:#25834a,color:#164d2c
+    class C,N rules
+    class D,E,F,G,H,J model
+    class I,K,L,M,O action
 ```
 
-**Why a local NLI model and not an LLM for the decision.** The verdict must be
-deterministic, reproducible by anyone cloning this repo, and free to run thousands of
-times during evaluation. `cross-encoder/nli-deberta-v3-base` runs locally on CPU with no
-API key, no rate limit and no per-call cost. An LLM is used only to rewrite prose *after*
-the decision is made — it cannot change a recommendation, a verdict or a confidence.
-The evaluated weights are pinned to Hub revision
-`6c749ce3425cd33b46d187e45b92bbf96ee12ec7`; every new decision records that full model
-version alongside the calibrated threshold that produced it.
+### What happens inside a decision
 
-**Why two signals.** Scoring evidence against the claim alone produced **precision 0.481**
-— worse than a coin flip, and inverted: it fired CONTEST on losing cases *more often* than
-winning ones. The second signal asks whether relevant evidence is specific enough to
-substantiate the merchant's position.
+- **UPI forecast:** [`urcs_forecaster.py`](backend/app/services/urcs_forecaster.py) applies
+  versioned rules from [`npci_rules.py`](backend/app/services/npci_rules.py). If NPCI's
+  URCS is expected to reject a cap-breaching chargeback under CD1 or CD2, Coconut returns
+  **No action** with the counter and rule provenance.
+- **Evidence verifier:** [`verification_engine.py`](backend/app/services/verification_engine.py)
+  runs `cross-encoder/nli-deberta-v3-base` locally. One signal checks engagement with the
+  bank's accusation; a second checks reason-specific substantiation.
+- **Decision policy:** [`decision_aggregator.py`](backend/app/services/decision_aggregator.py)
+  converts evidence verdicts into a readable rule. A contest needs unanimous support,
+  a sufficiently strong weakest link and at least two distinct supporting evidence types.
+- **Precision guard:** [`synthetic_win_gate.py`](backend/app/services/synthetic_win_gate.py)
+  can only demote synthetic contest candidates to human review. It is disabled for
+  non-synthetic dispute IDs so benchmark training cannot become an undeclared production
+  claim.
+- **Draft and audit:** [`packet_generator.py`](backend/app/services/packet_generator.py)
+  creates the response after the decision. The merchant can edit, approve, reject or
+  withdraw it; the app stores what it *would* send and never calls a live submission API.
 
----
+The evaluated NLI weights are pinned to Hugging Face revision
+`6c749ce3425cd33b46d187e45b92bbf96ee12ec7`. Each new decision stores the full model
+version and calibrated threshold, which makes later review possible.
 
-## Name your risk budget, not a threshold
+## Four outcomes, one review surface
 
-Section 10 of the spec hard-coded `0.7` and `0.65`. Nothing justified those numbers — they
-were picked. In a track whose bar is measured precision on a held-out set, "I picked them"
-is a bad answer.
+The isolated demo places four prepared cases in a shortcut bar. They use the normal
+decision engine and differ only in their inputs.
 
-So they are gone. You now state the **maximum contest-error rate you can live with** — the
-false-discovery rate `FP / (TP + FP)` among cases the system auto-contests — and the
-threshold is selected against that budget:
-
-    lambda = min { lambda : R(lambda) + sqrt(log(1/delta) / (2 n_lambda)) <= alpha }
-
-where `R(lambda)` is the empirical contest-error (false-discovery) rate among cases the
-system would auto-contest at `lambda`, and the square-root term is a Hoeffding correction for finite
-samples. This is a compact, development-time risk-budget prototype in
-[`conformal_calibrator.py`](backend/app/services/conformal_calibrator.py).
-
-> This does **not** establish a formal finite-sample or deployment guarantee. The score and
-> aggregation rule were developed on the same working set used for calibration, and the
-> 50-threshold search has no family-wise multiple-testing correction. The held-out result
-> below is an empirical check, not a repair for either assumption.
-
-**Historical Phase-0 result.** Before the learned CONTEST safety gate was added, the held-out set and model were
-the same, but this is intentionally not a threshold-only ablation: in addition to replacing
-the two picked thresholds with one selected threshold, the CONTEST gate uses the minimum
-support confidence (the weakest link) instead of Section 10's legacy average-confidence gate.
-
-| | Legacy Section 10 (average gate) | Phase 0 (weakest-link gate) |
-|---|---|---|
-| Precision | 0.625 | **0.692** |
-| Recall | 0.625 | **0.750** |
-| F1 | 0.625 | **0.720** |
-| Coverage | 0.215 | **0.291** |
-
-`POST /calibrate` sets the budget; `GET /verify-guarantee` is the backward-compatible name
-of the endpoint that checks it empirically on a test split sharing no dispute ids with the
-calibration data. At that historical operating point, 4 of 13 model-contested test cases were
-contest errors (30.8%), below the configured 75% budget. The legacy JSON fields
-`empirical_fp_rate_on_calibration` and `observed_fp_rate_on_test` retain their names for API
-compatibility; both use `FP / (TP + FP)`, so user-facing copy calls the quantity the
-contest-error rate (or false-discovery rate).
-
-### What this risk check does — and does not — show
-
-Stated up front rather than buried, because these are the parts that matter:
-
-1. **The tightest budget this development sample supports is ~71%.** Not a typo;
-   the *score* it calibrates has almost no dynamic range — contest scores cluster at 0.500
-   (p25 0.498, median 0.500, only 1 of 42 above 0.55) and precision does not improve as the
-   threshold rises. That AUC ≈ 0.57 ceiling reappears as an unsupported budget. Ask for 5%
-   and the system says so and defers everything, rather
-   than pretending. **A tight, useful operating point needs a better-calibrated
-   confidence signal, not a better threshold search.**
-2. **Calibration data is synthetic and reused development data.** It does not establish
-   performance on real disputes or on a genuinely independent calibration population.
-3. **The threshold grid needs multiplicity control.** A formal Learn-then-Test release
-   would use an independent calibration split plus fixed-sequence testing or another
-   family-wise-error-controlling procedure.
-4. **Real streams drift.** Even a valid static calibration result requires monitoring and
-   recalibration as populations change.
-5. **The measured risk is the contest-error/false-discovery rate only** — not recall or
-   money recovered, and not the conventional false-positive rate `FP / (FP + TN)`.
-
-One deviation from the spec is retained and disclosed: Addendum 3 says to split the held-out
-set 50/50. That leaves only 12 contest-eligible calibration points. The prototype instead
-uses the **working set** for threshold selection and the **full held-out set** for its
-empirical check. The two files are disjoint, but the working set was used during score
-development, which is precisely why no formal calibration claim is made.
-
-Grounding and future direction: split conformal prediction (Vovk et al. 2005;
-Papadopoulos et al. 2002), Learn-then-Test (Angelopoulos et al. 2021), conformal risk
-control (Angelopoulos et al. 2024), and selective
-classification and deferral (Chow; El-Yaniv & Wiener 2010; Geifman & El-Yaniv 2017).
-
----
-
-## UPI: the part nobody else builds for
-
-Every commercial chargeback-AI product surveyed — Justt, Chargeflow, Riskified Dispute
-Resolve, Kount, Signifyd, Chargeback Specialist — is architected around **card-network**
-mechanics: Visa VAMP, Mastercard ECM, card reason-code taxonomies, and a human adjudicator
-at the network. India's UPI rails work differently in a way that is mechanical, not
-cosmetic:
-
-| Rule | What it does | Source |
-|---|---|---|
-| Dispute caps | 10 chargebacks per customer per rolling 30 days (11th → **CD1**); 5 per payer-payee VPA pair (6th → **CD2**) | NPCI circular, 5 Dec 2023 |
-| URCS auto-disposition | Auto-accepts/rejects on the beneficiary bank's TCC or return, bulk-upload and UDIR only | UPI OC No. 213 FY 2024-25, from 15 Feb 2025 |
-| RGNB | Remitting bank may re-raise a CD1/CD2 auto-decline in good faith, front-end only | NPCI OC No. 184B/2025-2026, from 15 Jul 2025 |
-
-**The consequence is the whole idea.** On UPI rails a meaningful share of dispute outcomes
-is decided by a deterministic rules engine, not by human judgement — which makes them
-predictable *exactly*, in advance, rather than statistically. So Coconut forecasts NPCI's
-disposition before the merchant spends anything, and recommends `NO_ACTION_NEEDED` when
-URCS is expected to reject the chargeback on the merchant's behalf.
-
-It is a rules engine, not a model: a pure function over counters, fully explainable, no
-inference. The rules live in one config block,
-[`npci_rules.py`](backend/app/services/npci_rules.py), each with the circular it came from
-and the date it was last verified — and that date is rendered in the UI, because NPCI has
-revised these rules three times in two years and a rules engine with invisible provenance
-is one nobody should trust.
-
-**What it deliberately does not claim:** `AUTO_ACCEPT` is never predicted. That branch
-depends on the beneficiary bank's TCC or return in the settlement cycle *after* the
-chargeback is raised, which this system cannot see. It reports `PROCEEDS_TO_MERCHANT` and
-says so.
-
-Cap-breach cases are excluded from precision and recall and counted separately under
-`auto_resolved`, for the same reason human referrals are: crediting the model for work
-NPCI's rules engine did would inflate the headline number.
-
----
-
-## Setup
-
-**Prerequisites:** Python 3.12+ and Node 18+. Tested on Python 3.13 / Node 24.
-
-```bash
-git clone https://github.com/Darsh-14/Coconut.git
-cd Coconut
-cp .env.example .env
-```
-
-### Credentials
-
-Only the Razorpay pair is required.
-
-| Variable | Required | Where to get it |
-|---|---|---|
-| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | **yes** | [Razorpay Dashboard](https://dashboard.razorpay.com/) → toggle to **Test Mode** → Account & Settings → API Keys → Generate Key. **Free, and no KYC needed for test mode.** |
-| `GEMINI_API_KEY` | no | [Google AI Studio](https://aistudio.google.com/apikey) — free tier. Improves representment prose. |
-| `ANTHROPIC_API_KEY` | no | [Anthropic Console](https://console.anthropic.com/) — paid. Alternative to Gemini. |
-
-The key id **must** begin with `rzp_test_`; the app refuses to start otherwise, by design.
-With no LLM key at all, packets are produced by a deterministic template and everything
-else works identically.
-
-### Install and run
-
-```bash
-python -m venv .venv
-# Windows:      .venv\Scripts\activate
-# macOS/Linux:  source .venv/bin/activate
-pip install -r backend/requirements.txt
-
-cd backend
-python -m app.db.seed          # loads 182 disputes into SQLite
-cd ../frontend && npm install
-```
-
-First run downloads the NLI model (~750MB) from Hugging Face and caches it.
-
----
-
-## Running with Docker Desktop
-
-Docker requires both the command-line tool and a running Docker Desktop engine. On Windows,
-first confirm that hardware virtualization is enabled in Task Manager under **Performance →
-CPU**. If Docker Desktop reports **virtualization support not detected**, the container setup
-cannot run yet; use the non-Docker instructions below or enable virtualization in the
-computer's BIOS/UEFI later.
-
-Open PowerShell in the project folder and prepare the private settings file once:
-
-```powershell
-Set-Location 'D:\Risky Rich'
-Copy-Item .env.example .env
-notepad .env
-```
-
-Add only Razorpay **test-mode** values to `.env`. Do not commit this file. Start Docker
-Desktop from the Start menu and wait until its engine is running, then confirm both the
-client and server are available:
-
-```powershell
-docker --version
-docker compose version
-docker info
-```
-
-`docker info` must show a **Server** section without a named-pipe or daemon error. Then build,
-download the evidence model into its reusable cache, and start Coconut:
-
-```powershell
-docker compose build coconut
-docker compose run --rm coconut python eval/prewarm_model.py
-docker compose up -d --wait --wait-timeout 900 coconut
-docker compose ps
-Invoke-RestMethod http://127.0.0.1:8000/api/ready
-```
-
-Open http://127.0.0.1:8000. The first model download is about 750 MB and can take several
-minutes. Later starts reuse the named cache. To inspect a failed startup or stop the app:
-
-```powershell
-docker compose logs --tail 100 coconut
-docker compose stop coconut
-```
-
-One image, one process, one port: the frontend is built in a Node stage and served by
-FastAPI alongside the API. There is no CORS hop and no second terminal.
-
-The API lives under `/api` there, which is the prefix the frontend already calls in
-development, so the same build works in both places without a base-URL variable. The two
-are composed rather than merged for a specific reason: the API owns `/disputes` and the
-frontend routes on the same path, so a merged app would serve JSON to anyone who pasted a
-case URL into their browser. See `backend/app/server.py`.
-
-The NLI model (~750MB) is **not** baked into the image — it downloads on first start into a
-named volume, so it is fetched once rather than per container, and you can always tell which
-weights are running. Expect the first boot to take a few minutes; `/ready` returns 503 until
-the model is in memory, and the container's healthcheck waits on it.
-
-An empty database seeds itself on first start, so the queue is populated without a separate
-step. Both the database and the model cache live in named volumes and survive
-`docker compose down`.
-
-`torch` is installed from PyTorch's CPU index rather than PyPI. The default PyPI wheel
-bundles the CUDA runtime — roughly 2.5GB of GPU libraries this image can never use, since
-inference here is CPU-only by design. `requirements.txt` stays platform-neutral so a local
-`pip install -r` still works on Windows and macOS; only the Dockerfile pins the CPU wheel.
-
-> **Current verification status:** Docker CLI 29.7.2 and Compose 5.5.0 are installed, but
-> Docker Desktop cannot start its engine because it reports that virtualization support is
-> unavailable. The image, Compose startup, CPU-wheel installation, and container healthcheck
-> have therefore not completed on this machine. The non-Docker single-origin server
-> (`uvicorn app.server:site`) remains the available local path.
-
-### If you want to host it
-
-Measured on this machine, with the model loaded and a full evaluation run:
-
-| | |
+| Demo case | What the judge should notice |
 |---|---|
-| Peak resident memory | **886 MB** |
-| Model on disk | 715 MB |
+| **Contest** | Every record supports the merchant, the weakest link clears the threshold, independent evidence types corroborate the story, and a draft is ready |
+| **Accept** | A merchant record supports the bank's claim, so paying another contest fee is hard to justify |
+| **Human review** | Evidence is relevant but mixed or incomplete; Coconut states exactly which condition failed |
+| **UPI limit** | The NPCI counter reaches the payer-payee cap and the rules engine returns **No action** before the NLI path |
 
-That rules out the smallest tiers — a 512MB instance cannot hold this process. The natural
-hardware fit is **Hugging Face Spaces**: CPU Basic is 2 vCPU and 16GB at no hourly cost,
-comfortable against 886MB, and the model is already hosted there. The account requirement
-is not free, however: current [Spaces documentation](https://huggingface.co/docs/hub/en/spaces-overview)
-requires PRO for a personal Docker Space, or Team/Enterprise for an organization; CPU
-Basic's compute price is still $0/hour once the account is eligible.
-
-Before pushing a copy to a Space, prepend this configuration to the Space's root README
-([configuration reference](https://huggingface.co/docs/hub/en/spaces-config-reference)):
-
-```yaml
----
-title: Coconut
-sdk: docker
-app_port: 8000
-models:
-  - cross-encoder/nli-deberta-v3-base
----
-```
-
-Compose volumes do not transfer to Spaces. Its default disk is ephemeral, so persistence
-requires a [Storage Bucket](https://huggingface.co/docs/hub/en/storage-buckets) mounted at
-`/data`, with `HF_HOME=/data/models` and
-`DATABASE_URL=sqlite:////data/coconut.db`. The container runs as UID 1000 to match the
-documented Docker Spaces convention for writable mounted storage.
-
-Three things to decide before putting this on a public URL, none of them blockers but none
-of them automatic:
-
-1. **It needs a real `rzp_test_` key to boot at all** — `config.py` hard-fails otherwise
-   (Section 2). That means putting a credential, test-mode or not, into a host's secret
-   store.
-2. **The write endpoints are unauthenticated.** Creating disputes, editing evidence,
-   approving and withdrawing are all open, because the sign-in screen is a front door with
-   no server component (Section 16). Anyone with the URL can mutate the demo. It reseeds
-   when empty, so this is survivable rather than safe.
-3. **`/evaluate` costs about 90 seconds of CPU per call** and is equally open.
-
-To run that same single-origin server without Docker:
-
-```bash
-cd frontend && npm run build
-cd ../backend && uvicorn app.server:site --port 8000   # -> http://localhost:8000
-```
-
----
-
-## Running it
-
-Two terminals.
-
-**Backend** (from `backend/`):
-
-```bash
-uvicorn app.main:app --reload
-```
-→ http://127.0.0.1:8000 · health at `/health` · interactive docs at `/docs`
-
-**Frontend** (from `frontend/`):
-
-```bash
-npm run dev
-```
-→ http://localhost:5173
-
-The dev server proxies `/api/*` to the backend, so there is no base URL to configure.
-
-**The front door.** `/` is a landing page — the thesis, the measured numbers and the
-limitations, for someone arriving with no context. The dashboard lives under `/app`, behind
-a demo entry screen at `/login`.
-
-Click **Continue to dashboard** to enter. No email or password is collected. The browser
-remembers that you entered the demo, but **no API route is protected by it**. Keep this
-single-merchant demonstration local; it is not suitable for private merchant records.
-
-**Pages and navigation:**
-
-| | |
+| Dispute queue | Measured performance |
 |---|---|
-| **Landing** (`/`) | What this is, what it measured, and what it deliberately will not do |
-| **Demo entry** (`/login`) | Continue without an account or password |
-| **Home** | Money at stake, deadlines, contest candidates and exposure by dispute type |
-| **Disputes** | The queue — filter by what Coconut concluded, sort by deadline or value |
-| **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
-| **Performance** | The held-out evaluation, re-runnable live |
+| ![Coconut dispute queue with decision filters, deadlines and values](frontend/public/shots/queue-light.png) | ![Coconut performance view with the risk budget and empirical check](frontend/public/shots/metrics-light.png) |
 
-**The loop:** *Assess 25 disputes* on Home → open a case from *Ready to contest* → read the
-per-evidence verdicts and the highlighted sentence that drove each → *Representment* tab, edit
-the draft → *Approve & prepare packet* → the *Audit* tab shows the "would submit to Razorpay"
-payload → *Performance* → *Run evaluation*.
+A concrete case in the seeded dataset, `disp_synthetic_0168`, shows the difference between
+having evidence and having a defensible case. The cardholder claims a ₹32,499 order never
+arrived. Coconut finds two independent records: delivery verified with OTP and a matching
+identity document, plus a later support chat where the customer acknowledges receipt. The
+case is contestable because the proof both addresses the claim and substantiates delivery.
 
-Light and dark themes both ship; the toggle is at the foot of the sidebar, and on the
-landing and sign-in pages in the header.
+<a id="results"></a>
 
-**Optional UI checks.** Playwright is pinned in the frontend lockfile; its Chromium binary
-is a separate ~115MB download so the normal five-minute setup does not fetch it. With both
-servers running:
+## Measured results
 
-```bash
-npx playwright install chromium
-npm run verify:landing         # landing, sign-in gate, and /app routing
-npm run verify:a11y            # keyboard, dialogs, themes, responsive boundaries
-npm run verify:smoke           # decision loop, end to end, in both themes
-# or: npm run verify:ui        # all three, sequentially
-node scripts/capture-shots.mjs # regenerate the landing page's product screenshots
-```
+### Frozen 1,000-case stress run
 
-The landing page's screenshots are photographs of the running app in both themes, not
-mockups. Re-run `capture-shots.mjs` after any visible dashboard change — `landing-ui.mjs`
-checks they load, but nothing can check they are still current.
+The latest run freezes the dataset, model revision, gate, thresholds, calibration inputs,
+code and inference dependency versions before evaluation. Labels are stripped from every
+record passed to inference.
 
-### Backing disputes with real Razorpay payments
+| Metric | Result |
+|---|---:|
+| Cases evaluated | **1,000** |
+| Contest precision | **1.000 (72/72)** |
+| False contests observed | **0** |
+| Descriptive Wilson 95% lower bound | **0.949** |
+| Selective F1 | **0.814** |
+| Selective accuracy | **0.839** |
+| Automatic coverage | **0.205** |
+| Sent to human review | **795/1,000** |
 
-Section 7 wants each dispute's `payment_id` to point at a genuine test-mode payment. Most
-seeded disputes still carry a `pay_PENDING_` placeholder, and the reason is worth stating
-plainly rather than hiding: **Razorpay exposes no endpoint that fabricates a payment.**
-Orders are creatable over the API; a payment only comes into existence when someone
-completes a Checkout interaction. Server-to-server payment creation
-(`payment.createUpi`, `payment.createPaymentJson`) returns 404 on a standard test account,
-so there is no API-only route to a real `pay_...` id.
+This result supports a narrow claim: **the automatic contest path was precise on this
+synthetic stress suite.** It does not support a production accuracy claim. The 1,000 cases
+are parameterized variants of 30 authored scenario families, so they are correlated rather
+than 1,000 independent bank outcomes. Coverage is intentionally conservative, and the next
+research target is higher coverage without losing contest precision.
 
-The app therefore does the part software can do and stops where a person is required --
-the same shape as the approve flow. **Open any dispute whose payment reads `placeholder`
-and click "Attach a real test payment":**
+The original 79-case held-out development evaluation reached 1.000 contest precision
+(6/6), 0.800 F1 and 0.203 coverage. Scaling the stress check increased contest support from
+6 to 72 while preserving zero observed false contests; it did not materially improve
+coverage. Full caveats and the confusion matrix are produced in the local stress report.
 
-1. A real test-mode order is created against your account (visible in the Razorpay
-   dashboard) and stored on the dispute.
-2. Razorpay Checkout opens in test mode, branded, for the dispute's amount.
-3. Pay with **UPI and the test VPA `success@razorpay`**. The generic
-   `4111 1111 1111 1111` card is treated as *international* and Indian test accounts
-   reject it.
-4. The backend reads the payment id back **off the order via the Razorpay API** -- not
-   from the browser callback -- and promotes it onto the dispute. The case page relabels
-   the payment `real`.
+The same 79 records also provide a direct ablation of the synthetic precision guard:
 
-Only `captured` or `authorized` payments are promoted. A failed or abandoned attempt is
-never attached, because a dead id on the dispute would make the "backed by a real payment"
-claim false -- the one thing this flow exists to make true.
-
-Repeat pressing is safe: an existing order is reused rather than creating a new one each
-time, and a dispute that is already backed refuses a second order with a 409.
-
-**There is deliberately no script that completes checkouts in bulk.** Razorpay's checkout
-is protected by a captcha, and automating past it would mean circumventing a
-bot-protection control on someone else's production infrastructure. Backing is a
-deliberate, per-dispute act.
-
-The older batch tooling still exists for creating orders and payment links ahead of time:
-
-```bash
-cd backend
-python data/backfill_razorpay_backing.py --limit 12 --with-payment-links
-python data/backfill_razorpay_backing.py --refresh-payments-only
-python data/verify_razorpay_backing.py     # checks all three acceptance criteria
-```
-
----
-
-## Webhooks
-
-`POST /webhooks/razorpay` is the one path into this system that is not someone clicking
-something -- it is the shape a real merchant integration takes, and it is what lets a
-completed Checkout payment promote itself onto its dispute without a page reload.
-
-Set `RAZORPAY_WEBHOOK_SECRET` from your dashboard (Settings -> Webhooks) and point the
-webhook at `/webhooks/razorpay`, subscribing to `payment.captured`.
-
-It fails closed in two ways, both deliberate:
-
-- **No secret configured, no requests accepted.** The tempting alternative -- accept
-  unsigned events when no secret is set -- would make this an unauthenticated write path
-  into the merchant's queue for anyone who can reach the port.
-- **The signature is verified against the raw request body**, before the JSON is parsed.
-  Verifying a re-serialised body is a well-known way to make the check meaningless, since
-  the bytes that were signed and the bytes that were checked are then different bytes. A
-  test signs a compact body and sends an indented one to prove this.
-
-**Dispute events are acknowledged and logged, never ingested.** Section 3 is explicit that
-disputes here are synthetic, and creating a real-looking dispute from a webhook would blur
-exactly the boundary Section 7 exists to keep sharp. They return 200 rather than an error
-because Razorpay retries a non-2xx and there is nothing to retry into.
-
----
-
-## Regenerating the synthetic data
-
-The dataset is committed, so this is never required to run the app.
-
-```bash
-cd backend
-python data/generate_synthetic_disputes.py --source curated   # no API key needed
-python data/generate_synthetic_disputes.py --source api --n 260   # needs ANTHROPIC_API_KEY
-```
-
-Both paths feed the same validation, normalisation and stratified 70/30 split. Regenerating
-overwrites `eval/held_out_set.json`, which invalidates the numbers below — the split is
-seeded and reproducible, but a *different* dataset is a different experiment.
-
-The UPI rails were added to the committed dataset by augmenting it in place rather than
-regenerating, precisely to avoid that:
-
-```bash
-python data/add_upi_rails.py --report   # show what it would do
-python data/add_upi_rails.py            # assign rail + payer_ref, build the cap clusters
-```
-
-The risk-calibration scores are cached too — one NLI pass, so moving the risk-budget
-slider is instant:
-
-```bash
-python eval/build_conformal_cache.py
-```
-
-Assignment is by hash of `dispute_id` and is blind to labels and to what the engine
-recommends, so it cannot be tuned to flatter a metric. Rerunning is idempotent.
-
----
-
-## Real-outcome research pipeline (offline)
-
-The running demo deliberately remains synthetic. A separate offline path now accepts a
-merchant-authorised historical export, removes direct identifiers, keeps the merchant's
-action separate from the processor's final status, creates group-disjoint chronological
-splits, and evaluates a simple reproducible baseline. It never seeds the demo database,
-never calls Razorpay, and never turns an observed `accepted -> lost` row into an invented
-"would have lost if contested" label.
-
-```powershell
-# From backend/. Capture a private value; do not paste it into Git or command history.
-$env:COCONUT_DATA_HMAC_KEY = (& ..\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))").Trim()
-
-python data/import_real_disputes.py --input <merchant-export.jsonl> --output data/private/normalized.jsonl
-python data/export_annotation_batch.py --input data/private/normalized.jsonl --output data/private/tasks-v1.jsonl --rubric-version evidence-v1
-python data/audit_annotation_agreement.py --input data/private/reviews-v1.jsonl --output data/private/agreement-v1.json
-python data/import_adjudications.py --records data/private/normalized.jsonl --annotations data/private/reviews-v1.jsonl --output data/private/adjudicated-v1.jsonl --rubric-version evidence-v1
-python data/split_real_disputes.py --input data/private/adjudicated-v1.jsonl --output-dir data/private/splits
-python eval/train_real_baseline.py --splits-dir data/private/splits --output eval/artifacts/real/baseline-v1.json
-```
-
-Raw exports, normalized rows, splits, and model artifacts are ignored by Git. Only disputes
-that were actually contested and later resolved `won` or `lost` are eligible for the binary
-baseline. Its threshold is selected on the calibration split; the newest test split is
-fingerprinted and used only for the final report. The report includes Wilson confidence
-intervals, support, coverage, population win capture, selective accuracy, PR-AUC, Brier
-score, and an explicit `claimable_precision: null` when the evidence is insufficient. The
-annotation tools blind reviewers to outcomes, measure agreement, and require consensus or
-expert adjudication. Optional pre-decision structured signals use explicit true/false/unknown
-states and are rejected if timestamped after the decision cutoff.
-
-No real merchant records are included in this repository, so this addition does **not**
-change or improve the currently recorded synthetic metrics by itself. The importer keeps
-private rows and artifacts in ignored paths and requires merchant authorization, outcome
-blinding during annotation, chronological group splits and an untouched final test split.
-
----
-
-## Running the evaluation
-
-```bash
-cd backend
-python eval/run_evaluation.py          # or POST /evaluate, or the Performance page
-pytest -m "not slow" -q                # bounded suite; does not load the NLI model
-pytest -m slow tests/test_verification_engine.py -q  # isolated real-model checks
-pytest -m slow tests/test_api.py -q     # isolated end-to-end API checks
-```
-
-Run the two slow groups separately. This keeps failures attributable and avoids turning a
-single interrupted command into an all-or-nothing test run on lower-powered laptops.
-
-### Tuning, and why it stopped
-
-```bash
-python eval/tune_thresholds.py --build-cache   # one inference pass over the working set
-python eval/tune_thresholds.py                 # replay 1,200 configurations in seconds
-```
-
-The sweep holds the original aggregation rule fixed and varies only the four constants the
-engine defines for itself.
-
-It finds nothing worth shipping, and says why: the two signals separate `contest_win` from
-everything else at **AUC 0.571** and **0.556**. Thresholds pick an operating point on a curve;
-they cannot add information to one. The best cell in 1,200 beats the shipped configuration by
-0.2 points of accuracy — one record out of 42 — while sitting directly against a cliff where
-precision collapses to 0.490.
-
-### Results — synthetic held-out set, latest recorded run
-
-79 records, kept out of threshold fitting and the demo database.
-CONTEST is the positive class.
-
-This run uses the zero-shot NLI pipeline followed by the synthetic-trained CONTEST safety
-gate. The gate can only demote a proposed contest to human review; it cannot manufacture a
-win or bypass the deterministic rules. The held-out file was regenerated from the same
-curated source and has already been inspected in earlier phases, so this is an empirical
-development result rather than a pristine external benchmark.
-
-| Metric | Value |
-|---|---|
-| Precision | **1.000** (6/6; Wilson 95% CI **0.610–1.000**) |
-| Selective recall | **0.667** (excludes deferrals and rule outcomes) |
-| F1 | **0.800** |
-| Selective accuracy | **0.813** (13/16 model-decided cases) |
-| Coverage | **0.203** |
-| Population automatic win capture | **0.188** (6/32 labelled winnable cases) |
-| False-positive cost estimate | **₹0** |
-| Records evaluated | 79 |
-
-| | Count | Meaning |
-|---|---|---|
-| TP | 6 | model CONTEST, truth `contest_win` |
-| FP | 0 | model CONTEST, truth `contest_loss` / `should_accept` |
-| FN | 3 | model ACCEPT, truth `contest_win` |
-| TN | 7 | model ACCEPT, truth `contest_loss` / `should_accept` |
-| Flagged to human | 63 | routed to a person instead of guessed |
-| URCS auto-resolved | 0 | no held-out record crossed a deterministic cap in this regenerated run |
-
-**How to read these.** Six correct contests produce a 1.000 point estimate, but the Wilson
-lower bound is only 0.610; this is not evidence for a production-grade 100% claim. The model
-decides 16 of 79 cases on their evidence and sends 63 to a person. The zero false positives
-remove the measured ₹1,500-per-case contest loss, but coverage falls from the ungated
-baseline. Recall is selective—it omits deferred cases—so automatic win capture is shown
-separately against all 32 labelled winnable cases.
-
-The most useful current comparison is the same regenerated split before and after the gate:
-
-| Metric | Ungated NLI | NLI + CONTEST gate |
+| Metric | Ungated NLI | NLI + contest guard |
 |---|---:|---:|
-| Precision | 0.714 (10/14) | **1.000 (6/6)** |
-| Selective recall | **0.769** | 0.667 |
-| F1 | 0.741 | **0.800** |
+| Contest precision | 0.714 (10/14) | **1.000 (6/6)** |
+| Selective F1 | 0.741 | **0.800** |
 | Selective accuracy | 0.708 | **0.813** |
 | Coverage | **0.304** | 0.203 |
 
-The improvement is a precision/coverage trade rather than a universal accuracy claim. The
-older hand-picked and Phase-0 measurements remain above as historical ablations; the naive
-single-signal engine scored **0.481** precision on its development comparison.
+The guard improved the quality of the automatic contest lane by making it smaller. This is
+the intended precision/coverage trade, shown as an ablation rather than presented as a
+universal model improvement.
 
-### Additional 1,000-case synthetic stress evaluation
+<details>
+<summary><strong>How the risk-budget prototype chooses a threshold</strong></summary>
 
-The frozen model was also run once over 1,000 additional synthetic cases spanning all six
-dispute reasons, three eligible payment rails and 30 authored scenario families. The model,
-gate, default risk budget, calibration data and source files were fingerprinted before the
-run. Ground-truth labels were removed from every record passed to inference.
+The operator supplies a maximum contest-error rate `alpha`. Coconut searches for the first
+threshold whose empirical contest error plus a finite-sample Hoeffding correction fits that
+budget:
 
-| Metric | 79-case held-out set | 1,000-case stress set |
-|---|---:|---:|
-| Contest precision | 1.000 (6/6) | **1.000 (72/72)** |
-| Descriptive Wilson 95% lower bound | 0.610 | **0.949** |
-| Selective recall | 0.667 | **0.686** |
-| Selective F1 | 0.800 | **0.814** |
-| Selective accuracy | 0.813 | **0.839** |
-| Coverage | 0.203 | **0.205** |
-| Population automatic win capture | **0.188** | 0.180 |
-| False contests | 0 | 0 |
-| Sent to human review | 63/79 | 795/1,000 |
-
-This improves the amount of synthetic evidence behind the narrow automatic-contest path:
-contest support grows from 6 to 72 without an observed false contest. It does not show a
-meaningful coverage improvement, and population automatic win capture is slightly lower.
-The 72 contests are also concentrated: 34 are `credit_not_processed`, 33 are
-`unrecognized_transaction`, four are `duplicate_charge`, one is `goods_not_as_described`,
-and none are `goods_not_received` or `subscription_cancelled`. This is strong evidence of
-where the current system is selective, not proof that it performs equally across reasons.
-The stress set contains parameterised variations of 30 authored families, so its cases are
-correlated and its Wilson interval is descriptive only. These are fictional outcome
-assumptions, not 1,000 independently adjudicated bank outcomes or production metrics.
-
-The complete stress run produced `TP=72`, `FP=0`, `FN=33`, `TN=100`, `human=795` and
-`auto_resolved=0`. Run it locally from `backend/` without Docker or a server:
-
-```powershell
-..\.venv\Scripts\python.exe eval/evaluate_stress.py --validate-only
-if ($LASTEXITCODE -ne 0) { throw 'Validation failed' }
-
-..\.venv\Scripts\python.exe eval/evaluate_stress.py --output-dir eval/stress_runs/full
-if ($LASTEXITCODE -ne 0) { throw 'Evaluation interrupted; use --resume' }
-
-$stressReport = Get-Content eval/stress_runs/full/report.json -Raw | ConvertFrom-Json
-$stressReport.complete_1000
-$stressReport.metrics | Format-List
-$stressReport.families_with_false_contests
+```text
+lambda = min { lambda : R(lambda) + sqrt(log(1/delta) / (2 n_lambda)) <= alpha }
 ```
 
-The runner checkpoints every 20 cases. Resume an interrupted run with:
+`R(lambda)` is `FP / (TP + FP)` among cases Coconut would contest at that threshold. If the
+calibration sample cannot support the requested budget, Coconut does not silently fall back
+to a looser cutoff; it defers.
+
+This is a development-time risk control, not a formal deployment guarantee. The score was
+developed on the working set also used for calibration, and the 50-threshold search has no
+family-wise multiple-testing correction. A release-grade version needs an independent
+calibration period and a fixed testing procedure.
+
+</details>
+
+### Why optimize precision first?
+
+The prototype assumes a configurable ₹1,500 cost to prepare and represent a dispute. A
+false contest can lose the transaction **and** that operating cost. Coconut therefore
+starts with a small, high-confidence automatic lane while leaving the remaining work visible
+to an analyst. That is a deliberate first deployment posture, not a claim that 20.5%
+coverage is the finished product.
+
+<a id="demo"></a>
+
+## Judge's three-minute route
+
+1. Open **Contest** in the demo shortcut bar. Compare the bank's claim with each highlighted
+   evidence span, then open **Representment** to see the draft built from those findings.
+2. Open **Accept**. Notice that Coconut explains why the merchant's own record weakens the
+   defense.
+3. Open **Human review**. The product does not hide ambiguity behind a high confidence
+   number.
+4. Open **UPI limit**. Read the 30-day count, CD1/CD2 result, source date and RGNB note.
+5. Open **Audit** on a decided case. The human action and simulated Razorpay payload remain
+   separate from model inference.
+6. Open **Performance** to inspect the risk-budget control and rerunnable evaluation.
+
+<a id="run-locally"></a>
+
+## Run the isolated demo
+
+The demo uses a fresh temporary SQLite database, dummy Razorpay test credentials and the
+same assessment engine as the regular app. Resetting it cannot touch the regular database.
+
+**Prerequisites:** Python 3.12+ and Node 18+. The first assessment downloads the pinned NLI
+model (about 750 MB).
+
+```powershell
+git clone https://github.com/Darsh-14/Coconut.git
+Set-Location Coconut
+
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+
+Set-Location frontend
+npm ci
+npm run build
+
+Set-Location ..\backend
+..\.venv\Scripts\python.exe -m uvicorn app.demo:app --host 127.0.0.1 --port 8011
+```
+
+Open **http://127.0.0.1:8011** and choose **Try demo**. Run this entry point with one worker.
+
+## Run the Razorpay test-mode app
+
+Only Razorpay **test-mode** credentials are accepted. The process refuses to start unless
+`RAZORPAY_KEY_ID` begins with `rzp_test_`. Gemini and Anthropic are optional; without either,
+the deterministic packet template is used.
+
+```powershell
+Set-Location Coconut
+Copy-Item .env.example .env
+# Add your Razorpay test key and secret to .env
+
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+Set-Location frontend
+npm ci
+npm run build
+
+Set-Location ..\backend
+..\.venv\Scripts\python.exe -m app.db.seed
+..\.venv\Scripts\python.exe -m uvicorn app.server:site --host 127.0.0.1 --port 8000
+```
+
+Open **http://127.0.0.1:8000**. This single-origin server serves the React build and FastAPI
+under one port.
+
+For frontend development, run the services in two terminals:
+
+```powershell
+# Terminal 1
+Set-Location Coconut\backend
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+
+# Terminal 2
+Set-Location Coconut\frontend
+npm run dev
+```
+
+Open **http://localhost:5173**. Vite proxies `/api/*` to port 8000.
+
+<details>
+<summary><strong>Docker setup</strong></summary>
+
+```powershell
+Copy-Item .env.example .env
+# Add Razorpay test-mode credentials to .env
+docker compose build coconut
+docker compose run --rm coconut python eval/prewarm_model.py
+docker compose up -d --wait --wait-timeout 900 coconut
+Invoke-RestMethod http://127.0.0.1:8000/api/ready
+```
+
+The frontend and API share port 8000. SQLite data and the model cache use named volumes.
+Docker Desktop could not be verified on the development machine because its engine reported
+that virtualization support was unavailable; the local Python path above is verified and
+does not require Docker.
+
+</details>
+
+## Reproduce the evaluation
+
+From `backend/`:
+
+```powershell
+# Fast test suite; does not load the NLI model
+..\.venv\Scripts\python.exe -m pytest -m "not slow" -q
+
+# Frozen stress suite contract and fingerprints
+..\.venv\Scripts\python.exe eval/evaluate_stress.py --validate-only
+
+# Full 1,000-case model run; checkpoints every 20 cases
+..\.venv\Scripts\python.exe eval/evaluate_stress.py --output-dir eval/stress_runs/full
+```
+
+Resume an interrupted full run:
 
 ```powershell
 ..\.venv\Scripts\python.exe eval/evaluate_stress.py --output-dir eval/stress_runs/full --resume
 ```
 
-It refuses to run if the frozen dataset, model, thresholds, calibration inputs, relevant
-code or inference dependency versions have changed. Reports remain local under the ignored
-`backend/eval/stress_runs/` directory.
+Inspect the result:
+
+```powershell
+$report = Get-Content eval/stress_runs/full/report.json -Raw | ConvertFrom-Json
+$report.complete_1000
+$report.metrics | Format-List
+$report.families_with_false_contests
+```
+
+The runner refuses to compare results after the frozen dataset, model, thresholds,
+calibration data, relevant code or inference dependencies change.
+
+Optional end-to-end checks:
+
+```powershell
+# Run slow model and API groups separately
+..\.venv\Scripts\python.exe -m pytest -m slow tests/test_verification_engine.py -q
+..\.venv\Scripts\python.exe -m pytest -m slow tests/test_api.py -q
+
+# With backend and frontend running, from frontend/
+npx playwright install chromium
+npm run verify:ui
+```
+
+## Razorpay integration boundary
+
+- A case can create a real Razorpay **test-mode** order and open Checkout. After payment,
+  the backend reads the payment from the order and attaches only an `authorized` or
+  `captured` payment ID.
+- `POST /webhooks/razorpay` verifies the signature against the raw body. With no webhook
+  secret configured, every request is refused.
+- Real dispute webhook events are acknowledged and logged, not converted into fake
+  adjudications. Razorpay test mode cannot manufacture a real chargeback outcome.
+- Approval stores the exact payload Coconut *would* submit. No route submits it to Razorpay
+  or a bank.
+
+This separation keeps the prototype honest: real test payments can demonstrate the
+integration, while decision labels remain clearly identified as synthetic.
+
+## Research path to real merchant data
+
+The repository includes an offline pipeline for authorized historical exports:
+
+```text
+merchant export
+  → remove direct identifiers with keyed HMAC
+  → blind evidence annotation to final outcome
+  → measure reviewer agreement and adjudicate conflicts
+  → import processor outcomes
+  → chronological, group-disjoint train/calibration/test splits
+  → calibrated baseline and untouched final report
+```
+
+Only disputes that were actually contested and later resolved as won or lost enter the
+binary outcome baseline. Private rows, splits and artifacts are ignored by Git. No real
+merchant records ship with this repository, so the current metrics remain synthetic.
+
+## Repository map
+
+```text
+backend/
+├── app/services/       NLI verification, decision policy, UPI rules, packets
+├── app/api/            dispute, approval, evaluation and webhook routes
+├── app/demo.py         isolated resettable demo entry point
+├── data/               seeded synthetic data and private-data tooling
+├── eval/               held-out evaluation, calibration and frozen stress suite
+└── tests/              API, model-policy, data, webhook and concurrency checks
+
+frontend/
+├── src/pages/          landing, home, queue, case and performance views
+├── src/components/     evidence map, audit trail, risk budget and demo controls
+└── scripts/            Playwright smoke, accessibility and screenshot checks
+```
+
+## Technology
+
+| Layer | Choice |
+|---|---|
+| Decision model | Pinned DeBERTa-v3 NLI cross-encoder, local CPU inference |
+| Safety policy | Explicit Python aggregation + development-time risk calibration |
+| UPI intelligence | Versioned deterministic NPCI rule engine |
+| API and storage | FastAPI, SQLAlchemy, SQLite |
+| Interface | React 19, TypeScript, Vite, Tailwind CSS |
+| Optional drafting | Gemini or Anthropic, isolated after the decision boundary |
+| Verification | Pytest and Playwright |
+
+## Limits and next research milestone
+
+- The supplied disputes and outcome labels are synthetic. They measure agreement with
+  authored labels, not bank adjudication accuracy.
+- The synthetic-only safety gate is trained on the working set and cannot be used as a
+  production claim.
+- The 1,000-case suite has 30 correlated scenario families. Its Wilson interval is
+  descriptive only.
+- Automatic coverage is 20.5%; most cases still need a person. Retrieval-phase claims are
+  a known weak area because a request for documents is linguistically different from an
+  accusation.
+- The app has no server-side authentication and is intended for a local, single-merchant
+  demonstration with test payments.
+- NPCI rules change. The source names and last-verified date are visible in code and UI and
+  must be rechecked before real use.
+
+The next milestone is a reason-specific selective classifier trained on authorized,
+adjudicated merchant outcomes, with separate **Contest** and **Accept** thresholds. The goal
+is at least 60% automatic coverage while maintaining a minimum contest precision chosen by
+the merchant and measuring accept correctness separately on a new untouched test period.
 
 ---
 
-## Limitations
-
-Stated plainly.
-
-- **The dispute records are synthetic.** Razorpay's test mode has no mechanism to fabricate
-  a chargeback, so there is no real disputable transaction to build against. `claim_text`,
-  `evidence_bundle` and `ground_truth_label` are Claude-generated. The `payment_id` a
-  dispute points at *can* be a real test-mode payment, and one in the committed set is.
-- **Nothing is ever auto-submitted.** On approval the system builds the exact payload it
-  *would* send, stores it in the audit log, and labels it "would submit to Razorpay". It
-  does not make the call. This is enforced in two independent places and tested in both.
-- **The NLI model is zero-shot, while the safety gate is supervised on synthetic data.**
-  Neither component has been trained or validated on real merchant adjudications.
-- **Ground truth is generated, not observed.** Labels reflect how a well-informed person
-  would judge each bundle, not the outcome of a real bank adjudication. The metrics measure
-  agreement with that judgement.
-- **Retrieval-phase claims are handled poorly.** They are phrased as documentation
-  *requests* ("Issuer requests proof of delivery") rather than accusations, so the
-  "does this evidence contradict the claim" signal does not apply and they tend to land in
-  human review. Visible in the queue; a per-phase prompt would fix it.
-- **Coverage is low by construction.** Tightening the engine for precision roughly halved
-  it. That trade is deliberate and documented above.
-
----
-
-## What's next, and what was discarded
-
-**Evidence Gap Advisor — planned, not built.** The idea: run the Section 10 aggregation
-rule in reverse, substituting a canonical strong exemplar for each evidence type a case is
-missing, to tell a merchant *before the deadline* which specific missing document would
-flip a borderline case from "unclear" to "contest". No new model — the same rule, run
-backwards.
-
-It was designed, then demoted. On re-examination, ROI-based fight-or-accept decisioning is
-already commercially available (Justt markets it directly), so it was not the differentiator
-it first appeared to be. The UPI rules engine above was: no surveyed vendor models NPCI's
-mechanics, because their product architecture assumes a human adjudicator at a card network.
-
-### Deliberately not built
-
-Named here rather than left for someone to notice missing.
-
-**A script that completes test checkouts in bulk.** It would be the fastest way to back
-every dispute with a real payment. Razorpay's checkout is protected by a captcha, and
-automating past it means circumventing a bot-protection control on someone else's
-production infrastructure. Backing stays a deliberate, per-dispute act.
-
-**Background jobs for `/evaluate` and batch assessment.** Both currently occupy a request
-for as long as they run. At this dataset size that is seconds, and a job queue plus its
-progress plumbing would be more moving parts than the problem earns. It is the first thing
-to add if the held-out set grows.
-
-**Structured request logging and tracing.** `/health` reports the database, model,
-calibration state and LLM provider, which is enough to answer "is it working". It is not
-enough to answer "why was this specific decision slow", and that gap is real.
-
-**A settings page.** The representment cost, LLM provider and model are environment
-variables. The risk budget — the one that actually changes what the system recommends — is
-already adjustable in the UI and persisted, which is the one that mattered.
-
----
-
-## What this generalises to
-
-The reusable core is not chargeback-specific: it is a **claim-verification loop** that
-takes an assertion and a bundle of evidence, scores each item on whether it *engages* the
-assertion and whether it *substantiates* a position specifically enough to act on, and
-abstains when the evidence does not separate the two. Track 2's other directions have that
-same shape — return-risk scoring asks whether a return reason is corroborated by the
-account's own history, and abuse-ring detection asks whether shared signals across accounts
-substantiate a link or merely co-occur. Both would reuse the two-signal scorer, the explicit
-aggregation rule, the abstention path and the audit trail, swapping only the probe set and
-the evidence adapters. Neither is built here; this repo does one loop end to end.
-
-One honest note on measurement. Razorpay's own published results for **Bumblebee**, its
-agentic merchant-risk system, report *system reliability* — task completion rate, 88% to
-99%+ — rather than decision accuracy against labelled outcomes. That is a reasonable thing
-to report for an agent pipeline, and it is a different question from the one `/evaluate`
-answers here. This project reports precision, recall and false-positive cost against a
-held-out set precisely because that measurement is complementary to, not a substitute for,
-the reliability numbers the public material shows.
+**Coconut does not try to automate judgment away. It makes the safe decision obvious, the
+uncertain decision visible, and every action reviewable.**
