@@ -20,7 +20,7 @@
 //
 import { chromium } from 'playwright'
 
-const BASE = 'http://localhost:5173'
+const BASE = process.env.BASE_URL ?? 'http://localhost:5173'
 const errors = []
 let pass = 0, fail = 0
 const check = (ok, label, detail = '') => {
@@ -45,11 +45,10 @@ check(!(await page.locator('aside').count()), 'landing has no dashboard sidebar'
 // agree with each other as well as with the run.
 const body = await page.locator('body').innerText()
 for (const [n, what] of [
-  ['0.692', 'precision'],
-  ['0.291', 'coverage'],
+  ['1.000', 'precision'],
+  ['0.203', 'coverage'],
   ['79', 'held-out record count'],
-  ['0.481', 'naive-engine baseline'],
-  ['6,000', 'false-positive cost'],
+  ['0', 'false-positive cost'],
 ])
   check(body.includes(n), `landing shows the measured ${what} (${n})`)
 
@@ -65,7 +64,7 @@ const matrix = await page.evaluate(() => {
   )
 })
 check(matrix !== null, 'the confusion matrix table is present')
-for (const [k, v] of [['TP', '9'], ['FP', '4'], ['FN', '3'], ['TN', '7'], ['Human', '51'], ['URCS', '5']])
+for (const [k, v] of [['TP', '6'], ['FP', '0'], ['FN', '3'], ['TN', '7'], ['Human', '63'], ['URCS', '0']])
   check(
     Boolean(matrix?.some((row) => row[0] === k && row[1] === v)),
     `confusion matrix ${k} = ${v}`,
@@ -119,9 +118,10 @@ await page.goto(`${BASE}/app/disputes`, { waitUntil: 'networkidle' })
 check(page.url().endsWith('/login'), 'unauthenticated deep link redirects to /login', page.url())
 
 // --- 3. sign in ---------------------------------------------------------------------
-check(await page.locator('#email').isVisible(), 'login shows an email field')
-check((await page.locator('body').innerText()).includes('not an account system'),
-      'login states it is not an account system')
+check(await page.getByRole('heading', { name: 'Open demo workspace' }).isVisible(), 'demo entry is explicit')
+check(await page.locator('input[type="password"]').count() === 0, 'demo does not collect a password')
+check((await page.locator('body').innerText()).includes('No server authentication'),
+      'demo entry states the authentication limitation')
 await page.locator('button[type=submit]').click()
 await page.waitForURL('**/app/disputes', { timeout: 5000 }).catch(() => {})
 check(page.url().includes('/app/disputes'), 'sign-in returns to the originally requested page', page.url())
@@ -147,19 +147,16 @@ await page.waitForURL('**/app/disputes', { timeout: 5000 })
 check(page.url().endsWith('/app/disputes'), 'back-link returns to the queue')
 
 // --- 4b. the same numbers everywhere ---------------------------------------------------
-// These figures lived as literals on three surfaces and drifted: Overview showed 62.5% at
-// 21.5% coverage -- Section 10's HAND-PICKED thresholds -- under the heading "Last recorded
-// run", while the landing page showed the calibrated 0.692. A reviewer crossing between
-// them would have found the product disagreeing with itself about its own accuracy. They
-// now share lib/headline.ts; this asserts they still do.
+// These figures once lived as literals on three surfaces and drifted. They now share
+// lib/headline.ts; this asserts they still agree.
 await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
 const modelCard = await page
   .locator('text=How well it calls them')
   .locator('xpath=ancestor::*[contains(@class,"surface")][1]')
   .innerText()
-check(modelCard.includes('69.2%'), 'Overview quotes the shipped precision (69.2%)', modelCard.slice(0, 90))
-check(modelCard.includes('29.1%'), 'Overview quotes the shipped coverage (29.1%)')
+check(modelCard.includes('100.0%'), 'Overview quotes the shipped precision (100.0%)', modelCard.slice(0, 90))
+check(modelCard.includes('20.3%'), 'Overview quotes the shipped coverage (20.3%)')
 check(!modelCard.includes('62.5%') && !modelCard.includes('21.5%'),
       'Overview does not quote the hand-picked thresholds as the recorded run')
 

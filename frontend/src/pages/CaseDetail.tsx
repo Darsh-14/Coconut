@@ -586,7 +586,7 @@ function NotAssessed({ busy, onRun }: { busy: boolean; onRun: () => void }) {
             Reading evidence…
           </p>
           <p className="mt-1 text-[12px] text-[var(--fg-3)]">
-            First run after startup loads the model — about fifteen seconds.
+            Checking the evidence. Initial model loading may take longer.
           </p>
           <div className="mt-3">
             <Progress label="Assessment in progress" />

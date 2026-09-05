@@ -1,18 +1,16 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Mark, ThemeToggle } from '../components/ThemeToggle'
 import { HEADLINE } from '../lib/headline'
 import { paths } from '../lib/routes'
-import { DEMO_EMAIL, DEMO_MERCHANT, isSignedIn, signIn } from '../lib/session'
+import { DEMO_MERCHANT, isSignedIn, signIn } from '../lib/session'
 
 /**
  * The front door.
  *
- * Every field is pre-filled and any value continues, because the alternative — a reviewer
- * meeting a credential wall holding no credentials — is worse than no sign-in at all. The
- * card says outright that this is not an account system rather than implying an
- * authentication that does not exist. See lib/session.ts for the full reasoning.
+ * Demo entry never collects credentials. The local session is a navigation convenience,
+ * not authentication. See lib/session.ts.
  *
  * Two columns rather than one centred card: a sign-in screen is a speed bump, so the space
  * beside it is used to say what is being signed into and under what constraints. The right
@@ -22,9 +20,6 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? paths.overview
-
-  const [email, setEmail] = useState(DEMO_EMAIL)
-  const [password, setPassword] = useState('demo-merchant')
 
   // Already signed in: skip the door rather than asking twice.
   if (isSignedIn()) return <Navigate to={from} replace />
@@ -49,28 +44,13 @@ export default function Login() {
         <div className="grid w-full max-w-[62rem] items-center gap-14 lg:grid-cols-[minmax(0,26rem)_1fr]">
           {/* --- the form -------------------------------------------------------- */}
           <div>
-            <h1 className="w-display text-[28px] leading-none">Sign in</h1>
+            <h1 className="w-display text-[28px] leading-none">Open demo workspace</h1>
             <p className="mt-2.5 text-[13.5px] text-[var(--fg-2)]">
               Dispute console for {DEMO_MERCHANT}.
             </p>
 
             <form onSubmit={submit} className="surface mt-6 space-y-4 p-6">
-              <Field
-                id="email"
-                label="Work email"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                autoComplete="username"
-              />
-              <Field
-                id="password"
-                label="Password"
-                type="password"
-                value={password}
-                onChange={setPassword}
-                autoComplete="current-password"
-              />
+              <p className="text-sm text-[var(--fg-2)]">Explore synthetic disputes. No account or password is required.</p>
 
               <button
                 type="submit"
@@ -86,7 +66,7 @@ export default function Login() {
               className="mt-4 rounded-[var(--radius-control)] border p-4 text-[12.5px] leading-[1.6] text-[var(--fg-2)]"
               style={{ borderColor: 'var(--line)', background: 'var(--surface-2)' }}
             >
-              Demo mode: the fields are pre-filled and no account system is enforced.
+              Demo access only. No server authentication. Do not enter a real password.
             </div>
 
             <Link
@@ -145,39 +125,6 @@ export default function Login() {
           </aside>
         </div>
       </main>
-    </div>
-  )
-}
-
-function Field({
-  id,
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  id: string
-  label: string
-  type: string
-  value: string
-  onChange: (v: string) => void
-  autoComplete: string
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="w-med mb-1.5 block text-[12px] text-[var(--fg-2)]">
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(e) => onChange(e.target.value)}
-        className="focus-ring w-full rounded-[var(--radius-control)] border px-3 py-2 text-[13.5px] text-[var(--fg)] transition-colors"
-        style={{ borderColor: 'var(--line-strong)', background: 'var(--surface-solid)' }}
-      />
     </div>
   )
 }

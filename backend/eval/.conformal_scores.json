@@ -2,8 +2,8 @@
   "schema_version": 3,
   "model_version": "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7",
   "source_sha256": {
-    "calibration": "aa840cfcc78aa0c31d11d91cbabda90c84c17480320def980106fa134392e6b3",
-    "test": "a686b07f5089cd58588ed70c400ce70675223a7013e927818e54652cb9664aed"
+    "calibration": "1cc1476a8078919e657568b3be65af9c15bc1cbff30898b9db1f82ce7afa636f",
+    "test": "8de3bd17089632af9a144128f42bc1b6bda03fd4866ed5f7df3280ba885ff07c"
   },
   "source_record_count": {
     "calibration": 182,
@@ -51,7 +51,7 @@
       "label": "contest_win",
       "score": 0.5009,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0124",
@@ -93,7 +93,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0092",
@@ -128,7 +128,7 @@
       "label": "contest_loss",
       "score": 0.5003,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0260",
@@ -156,7 +156,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0177",
@@ -170,7 +170,7 @@
       "label": "contest_loss",
       "score": 0.4884,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0128",
@@ -254,7 +254,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0238",
@@ -324,7 +324,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0236",
@@ -366,7 +366,7 @@
       "label": "should_accept",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0155",
@@ -471,7 +471,7 @@
       "label": "should_accept",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0049",
@@ -506,7 +506,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0035",
@@ -527,7 +527,7 @@
       "label": "contest_loss",
       "score": 0.5011,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0005",
@@ -646,7 +646,7 @@
       "label": "should_accept",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0074",
@@ -688,7 +688,7 @@
       "label": "contest_loss",
       "score": 0.4885,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0045",
@@ -772,7 +772,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": 0.9948,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0182",
@@ -821,7 +821,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0123",
@@ -877,7 +877,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0232",
@@ -1010,7 +1010,7 @@
       "label": "contest_win",
       "score": 0.4989,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0228",
@@ -1150,7 +1150,7 @@
       "label": "should_accept",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0259",
@@ -1185,7 +1185,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0069",
@@ -1313,7 +1313,7 @@
       "label": "contest_win",
       "score": 0.5,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0247",
@@ -1439,7 +1439,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0121",
@@ -1544,7 +1544,7 @@
       "label": "contest_loss",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0257",
@@ -1586,7 +1586,7 @@
       "label": "contest_win",
       "score": null,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0068",
@@ -1768,7 +1768,7 @@
       "label": "contest_win",
       "score": 0.4826,
       "max_contradict": null,
-      "urcs_auto_reject": true
+      "urcs_auto_reject": false
     },
     {
       "dispute_id": "disp_synthetic_0029",
@@ -1862,7 +1862,7 @@
       "urcs_auto_reject": false
     }
   ],
-  "rows_sha256": "c26e40fa51e1019a53b984cc992da5fe4f7343091a8553591c40ddc52ee86435",
+  "rows_sha256": "fe6267d419361a9559fd384585a5bf9f8df4825d39c63c1e64a063f1f3f93186",
   "generation_runtime": {
     "python": "3.13.3",
     "implementation": "CPython",

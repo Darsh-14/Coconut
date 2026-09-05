@@ -15,7 +15,19 @@ venv/
 
 # Local state that must never be baked in
 .env
+**/.env
+**/.env.*
+**/data/private/
+**/data/real/
+**/eval/artifacts/real/
+**/eval/real_runs/
+**/training/private/
+**/razorpay_backing.json
+**/latest_*_results.json
 *.db
+**/*.db
+**/*.db-wal
+**/*.db-shm
 *.db-journal
 **/.signal_cache.json
 
@@ -29,6 +41,7 @@ frontend/dist/
 .gitignore
 .github/
 **/.pytest_cache/
+**/.demo-checks/
 **/.ruff_cache/
 **/.mypy_cache/
 *.log

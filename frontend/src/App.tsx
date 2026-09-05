@@ -1,4 +1,4 @@
-import { BarChart3, House, ListFilter, LogOut } from 'lucide-react'
+import { BarChart3, House, ListFilter, LogOut, Users, Landmark, Activity, Search } from 'lucide-react'
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Mark, ThemeToggle } from './components/ThemeToggle'
@@ -10,6 +10,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import MetricsDashboard from './pages/MetricsDashboard'
 import Overview from './pages/Overview'
+import DemoReadiness from './pages/DemoReadiness'
 
 /**
  * Two shells, not one.
@@ -69,6 +70,7 @@ function AppShell() {
       <Sidebar />
       <main id="main-content" className="min-w-0 flex-1" tabIndex={-1}>
         <MobileBar />
+        <WorkspaceBar />
         <div className="mx-auto max-w-[74rem] px-4 py-6 sm:px-8 sm:py-9">
           {/* Keyed on the route so recovering from a crash on one page does not leave the
               boundary latched shut when you navigate to another. */}
@@ -78,6 +80,7 @@ function AppShell() {
               <Route path="disputes" element={<DisputeQueue />} />
               <Route path="disputes/:disputeId" element={<CaseDetail />} />
               <Route path="metrics" element={<MetricsDashboard />} />
+              <Route path="readiness" element={<DemoReadiness />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
@@ -113,6 +116,7 @@ function Sidebar() {
         </NavLink>
 
         <nav className="space-y-0.5" aria-label="Primary navigation">
+          <p className="px-2.5 pb-2 text-[10px] uppercase tracking-wider text-[var(--fg-3)]">Workspace</p>
           <NavItem to={paths.overview} icon={<House size={16} strokeWidth={1.6} aria-hidden="true" />}>
             Overview
           </NavItem>
@@ -122,12 +126,16 @@ function Sidebar() {
           >
             Disputes
           </NavItem>
+          <NavItem to={paths.review} icon={<Users size={16} aria-hidden="true" />}>Review queue</NavItem>
+          <NavItem to={paths.upi} icon={<Landmark size={16} aria-hidden="true" />}>UPI cases</NavItem>
+          <p className="px-2.5 pb-2 pt-6 text-[10px] uppercase tracking-wider text-[var(--fg-3)]">Reports &amp; setup</p>
           <NavItem
             to={paths.metrics}
             icon={<BarChart3 size={16} strokeWidth={1.6} aria-hidden="true" />}
           >
             Performance
           </NavItem>
+          <NavItem to={paths.readiness} icon={<Activity size={16} aria-hidden="true" />}>Demo readiness</NavItem>
         </nav>
       </div>
 
@@ -173,20 +181,26 @@ function MobileBar() {
       <nav className="mt-2.5 flex gap-1 overflow-x-auto" aria-label="Primary navigation">
         <MobileTab to={paths.overview}>Overview</MobileTab>
         <MobileTab to={paths.disputes}>Disputes</MobileTab>
+        <MobileTab to={paths.review}>Review queue</MobileTab>
+        <MobileTab to={paths.upi}>UPI cases</MobileTab>
         <MobileTab to={paths.metrics}>Performance</MobileTab>
+        <MobileTab to={paths.readiness}>Readiness</MobileTab>
       </nav>
     </div>
   )
 }
 
 function MobileTab({ to, children }: { to: string; children: React.ReactNode }) {
+  const location = useLocation()
+  const selected = navSelected(to, location.pathname, location.search)
   return (
     <NavLink
       to={to}
       end={to === paths.overview}
-      className={({ isActive }) =>
+      aria-current={selected ? 'page' : false}
+      className={() =>
         `pressable focus-ring shrink-0 rounded-[var(--radius-control)] px-3 py-1.5 text-[12.5px] ${
-          isActive
+          selected
             ? 'bg-[var(--fg)] text-[var(--bg)]'
             : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)]'
         }`
@@ -207,26 +221,57 @@ function NavItem({
   icon: React.ReactNode
   children: React.ReactNode
 }) {
+  const location = useLocation()
+  const selected = navSelected(to, location.pathname, location.search)
   return (
     <NavLink
       to={to}
       end={to === paths.overview}
-      className={({ isActive }) =>
+      aria-current={selected ? 'page' : false}
+      className={() =>
         `pressable focus-ring flex items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 py-2 text-[13px] ${
-          isActive
+          selected
             ? 'bg-[var(--surface-3)] text-[var(--fg)]'
             : 'text-[var(--fg-2)] hover:bg-[var(--surface-2)] hover:text-[var(--fg)]'
         }`
       }
       style={{ fontVariationSettings: "'wght' 510" }}
     >
-      {({ isActive }) => (
+      {() => (
         <>
-          <span className={isActive ? 'text-[var(--fg)]' : 'text-[var(--fg-3)]'}>{icon}</span>
+          <span className={selected ? 'text-[var(--fg)]' : 'text-[var(--fg-3)]'}>{icon}</span>
           {children}
         </>
       )}
     </NavLink>
+  )
+}
+
+function navSelected(to: string, pathname: string, search: string) {
+  const [target, query] = to.split('?')
+  if (pathname !== target) return to === paths.disputes && pathname.startsWith(`${paths.disputes}/`)
+  const params = new URLSearchParams(search)
+  const inReview = params.get('filter') === 'NEEDS_HUMAN_REVIEW'
+  if (to === paths.review) return inReview
+  if (to === paths.upi) return !inReview && params.get('rail') === 'upi'
+  if (query) return false
+  return to !== paths.disputes || (!inReview && params.get('rail') !== 'upi')
+}
+
+function WorkspaceBar() {
+  const navigate = useNavigate()
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-8" style={{ borderColor: 'var(--line)' }}>
+      <p className="text-[11px] text-[var(--fg-3)]">Test workspace · No server authentication</p>
+      <form className="flex w-full items-center gap-2 sm:w-72" role="search" onSubmit={(event) => {
+        event.preventDefault()
+        const query = String(new FormData(event.currentTarget).get('q') ?? '').trim()
+        navigate(query ? `${paths.disputes}?q=${encodeURIComponent(query)}` : paths.disputes)
+      }}>
+        <input name="q" type="search" aria-label="Search workspace" placeholder="Search disputes or payments" className="focus-ring min-w-0 flex-1 rounded bg-[var(--surface-2)] px-3 py-2 text-xs" />
+        <button type="submit" aria-label="Search" className="focus-ring rounded p-2 text-[var(--fg-2)]"><Search size={16} /></button>
+      </form>
+    </header>
   )
 }
 

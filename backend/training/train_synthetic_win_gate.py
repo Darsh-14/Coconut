@@ -168,7 +168,33 @@ def _select_threshold(
     }
 
 
-def train(config: TrainingConfig) -> dict:
+def load_supplement(path: Path | None, working: Sequence[Dispute]) -> list[Dispute]:
+    """Extra cases are training-only in every fold, never calibration/test observations."""
+    if path is None:
+        return []
+    extra = [Dispute.model_validate(v) for v in json.loads(path.read_text(encoding="utf-8"))]
+    reserved = [*working, *[
+        Dispute.model_validate(v)
+        for v in json.loads((BACKEND_ROOT / "eval/held_out_set.json").read_text(encoding="utf-8"))
+    ]]
+    ids = {r.dispute_id for r in reserved}
+    # Compare input text only; held-out labels never participate in fitting/selection.
+    def signature(record):
+        return " ".join((record.claim_text + " " + " ".join(
+            e.content for e in record.evidence_bundle
+        )).lower().split())
+    texts = {signature(r) for r in reserved}
+    for record in extra:
+        if record.ground_truth_label is None or not record.dispute_id.startswith("disp_synthetic_"):
+            raise TrainingError("supplement must contain labelled synthetic cases only")
+        if record.dispute_id in ids or signature(record) in texts:
+            raise TrainingError("supplement overlaps an existing record or contains duplicates")
+        ids.add(record.dispute_id)
+        texts.add(signature(record))
+    return extra
+
+
+def train(config: TrainingConfig, supplement: Path | None = None) -> dict:
     if not 0.0 < config.target_precision <= 1.0:
         raise TrainingError("target precision must be in (0, 1]")
     if config.min_support < 1:
@@ -178,6 +204,8 @@ def train(config: TrainingConfig) -> dict:
     records = [record for record in records if record.ground_truth_label is not None]
     if len({record.dispute_id for record in records}) != len(records):
         raise TrainingError("working dataset contains duplicate dispute IDs")
+    extra = load_supplement(supplement, records)
+    extra_labels = np.asarray([int(r.ground_truth_label == "contest_win") for r in extra])
     labels = np.asarray(
         [1 if record.ground_truth_label == "contest_win" else 0 for record in records],
         dtype=np.float64,
@@ -189,7 +217,8 @@ def train(config: TrainingConfig) -> dict:
         train_indices = [index for index, assigned in enumerate(fold_assignments) if assigned != fold]
         test_indices = [index for index, assigned in enumerate(fold_assignments) if assigned == fold]
         model = _fit(
-            [records[index] for index in train_indices], labels[train_indices], config
+            [records[index] for index in train_indices] + extra,
+            np.concatenate((labels[train_indices], extra_labels)), config
         )
         for index in test_indices:
             oof_scores[index] = predict_probability(records[index], model)
@@ -203,7 +232,7 @@ def train(config: TrainingConfig) -> dict:
         config.target_precision,
         config.min_support,
     )
-    final_model = _fit(records, labels, config)
+    final_model = _fit(records + extra, np.concatenate((labels, extra_labels)), config)
     ranked_eligible = sorted(
         ((float(oof_scores[index]), int(labels[index])) for index in eligible_indices),
         reverse=True,
@@ -214,6 +243,9 @@ def train(config: TrainingConfig) -> dict:
         if 0 < support <= len(ranked_eligible)
     }
     source_hash = _sha256(WORKING_SET)
+    supplement_hash = _sha256(supplement) if supplement else None
+    if supplement_hash:
+        source_hash = hashlib.sha256((source_hash + supplement_hash).encode()).hexdigest()
     model_version = f"synthetic-hashed-logistic@{source_hash[:12]}"
     artifact = {
         "schema_version": ARTIFACT_SCHEMA_VERSION,
@@ -230,6 +262,10 @@ def train(config: TrainingConfig) -> dict:
             "source": "data/synthetic_disputes.json",
             "source_sha256": source_hash,
             "records": len(records),
+            "supplement_sha256": supplement_hash,
+            "supplement_records": len(extra),
+            "total_fit_records": len(records) + len(extra),
+            "supplement_policy": "training only in every fold; excluded from OOF metrics",
             "positive_contest_wins": int(labels.sum()),
             "negative_loss_or_accept": int(len(labels) - labels.sum()),
             "folds": config.folds,
@@ -275,15 +311,18 @@ def _atomic_write(path: Path, payload: bytes) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ARTIFACT_PATH)
+    parser.add_argument("--supplement", type=Path, help="Optional training-only synthetic JSON array")
     parser.add_argument("--target-precision", type=float, default=0.90)
     parser.add_argument("--min-support", type=int, default=8)
     args = parser.parse_args(argv)
+    if args.supplement and args.output.resolve() == ARTIFACT_PATH.resolve():
+        parser.error("with --supplement, use --output eval/synthetic_win_gate_candidate.json to preserve the demo model")
     config = TrainingConfig(
         target_precision=args.target_precision,
         min_support=args.min_support,
     )
     try:
-        artifact = train(config)
+        artifact = train(config, args.supplement)
     except (TrainingError, OSError, json.JSONDecodeError, ValueError) as exc:
         print(f"Synthetic gate training failed: {exc}", file=sys.stderr)
         return 2

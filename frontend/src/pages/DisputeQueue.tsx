@@ -1,7 +1,7 @@
 import { AlertTriangle, ChevronLeft, ChevronRight, Inbox, Search, SearchX } from 'lucide-react'
 import { paths } from '../lib/routes'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   countdownTo,
   formatInr,
@@ -32,8 +32,23 @@ export default function DisputeQueue() {
   const navigate = useNavigate()
   const { rows, error, stats, batch, assessNext, stopBatch, refresh, loading } = useDisputes()
   const [filing, setFiling] = useState(false)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
+  const [params, setParams] = useSearchParams()
+  const search = params.get('q') ?? ''
+  const requestedFilter = params.get('filter') ?? 'all'
+  const filter: Filter = ['all', 'unassessed', 'CONTEST', 'ACCEPT', 'NEEDS_HUMAN_REVIEW', 'NO_ACTION_NEEDED'].includes(requestedFilter)
+    ? requestedFilter as Filter : 'all'
+  const rail = params.get('rail') === 'upi' ? 'upi' : null
+  function updateParam(key: string, value: string) {
+    setParams((previous) => {
+      const next = new URLSearchParams(previous)
+      if (value && value !== 'all') next.set(key, value)
+      else next.delete(key)
+      return next
+    }, { replace: true })
+    setPage(1)
+  }
+  const setSearch = (value: string) => updateParam('q', value)
+  const setFilter = (value: Filter) => updateParam('filter', value)
   const [sort, setSort] = useState<SortKey>('deadline')
   const [page, setPage] = useState(1)
 
@@ -64,7 +79,7 @@ export default function DisputeQueue() {
             reasonCopy(r.reason_code).short.toLowerCase().includes(needle),
         )
       : (rows ?? [])
-    const filtered = searched.filter((r) =>
+    const filtered = searched.filter((r) => !rail || r.rail === rail).filter((r) =>
       filter === 'all'
         ? true
         : filter === 'unassessed'
@@ -76,7 +91,7 @@ export default function DisputeQueue() {
         ? b.amount - a.amount
         : parseApiDate(a.respond_by).getTime() - parseApiDate(b.respond_by).getTime(),
     )
-  }, [rows, filter, sort, search])
+  }, [rows, filter, sort, search, rail])
 
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount)
@@ -134,6 +149,9 @@ export default function DisputeQueue() {
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        {rail && (
+          <Button size="sm" onClick={() => updateParam('rail', '')}>UPI only · Clear</Button>
+        )}
         {/* Five filters do not fit a phone; let the strip scroll rather than the page. */}
         <div className="-mx-1 max-w-full overflow-x-auto px-1">
           <Segmented

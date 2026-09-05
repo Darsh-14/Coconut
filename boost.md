@@ -2,11 +2,12 @@
 
 ## Executive summary
 
-Coconut's current contest precision is **69.2% (9 correct CONTEST decisions out of 13)** on
+Coconut's current contest precision is **100% (6 correct CONTEST decisions out of 6)** on
 79 synthetic held-out disputes. The Wilson 95% confidence interval is approximately
-**42.4%-87.3%**, so 69.2% is not a stable estimate of production performance. The current
-model decides 23/79 cases on their evidence, sends 51 to human review, and routes 5 through
-deterministic NPCI rules. Its population automatic-win capture is 9/32, or **28.1%**.
+**61.0%-100%**, so the point estimate is not a stable estimate of production performance.
+The current model decides 16/79 cases on their evidence and sends 63 to human review; no
+case in this regenerated held-out run crossed the deterministic NPCI caps. Its population
+automatic-win capture is 6/32, or **18.8%**.
 
 The bottleneck is not the final threshold. Coconut's zero-shot NLI signals have only about
 0.57 ranking AUC, and eligible scores cluster around 0.50. A threshold can exchange coverage
@@ -89,7 +90,7 @@ is:
 
 These are proposed engineering gates, not claims that Coconut currently satisfies them.
 
-Three hundred predicted contests matters because precision from 9/13 is extremely uncertain.
+Three hundred predicted contests matters because precision from 6/6 is extremely uncertain.
 For example, an observed 90% precision over 300 predictions has a Wilson 95% interval of
 roughly 86%-93%, which is much more informative than the current interval.
 
@@ -804,7 +805,7 @@ Do:
 2. Demonstrate the real-data contract, importer and locked-test pipeline using the explicitly
    fictional fixture.
 3. Explain that the fixture validates engineering, not model performance.
-4. Present the current 69.2% as 9/13 with its confidence interval.
+4. Present the current 100% as 6/6 with its 61.0%-100% confidence interval.
 5. Show why human review and NPCI rules are separate from model precision.
 6. State that real-data training is implemented as an offline path but awaits an authorised
    corpus.

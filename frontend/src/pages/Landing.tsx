@@ -321,11 +321,10 @@ export default function Landing() {
                 </p>
                 <p>
                   <span className="w-semi text-[var(--fg)]">
-                    The point is not just precision.
+                    Small sample, limited coverage.
                   </span>{' '}
-                  It is that the held-out score stays stable without pretending the model can
-                  decide everything. The naive single-signal engine scored{' '}
-                  <span className="num">0.481</span> and was inverted.
+                  Precision is based on {RECORDED.contestSupport} contests. The recorded 95%
+                  interval is {(RECORDED.precisionWilson95.lower * 100).toFixed(1)}%–100%.
                 </p>
                 <p className="text-[12px] text-[var(--fg-3)]">
                   False-positive cost at this operating point: ₹
@@ -490,7 +489,7 @@ function Nav({ entry }: { entry: string }) {
             to={paths.login}
             className="pressable focus-ring w-med hidden rounded-[var(--radius-control)] px-3 py-1.5 text-[13px] text-[var(--fg-2)] transition-colors hover:text-[var(--fg)] sm:inline-flex"
           >
-            Sign in
+            Open demo
           </Link>
           <Link
             to={entry}

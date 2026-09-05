@@ -10,9 +10,11 @@
 //   npm run verify:smoke
 //
 import { chromium } from 'playwright'
+import { mkdir } from 'node:fs/promises'
 
 const SHOTS = process.env.SHOTS_DIR ?? './.smoke-shots'
-const BASE = 'http://localhost:5173'
+const BASE = process.env.BASE_URL ?? 'http://localhost:5173'
+await mkdir(SHOTS, { recursive: true })
 
 const browser = await chromium.launch()
 
@@ -135,10 +137,10 @@ if (!alreadyActioned) {
   if (!(await approve.count())) {
     throw new Error(`${targetId} is CONTEST but has no approval control`)
   }
+  await page.getByRole('tab', { name: /Representment/ }).click()
   const textarea = page.locator('textarea')
   if (await textarea.count()) {
     // Exercise the human-edit path: the edited text is what must be logged.
-    await page.getByRole('tab', { name: /Representment/ }).click()
     await textarea.fill((await textarea.inputValue()) + '\n\nEdited during smoke test.')
   }
   await approve.click()
@@ -163,6 +165,7 @@ await page.getByText('Threshold', { exact: true }).first().waitFor({ timeout: 10
 const showPayload = page.getByRole('button', { name: /Show payload/i }).first()
 if (await showPayload.count()) await showPayload.click()
 const wouldSubmit = await page.getByText('Would submit to Razorpay').count()
+if (!wouldSubmit) errors.push('audit does not disclose that the packet was not transmitted')
 log(`4. AUDIT      entries=${await page.locator('ol > li').count()} wouldSubmitLabel=${wouldSubmit}`)
 await page.screenshot({ path: `${SHOTS}/4-audit.png`, fullPage: true })
 
@@ -179,6 +182,16 @@ await page.goto(`${BASE}/app`, { waitUntil: 'networkidle' })
 await page.getByText('at stake across').waitFor({ timeout: 30000 })
 await page.screenshot({ path: `${SHOTS}/6-overview-dark.png` })
 log('6. DARK       rendered')
+
+// Navigation and narrow-screen layout must work on the same live workspace.
+for (const width of [320, 375, 768]) {
+  await page.setViewportSize({ width, height: 900 })
+  await page.goto(`${BASE}/app/readiness`, { waitUntil: 'networkidle' })
+  await page.getByRole('heading', { name: 'Demo readiness' }).waitFor()
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)
+  if (overflow) errors.push(`readiness page overflows at ${width}px`)
+  await page.screenshot({ path: `${SHOTS}/readiness-${width}.png`, fullPage: true })
+}
 
 log(`\nconsole errors: ${errors.length ? JSON.stringify(errors, null, 2) : 'none'}`)
 await browser.close()

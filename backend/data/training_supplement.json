@@ -1,0 +1,626 @@
+[
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_000",
+    "payment_id": "pay_PENDING_supplement_000",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Issuer reports that the parcel remained in a collection locker and was never received.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Locker access log links the order's collection code to a completed door-open and parcel-removal event.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The purchaser's authenticated chat confirms collecting this parcel from the locker that afternoon.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_001",
+    "payment_id": "pay_PENDING_supplement_001",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Issuer reports that the parcel remained in a collection locker and was never received.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The locker record ends with allocation of a compartment; there is no collection or door-open event.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The carrier confirms that the parcel was returned to the warehouse after the collection period expired.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_002",
+    "payment_id": "pay_PENDING_supplement_002",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The cardholder disputes receipt of a replacement sent after the first shipment was damaged.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Replacement tracking identifies the replacement order and records signed delivery at the updated address.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The customer identifies the replacement serial number in a message confirming that it arrived undamaged.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_003",
+    "payment_id": "pay_PENDING_supplement_003",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The cardholder disputes receipt of a replacement sent after the first shipment was damaged.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The delivery certificate belongs to the damaged original shipment and does not identify a replacement.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The warehouse confirms that the promised replacement was never dispatched.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_004",
+    "payment_id": "pay_PENDING_supplement_004",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer alleges that only one of two separately shipped cartons arrived.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Two carrier records show separate carton identifiers, each collected using the recipient's one-time code.",
+        "source_ref": null
+      },
+      {
+        "type": "order_history",
+        "content": "The dispatch manifest maps both carton identifiers to every line item in this order with matching weights.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_005",
+    "payment_id": "pay_PENDING_supplement_005",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer alleges that only one of two separately shipped cartons arrived.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Only the first carton has a delivery scan; the second was declared lost in transit.",
+        "source_ref": null
+      },
+      {
+        "type": "order_history",
+        "content": "The manifest places the disputed item exclusively in the missing second carton.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_006",
+    "payment_id": "pay_PENDING_supplement_006",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer reports that a reservation deposit and final invoice charged twice for the same service.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The final settled invoice explicitly deducts the earlier deposit; the two net captures sum to the agreed price.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The customer acknowledged the itemised deposit deduction before paying the outstanding balance.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_007",
+    "payment_id": "pay_PENDING_supplement_007",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer reports that a reservation deposit and final invoice charged twice for the same service.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The deposit settled successfully, but the final capture charges the entire service price without a deposit credit.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The merchant's billing team confirms that the deposit was mistakenly omitted from the final calculation.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_008",
+    "payment_id": "pay_PENDING_supplement_008",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "The cardholder reports two settled charges after checkout displayed a timeout.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The gateway export identifies one settled capture and one failed authorization with no settlement entry.",
+        "source_ref": null
+      },
+      {
+        "type": "other",
+        "content": "The settlement reconciliation lists this order exactly once and matches the single final invoice.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_009",
+    "payment_id": "pay_PENDING_supplement_009",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "The cardholder reports two settled charges after checkout displayed a timeout.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "Two distinct capture identifiers for the same order appear in the settlement export for the full amount.",
+        "source_ref": null
+      },
+      {
+        "type": "other",
+        "content": "The reconciliation exception records a repeated checkout retry without an idempotency key and no reversal.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_010",
+    "payment_id": "pay_PENDING_supplement_010",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer describes a second instalment as a duplicate of the first payment.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The signed payment schedule lists two separate instalment dates and each capture matches one instalment.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "Before purchase, the customer accepted the two-instalment total in the authenticated order conversation.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_011",
+    "payment_id": "pay_PENDING_supplement_011",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer describes a second instalment as a duplicate of the first payment.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "Both settled captures are assigned to instalment one; instalment two is still unpaid in the ledger.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "Billing support confirms that the first instalment was processed twice and that no refund was issued.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_012",
+    "payment_id": "pay_PENDING_supplement_012",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Issuer disputes an order redirected to a staffed collection counter.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The counter's release record includes the order number, recipient signature and matching collection code.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The buyer requested collection at this counter and subsequently confirmed taking the parcel home.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_013",
+    "payment_id": "pay_PENDING_supplement_013",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "Issuer disputes an order redirected to a staffed collection counter.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The release record shows a different order number and a different collection code from the disputed order.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The counter supervisor confirms that the customer's parcel was still on the shelf when the dispute was filed.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_014",
+    "payment_id": "pay_PENDING_supplement_014",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer says a split digital licence order was never activated on their account.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Entitlement logs map both purchased licence identifiers to the authenticated purchaser account and record activation.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The account's support ticket lists both licence identifiers and confirms successful access before the claim.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_015",
+    "payment_id": "pay_PENDING_supplement_015",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer says a split digital licence order was never activated on their account.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Entitlement logs show both licence allocations failed and no active licence exists for the purchaser account.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "Support confirmed an activation outage affecting this order and promised a refund that remains unprocessed.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_016",
+    "payment_id": "pay_PENDING_supplement_016",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer reports duplicate billing for a seat upgrade and the original booking.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The upgrade invoice charges only the documented fare difference and references the original booking payment.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The passenger accepted the incremental upgrade amount in the booking portal before authorizing payment.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_017",
+    "payment_id": "pay_PENDING_supplement_017",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer reports duplicate billing for a seat upgrade and the original booking.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The upgrade captured the full upgraded fare while retaining the original fare with no credit or reversal.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "Support confirms that the upgrade should have charged only the fare difference and acknowledges the overcharge.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_018",
+    "payment_id": "pay_PENDING_supplement_018",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The cardholder says a scheduled furniture delivery was signed by someone at the wrong building.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "Delivery evidence contains the booked building and unit, the customer's collection code and a signed installation sheet.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The purchaser confirmed installation in the same unit and requested care instructions for the delivered furniture.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_019",
+    "payment_id": "pay_PENDING_supplement_019",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The cardholder says a scheduled furniture delivery was signed by someone at the wrong building.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The installation sheet identifies an adjacent building and an unrelated unit; there is no recipient code.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The delivery team acknowledged the address mismatch and has not recovered or redelivered the furniture.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_020",
+    "payment_id": "pay_PENDING_supplement_020",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer disputes a second charge when a single order was moved to another pickup branch.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "The first branch's authorization was voided before settlement; only the receiving branch captured the order amount.",
+        "source_ref": null
+      },
+      {
+        "type": "other",
+        "content": "The reconciled settlement file links one net payment to the branch-transfer order with no second credit.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_021",
+    "payment_id": "pay_PENDING_supplement_021",
+    "phase": "chargeback",
+    "reason_code": "duplicate_charge",
+    "claim_text": "Issuer disputes a second charge when a single order was moved to another pickup branch.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "order_history",
+        "content": "Both branches captured the complete order amount against the same branch-transfer reference.",
+        "source_ref": null
+      },
+      {
+        "type": "other",
+        "content": "The reconciliation report confirms two settled credits and no refund or void for either payment.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_022",
+    "payment_id": "pay_PENDING_supplement_022",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer disputes a delivery that the courier marked complete after a failed access attempt.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "A subsequent delivery attempt is recorded with a verified recipient code and a photo at the order's address.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The customer's message explicitly confirms receiving this order on the second attempt.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_win",
+    "rail": "card",
+    "payer_ref": null
+  },
+  {
+    "dispute_id": "disp_synthetic_supplement_v1_023",
+    "payment_id": "pay_PENDING_supplement_023",
+    "phase": "chargeback",
+    "reason_code": "goods_not_received",
+    "claim_text": "The customer disputes a delivery that the courier marked complete after a failed access attempt.",
+    "amount": 249900,
+    "currency": "INR",
+    "raised_at": "2026-01-01T00:00:00Z",
+    "respond_by": "2026-01-15T00:00:00Z",
+    "evidence_bundle": [
+      {
+        "type": "delivery_proof",
+        "content": "The final event records failed building access; the delivered status was a manual scan without recipient verification.",
+        "source_ref": null
+      },
+      {
+        "type": "communication_log",
+        "content": "The courier's investigation confirms the parcel remained in the vehicle and was returned to the depot.",
+        "source_ref": null
+      }
+    ],
+    "ground_truth_label": "contest_loss",
+    "rail": "card",
+    "payer_ref": null
+  }
+]

@@ -7,8 +7,8 @@
     "claim_text": "Cardholder asserts that a grocery order marked as delivered by the merchant never reached them.",
     "amount": 187400,
     "currency": "INR",
-    "raised_at": "2026-08-17T19:18:54.706179+00:00",
-    "respond_by": "2026-09-07T19:18:54.706179+00:00",
+    "raised_at": "2026-08-16T06:44:42.254362Z",
+    "respond_by": "2026-09-06T06:44:42.254362Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -22,8 +22,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0247",
@@ -33,8 +33,8 @@
     "claim_text": "Cardholder asserts a subscription renewed without adequate notice.",
     "amount": 399900,
     "currency": "INR",
-    "raised_at": "2026-08-13T03:46:50.262593Z",
-    "respond_by": "2026-09-03T03:46:50.262593Z",
+    "raised_at": "2026-08-22T12:01:52.354231Z",
+    "respond_by": "2026-09-12T12:01:52.354231Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -48,8 +48,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0001",
@@ -59,8 +59,8 @@
     "claim_text": "Cardholder asserts that the merchandise associated with this transaction was never delivered to the address on file.",
     "amount": 249900,
     "currency": "INR",
-    "raised_at": "2026-08-11T19:18:54.706179+00:00",
-    "respond_by": "2026-09-01T19:18:54.706179+00:00",
+    "raised_at": "2026-08-25T20:27:35.302373Z",
+    "respond_by": "2026-09-15T20:27:35.302373Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -79,8 +79,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0098",
@@ -90,8 +90,8 @@
     "claim_text": "Cardholder asserts a transaction was made by a family member without authorisation.",
     "amount": 89900,
     "currency": "INR",
-    "raised_at": "2026-08-15T16:36:29.036338Z",
-    "respond_by": "2026-09-05T16:36:29.036338Z",
+    "raised_at": "2026-08-25T00:51:31.127976Z",
+    "respond_by": "2026-09-15T00:51:31.127976Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -110,8 +110,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0019"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0209",
@@ -121,8 +121,8 @@
     "claim_text": "Cardholder asserts two charges arose from one purchase attempt.",
     "amount": 349900,
     "currency": "INR",
-    "raised_at": "2026-08-09T22:25:49.421780Z",
-    "respond_by": "2026-08-30T22:25:49.421780Z",
+    "raised_at": "2026-08-19T06:40:51.513418Z",
+    "respond_by": "2026-09-09T06:40:51.513418Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -131,8 +131,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0010"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0164",
@@ -142,8 +142,8 @@
     "claim_text": "Cardholder asserts a subscription cancelled during a trial was charged the full amount.",
     "amount": 99900,
     "currency": "INR",
-    "raised_at": "2026-08-19T04:11:06.204634Z",
-    "respond_by": "2026-09-09T04:11:06.204634Z",
+    "raised_at": "2026-08-28T12:26:08.296272Z",
+    "respond_by": "2026-09-18T12:26:08.296272Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -157,8 +157,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0014"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0175",
@@ -168,8 +168,8 @@
     "claim_text": "Cardholder disputes a duplicate debit for a single booking.",
     "amount": 849900,
     "currency": "INR",
-    "raised_at": "2026-08-21T23:41:11.941508Z",
-    "respond_by": "2026-09-11T23:41:11.941508Z",
+    "raised_at": "2026-08-31T07:56:14.033146Z",
+    "respond_by": "2026-09-21T07:56:14.033146Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -178,8 +178,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0009"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0093",
@@ -189,8 +189,8 @@
     "claim_text": "Cardholder asserts a duplicate payment acknowledged by the merchant was never returned.",
     "amount": 119900,
     "currency": "INR",
-    "raised_at": "2026-08-17T05:42:11.068478Z",
-    "respond_by": "2026-09-07T05:42:11.068478Z",
+    "raised_at": "2026-08-26T13:57:13.160116Z",
+    "respond_by": "2026-09-16T13:57:13.160116Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -204,8 +204,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0009"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0245",
@@ -215,8 +215,8 @@
     "claim_text": "Cardholder asserts a subscription charge followed a valid cancellation.",
     "amount": 179900,
     "currency": "INR",
-    "raised_at": "2026-08-23T03:03:54.347628Z",
-    "respond_by": "2026-09-13T03:03:54.347628Z",
+    "raised_at": "2026-09-01T11:18:56.439266Z",
+    "respond_by": "2026-09-22T11:18:56.439266Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -231,7 +231,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0017"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0007",
@@ -241,8 +241,8 @@
     "claim_text": "Cardholder states the item received was not the colour or model variant selected during checkout.",
     "amount": 189900,
     "currency": "INR",
-    "raised_at": "2026-08-23T16:16:19.446724Z",
-    "respond_by": "2026-09-13T16:16:19.446724Z",
+    "raised_at": "2026-09-02T00:31:21.538362Z",
+    "respond_by": "2026-09-23T00:31:21.538362Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -256,8 +256,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0019"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0205",
@@ -267,8 +267,8 @@
     "claim_text": "Cardholder contends a service did not meet the standard represented.",
     "amount": 899900,
     "currency": "INR",
-    "raised_at": "2026-08-25T18:27:46.383743Z",
-    "respond_by": "2026-09-15T18:27:46.383743Z",
+    "raised_at": "2026-09-04T02:42:48.475381Z",
+    "respond_by": "2026-09-25T02:42:48.475381Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -282,8 +282,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0004"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0072",
@@ -293,8 +293,8 @@
     "claim_text": "Cardholder asserts an insurance policy sold did not provide the coverage represented.",
     "amount": 1299900,
     "currency": "INR",
-    "raised_at": "2026-08-07T22:24:27.089209Z",
-    "respond_by": "2026-08-28T22:24:27.089209Z",
+    "raised_at": "2026-08-17T06:39:29.180847Z",
+    "respond_by": "2026-09-07T06:39:29.180847Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -308,8 +308,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0020"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0202",
@@ -319,8 +319,8 @@
     "claim_text": "Cardholder asserts merchandise was not received and requests reversal.",
     "amount": 1299900,
     "currency": "INR",
-    "raised_at": "2026-08-15T18:25:12.658251Z",
-    "respond_by": "2026-09-05T18:25:12.658251Z",
+    "raised_at": "2026-08-25T02:40:14.749889Z",
+    "respond_by": "2026-09-15T02:40:14.749889Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -340,7 +340,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0020"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0009",
@@ -350,8 +350,8 @@
     "claim_text": "Cardholder asserts that two identical charges were applied for one transaction on the same date.",
     "amount": 62900,
     "currency": "INR",
-    "raised_at": "2026-08-23T19:56:25.735780Z",
-    "respond_by": "2026-09-13T19:56:25.735780Z",
+    "raised_at": "2026-09-02T04:11:27.827418Z",
+    "respond_by": "2026-09-23T04:11:27.827418Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -360,8 +360,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0015"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0020",
@@ -371,8 +371,8 @@
     "claim_text": "Cardholder asserts non-receipt of merchandise for which the merchant has claimed successful delivery.",
     "amount": 3499900,
     "currency": "INR",
-    "raised_at": "2026-08-16T00:05:45.073506Z",
-    "respond_by": "2026-09-06T00:05:45.073506Z",
+    "raised_at": "2026-08-25T08:20:47.165144Z",
+    "respond_by": "2026-09-15T08:20:47.165144Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -391,8 +391,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0005"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0229",
@@ -402,8 +402,8 @@
     "claim_text": "Issuer escalates to arbitration asserting the delivery evidence remains insufficient.",
     "amount": 899900,
     "currency": "INR",
-    "raised_at": "2026-08-20T19:45:52.499021Z",
-    "respond_by": "2026-08-30T19:45:52.499021Z",
+    "raised_at": "2026-08-30T04:00:54.590659Z",
+    "respond_by": "2026-09-09T04:00:54.590659Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -417,8 +417,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0025"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0235",
@@ -428,8 +428,8 @@
     "claim_text": "Cardholder asserts the item did not match its description in a specific respect.",
     "amount": 749900,
     "currency": "INR",
-    "raised_at": "2026-08-09T18:42:53.813248Z",
-    "respond_by": "2026-08-30T18:42:53.813248Z",
+    "raised_at": "2026-08-19T02:57:55.904886Z",
+    "respond_by": "2026-09-09T02:57:55.904886Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -443,8 +443,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0015"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0249",
@@ -454,8 +454,8 @@
     "claim_text": "Cardholder asserts an agreed refund was never credited.",
     "amount": 209900,
     "currency": "INR",
-    "raised_at": "2026-08-12T10:01:03.046836Z",
-    "respond_by": "2026-09-02T10:01:03.046836Z",
+    "raised_at": "2026-08-21T18:16:05.138474Z",
+    "respond_by": "2026-09-11T18:16:05.138474Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -469,8 +469,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0002"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0048",
@@ -480,8 +480,8 @@
     "claim_text": "Cardholder does not recognise a transaction placed from a device not previously linked to their account.",
     "amount": 189900,
     "currency": "INR",
-    "raised_at": "2026-08-21T19:18:54.706179+00:00",
-    "respond_by": "2026-09-08T19:18:54.706179+00:00",
+    "raised_at": "2026-09-02T11:22:16.405734Z",
+    "respond_by": "2026-09-20T11:22:16.405734Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -495,8 +495,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0121",
@@ -506,8 +506,8 @@
     "claim_text": "Issuer requests documentation supporting the merchant's position on a quality complaint.",
     "amount": 129900,
     "currency": "INR",
-    "raised_at": "2026-08-21T05:27:24.826214Z",
-    "respond_by": "2026-09-02T05:27:24.826214Z",
+    "raised_at": "2026-08-30T13:42:26.917852Z",
+    "respond_by": "2026-09-11T13:42:26.917852Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -522,7 +522,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0023"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0037",
@@ -532,8 +532,8 @@
     "claim_text": "Cardholder asserts the parcel was not delivered to them and disputes the associated charge.",
     "amount": 129900,
     "currency": "INR",
-    "raised_at": "2026-08-15T12:33:42.665112Z",
-    "respond_by": "2026-09-05T12:33:42.665112Z",
+    "raised_at": "2026-08-24T20:48:44.756750Z",
+    "respond_by": "2026-09-14T20:48:44.756750Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -543,7 +543,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0020"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0067",
@@ -553,8 +553,8 @@
     "claim_text": "Cardholder asserts that event tickets purchased online were never delivered in any form.",
     "amount": 749900,
     "currency": "INR",
-    "raised_at": "2026-08-11T17:18:28.082988Z",
-    "respond_by": "2026-09-01T17:18:28.082988Z",
+    "raised_at": "2026-08-21T01:33:30.174626Z",
+    "respond_by": "2026-09-11T01:33:30.174626Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -569,7 +569,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0011"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0130",
@@ -579,8 +579,8 @@
     "claim_text": "Cardholder contends a fitness programme purchased did not include the personal coaching advertised.",
     "amount": 549900,
     "currency": "INR",
-    "raised_at": "2026-08-16T06:04:59.772372Z",
-    "respond_by": "2026-09-06T06:04:59.772372Z",
+    "raised_at": "2026-08-25T14:20:01.864010Z",
+    "respond_by": "2026-09-15T14:20:01.864010Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -594,8 +594,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0255",
@@ -605,8 +605,8 @@
     "claim_text": "Cardholder asserts the product differs from what was advertised.",
     "amount": 529900,
     "currency": "INR",
-    "raised_at": "2026-08-09T20:43:25.373334Z",
-    "respond_by": "2026-08-30T20:43:25.373334Z",
+    "raised_at": "2026-08-19T04:58:27.464972Z",
+    "respond_by": "2026-09-09T04:58:27.464972Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -620,8 +620,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0023"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0079",
@@ -631,8 +631,8 @@
     "claim_text": "Cardholder states they never held an account with this merchant.",
     "amount": 179900,
     "currency": "INR",
-    "raised_at": "2026-08-21T12:07:47.341477Z",
-    "respond_by": "2026-09-08T12:07:47.341477Z",
+    "raised_at": "2026-08-30T20:22:49.433115Z",
+    "respond_by": "2026-09-17T20:22:49.433115Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -651,8 +651,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0017"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0097",
@@ -662,8 +662,8 @@
     "claim_text": "Cardholder contends an item advertised as new arrived with signs of prior use.",
     "amount": 549900,
     "currency": "INR",
-    "raised_at": "2026-08-23T13:51:31.880890Z",
-    "respond_by": "2026-09-13T13:51:31.880890Z",
+    "raised_at": "2026-09-01T22:06:33.972528Z",
+    "respond_by": "2026-09-22T22:06:33.972528Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -677,8 +677,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0015"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0134",
@@ -688,8 +688,8 @@
     "claim_text": "Cardholder asserts that goods dispatched to an old address were never received.",
     "amount": 449900,
     "currency": "INR",
-    "raised_at": "2026-08-11T05:37:32.956959Z",
-    "respond_by": "2026-09-01T05:37:32.956959Z",
+    "raised_at": "2026-08-20T13:52:35.048597Z",
+    "respond_by": "2026-09-10T13:52:35.048597Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -703,8 +703,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0008"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0087",
@@ -714,8 +714,8 @@
     "claim_text": "Cardholder asserts a bulk business order was only partially fulfilled.",
     "amount": 3849900,
     "currency": "INR",
-    "raised_at": "2026-08-13T17:07:21.541663Z",
-    "respond_by": "2026-09-03T17:07:21.541663Z",
+    "raised_at": "2026-08-23T01:22:23.633301Z",
+    "respond_by": "2026-09-13T01:22:23.633301Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -729,8 +729,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0020"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0088",
@@ -740,8 +740,8 @@
     "claim_text": "Cardholder asserts an item marked delivered was signed for by an unknown person.",
     "amount": 189900,
     "currency": "INR",
-    "raised_at": "2026-08-14T18:53:33.265104Z",
-    "respond_by": "2026-09-04T18:53:33.265104Z",
+    "raised_at": "2026-08-24T03:08:35.356742Z",
+    "respond_by": "2026-09-14T03:08:35.356742Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -755,8 +755,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0006"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0237",
@@ -766,8 +766,8 @@
     "claim_text": "Cardholder asserts the delivered goods were defective on arrival.",
     "amount": 459900,
     "currency": "INR",
-    "raised_at": "2026-08-13T05:57:39.789673Z",
-    "respond_by": "2026-09-03T05:57:39.789673Z",
+    "raised_at": "2026-08-22T14:12:41.881311Z",
+    "respond_by": "2026-09-12T14:12:41.881311Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -782,7 +782,7 @@
     ],
     "ground_truth_label": "should_accept",
     "rail": "card",
-    "payer_ref": "payer_0022"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0250",
@@ -792,8 +792,8 @@
     "claim_text": "Cardholder asserts a refund is outstanding following a return.",
     "amount": 369900,
     "currency": "INR",
-    "raised_at": "2026-08-13T16:39:20.350168Z",
-    "respond_by": "2026-09-03T16:39:20.350168Z",
+    "raised_at": "2026-08-23T00:54:22.441806Z",
+    "respond_by": "2026-09-13T00:54:22.441806Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -807,8 +807,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0023"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0252",
@@ -818,8 +818,8 @@
     "claim_text": "Cardholder asserts the merchandise was not delivered.",
     "amount": 174900,
     "currency": "INR",
-    "raised_at": "2026-08-19T17:04:30.767183Z",
-    "respond_by": "2026-09-09T17:04:30.767183Z",
+    "raised_at": "2026-08-29T01:19:32.858821Z",
+    "respond_by": "2026-09-19T01:19:32.858821Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -833,8 +833,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0021"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0061",
@@ -844,8 +844,8 @@
     "claim_text": "Cardholder asserts a pre-ordered item was charged but never shipped.",
     "amount": 3999900,
     "currency": "INR",
-    "raised_at": "2026-08-16T14:08:45.600725Z",
-    "respond_by": "2026-09-06T14:08:45.600725Z",
+    "raised_at": "2026-08-25T22:23:47.692363Z",
+    "respond_by": "2026-09-15T22:23:47.692363Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -859,8 +859,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0006"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0058",
@@ -870,8 +870,8 @@
     "claim_text": "Cardholder reports an unfamiliar charge and states no member of the household made the purchase.",
     "amount": 119900,
     "currency": "INR",
-    "raised_at": "2026-08-25T19:18:54.706179+00:00",
-    "respond_by": "2026-09-15T19:18:54.706179+00:00",
+    "raised_at": "2026-08-25T16:53:39.644885Z",
+    "respond_by": "2026-09-15T16:53:39.644885Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -885,8 +885,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0257",
@@ -896,8 +896,8 @@
     "claim_text": "Cardholder asserts an unfamiliar charge from this merchant.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-12T03:22:11.793057Z",
-    "respond_by": "2026-09-02T03:22:11.793057Z",
+    "raised_at": "2026-08-21T11:37:13.884695Z",
+    "respond_by": "2026-09-11T11:37:13.884695Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -911,8 +911,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0017"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0188",
@@ -922,8 +922,8 @@
     "claim_text": "Cardholder asserts a partial shipment was charged in full.",
     "amount": 739900,
     "currency": "INR",
-    "raised_at": "2026-08-24T11:38:25.314227Z",
-    "respond_by": "2026-09-14T11:38:25.314227Z",
+    "raised_at": "2026-09-02T19:53:27.405865Z",
+    "respond_by": "2026-09-23T19:53:27.405865Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -942,8 +942,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0022"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0010",
@@ -953,8 +953,8 @@
     "claim_text": "Cardholder disputes a second charge appearing on the statement for what they believe was a single order.",
     "amount": 279900,
     "currency": "INR",
-    "raised_at": "2026-08-13T19:18:54.706179+00:00",
-    "respond_by": "2026-09-03T19:18:54.706179+00:00",
+    "raised_at": "2026-08-17T20:36:12.123531Z",
+    "respond_by": "2026-09-07T20:36:12.123531Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -968,8 +968,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0051",
@@ -979,8 +979,8 @@
     "claim_text": "Cardholder disputes an annual software renewal they assert was cancelled within the notice period.",
     "amount": 1799900,
     "currency": "INR",
-    "raised_at": "2026-08-13T07:55:05.305580Z",
-    "respond_by": "2026-09-03T07:55:05.305580Z",
+    "raised_at": "2026-08-22T16:10:07.397218Z",
+    "respond_by": "2026-09-12T16:10:07.397218Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -995,7 +995,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0002"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0157",
@@ -1005,8 +1005,8 @@
     "claim_text": "Cardholder asserts a service was performed to a materially lower standard than agreed.",
     "amount": 649900,
     "currency": "INR",
-    "raised_at": "2026-08-08T18:35:33.914849Z",
-    "respond_by": "2026-08-29T18:35:33.914849Z",
+    "raised_at": "2026-08-18T02:50:36.006487Z",
+    "respond_by": "2026-09-08T02:50:36.006487Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1020,8 +1020,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0008"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0052",
@@ -1031,8 +1031,8 @@
     "claim_text": "Cardholder asserts a return was accepted but no credit was issued.",
     "amount": 649900,
     "currency": "INR",
-    "raised_at": "2026-08-23T19:18:54.706179+00:00",
-    "respond_by": "2026-09-13T19:18:54.706179+00:00",
+    "raised_at": "2026-09-02T17:51:34.277304Z",
+    "respond_by": "2026-09-23T17:51:34.277304Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1046,8 +1046,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0068",
@@ -1057,8 +1057,8 @@
     "claim_text": "Cardholder states a mobile recharge was charged but never credited to the number provided.",
     "amount": 29900,
     "currency": "INR",
-    "raised_at": "2026-08-16T11:58:32.843046Z",
-    "respond_by": "2026-09-06T11:58:32.843046Z",
+    "raised_at": "2026-08-25T20:13:34.934684Z",
+    "respond_by": "2026-09-15T20:13:34.934684Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1072,8 +1072,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0021"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0261",
@@ -1083,8 +1083,8 @@
     "claim_text": "Cardholder asserts no credit was received for a returned item.",
     "amount": 139900,
     "currency": "INR",
-    "raised_at": "2026-08-25T19:18:54.706179Z",
-    "respond_by": "2026-09-15T19:18:54.706179Z",
+    "raised_at": "2026-09-04T03:33:56.797817Z",
+    "respond_by": "2026-09-25T03:33:56.797817Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1098,8 +1098,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0012"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0208",
@@ -1109,8 +1109,8 @@
     "claim_text": "Cardholder disputes a repeated debit within the same billing cycle.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-23T18:10:59.376009Z",
-    "respond_by": "2026-09-13T18:10:59.376009Z",
+    "raised_at": "2026-09-02T02:26:01.467647Z",
+    "respond_by": "2026-09-23T02:26:01.467647Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1125,7 +1125,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0014"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0083",
@@ -1135,8 +1135,8 @@
     "claim_text": "Cardholder disputes a renewal charge asserting the account had been dormant for a year.",
     "amount": 239900,
     "currency": "INR",
-    "raised_at": "2026-08-22T20:37:38.833236Z",
-    "respond_by": "2026-09-12T20:37:38.833236Z",
+    "raised_at": "2026-09-01T04:52:40.924874Z",
+    "respond_by": "2026-09-22T04:52:40.924874Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1155,8 +1155,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0012"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0161",
@@ -1166,8 +1166,8 @@
     "claim_text": "Cardholder asserts an international shipment was never delivered.",
     "amount": 2949900,
     "currency": "INR",
-    "raised_at": "2026-08-14T03:02:11.762244Z",
-    "respond_by": "2026-09-04T03:02:11.762244Z",
+    "raised_at": "2026-08-23T11:17:13.853882Z",
+    "respond_by": "2026-09-13T11:17:13.853882Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1182,7 +1182,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0004"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0180",
@@ -1192,8 +1192,8 @@
     "claim_text": "Cardholder states their card was used for a purchase they did not make or receive.",
     "amount": 199900,
     "currency": "INR",
-    "raised_at": "2026-08-25T01:45:39.571563Z",
-    "respond_by": "2026-09-12T01:45:39.571563Z",
+    "raised_at": "2026-09-03T10:00:41.663201Z",
+    "respond_by": "2026-09-21T10:00:41.663201Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1208,7 +1208,7 @@
     ],
     "ground_truth_label": "should_accept",
     "rail": "card",
-    "payer_ref": "payer_0009"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0142",
@@ -1218,8 +1218,8 @@
     "claim_text": "Cardholder disputes a charge they believe duplicates an earlier settled amount.",
     "amount": 349900,
     "currency": "INR",
-    "raised_at": "2026-08-16T03:44:08.028041Z",
-    "respond_by": "2026-09-06T03:44:08.028041Z",
+    "raised_at": "2026-08-25T11:59:10.119679Z",
+    "respond_by": "2026-09-15T11:59:10.119679Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1228,8 +1228,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0005"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0100",
@@ -1239,8 +1239,8 @@
     "claim_text": "Cardholder asserts a marketplace order fulfilled by a third-party seller was never delivered.",
     "amount": 429900,
     "currency": "INR",
-    "raised_at": "2026-08-10T11:45:49.430073Z",
-    "respond_by": "2026-08-31T11:45:49.430073Z",
+    "raised_at": "2026-08-19T20:00:51.521711Z",
+    "respond_by": "2026-09-09T20:00:51.521711Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1254,8 +1254,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0010"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0160",
@@ -1265,8 +1265,8 @@
     "claim_text": "Issuer requests documentation of the cardholder's consent to recurring billing.",
     "amount": 79900,
     "currency": "INR",
-    "raised_at": "2026-08-20T21:30:19.091175Z",
-    "respond_by": "2026-09-01T21:30:19.091175Z",
+    "raised_at": "2026-08-30T05:45:21.182813Z",
+    "respond_by": "2026-09-11T05:45:21.182813Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1280,8 +1280,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0019"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0081",
@@ -1291,8 +1291,8 @@
     "claim_text": "Cardholder asserts a magazine subscription was cancelled by telephone but billing continued.",
     "amount": 89900,
     "currency": "INR",
-    "raised_at": "2026-08-15T16:48:07.674367Z",
-    "respond_by": "2026-09-05T16:48:07.674367Z",
+    "raised_at": "2026-08-25T01:03:09.766005Z",
+    "respond_by": "2026-09-15T01:03:09.766005Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1306,8 +1306,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0001"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0012",
@@ -1317,8 +1317,8 @@
     "claim_text": "Cardholder states they did not authorise this transaction and were not in possession of the card at the time.",
     "amount": 1899900,
     "currency": "INR",
-    "raised_at": "2026-08-24T10:10:28.148681Z",
-    "respond_by": "2026-09-11T10:10:28.148681Z",
+    "raised_at": "2026-09-02T18:25:30.240319Z",
+    "respond_by": "2026-09-20T18:25:30.240319Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1332,8 +1332,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0019"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0216",
@@ -1343,8 +1343,8 @@
     "claim_text": "Cardholder asserts they were charged for a plan they had already downgraded.",
     "amount": 89900,
     "currency": "INR",
-    "raised_at": "2026-08-13T06:26:45.651888Z",
-    "respond_by": "2026-09-03T06:26:45.651888Z",
+    "raised_at": "2026-08-22T14:41:47.743526Z",
+    "respond_by": "2026-09-12T14:41:47.743526Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1358,8 +1358,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0020"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0191",
@@ -1369,8 +1369,8 @@
     "claim_text": "Cardholder does not recognise a charge and states no order was placed.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-09T05:53:25.732508Z",
-    "respond_by": "2026-08-30T05:53:25.732508Z",
+    "raised_at": "2026-08-18T14:08:27.824146Z",
+    "respond_by": "2026-09-08T14:08:27.824146Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1384,8 +1384,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0022"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0073",
@@ -1395,8 +1395,8 @@
     "claim_text": "Cardholder states a vehicle service performed differed from the package purchased.",
     "amount": 899900,
     "currency": "INR",
-    "raised_at": "2026-08-25T12:53:06.938667Z",
-    "respond_by": "2026-09-15T12:53:06.938667Z",
+    "raised_at": "2026-09-03T21:08:09.030305Z",
+    "respond_by": "2026-09-24T21:08:09.030305Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1410,8 +1410,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "upi",
-    "payer_ref": "payer_0020"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0253",
@@ -1421,8 +1421,8 @@
     "claim_text": "Cardholder asserts they received nothing for this charge.",
     "amount": 649900,
     "currency": "INR",
-    "raised_at": "2026-08-19T14:14:44.221259Z",
-    "respond_by": "2026-09-09T14:14:44.221259Z",
+    "raised_at": "2026-08-28T22:29:46.312897Z",
+    "respond_by": "2026-09-18T22:29:46.312897Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1436,8 +1436,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0011"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0060",
@@ -1447,8 +1447,8 @@
     "claim_text": "Cardholder asserts an agreed price adjustment was never credited.",
     "amount": 89900,
     "currency": "INR",
-    "raised_at": "2026-08-09T04:05:55.732572Z",
-    "respond_by": "2026-08-30T04:05:55.732572Z",
+    "raised_at": "2026-08-18T12:20:57.824210Z",
+    "respond_by": "2026-09-08T12:20:57.824210Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1463,7 +1463,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0007"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0141",
@@ -1473,8 +1473,8 @@
     "claim_text": "Cardholder asserts an identical amount was charged on two consecutive days for one service.",
     "amount": 74900,
     "currency": "INR",
-    "raised_at": "2026-08-10T00:29:10.779141Z",
-    "respond_by": "2026-08-31T00:29:10.779141Z",
+    "raised_at": "2026-08-19T08:44:12.870779Z",
+    "respond_by": "2026-09-09T08:44:12.870779Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1488,8 +1488,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0016"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0019",
@@ -1499,8 +1499,8 @@
     "claim_text": "Issuer requests documentation substantiating the merchant's refund position on this transaction.",
     "amount": 59900,
     "currency": "INR",
-    "raised_at": "2026-08-17T12:34:46.235304Z",
-    "respond_by": "2026-08-29T12:34:46.235304Z",
+    "raised_at": "2026-08-26T20:49:48.326942Z",
+    "respond_by": "2026-09-07T20:49:48.326942Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1514,8 +1514,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0004"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0179",
@@ -1525,8 +1525,8 @@
     "claim_text": "Cardholder asserts the transaction is fraudulent and no goods were delivered to them.",
     "amount": 549900,
     "currency": "INR",
-    "raised_at": "2026-08-10T09:45:05.042642Z",
-    "respond_by": "2026-08-28T09:45:05.042642Z",
+    "raised_at": "2026-08-19T18:00:07.134280Z",
+    "respond_by": "2026-09-06T18:00:07.134280Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1540,8 +1540,8 @@
       }
     ],
     "ground_truth_label": "contest_loss",
-    "rail": "rupay",
-    "payer_ref": "payer_0009"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0181",
@@ -1551,8 +1551,8 @@
     "claim_text": "Issuer requests delivery substantiation for a transaction queried by the cardholder.",
     "amount": 119900,
     "currency": "INR",
-    "raised_at": "2026-08-25T01:29:27.496648Z",
-    "respond_by": "2026-09-06T01:29:27.496648Z",
+    "raised_at": "2026-09-03T09:44:29.588286Z",
+    "respond_by": "2026-09-15T09:44:29.588286Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1566,8 +1566,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0009"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0190",
@@ -1577,8 +1577,8 @@
     "claim_text": "Cardholder asserts a digital product did not perform as advertised.",
     "amount": 249900,
     "currency": "INR",
-    "raised_at": "2026-08-20T23:27:33.073899Z",
-    "respond_by": "2026-09-10T23:27:33.073899Z",
+    "raised_at": "2026-08-30T07:42:35.165537Z",
+    "respond_by": "2026-09-20T07:42:35.165537Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1597,8 +1597,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0016"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0254",
@@ -1608,8 +1608,8 @@
     "claim_text": "Cardholder contends the item was not as advertised.",
     "amount": 269900,
     "currency": "INR",
-    "raised_at": "2026-08-24T17:21:08.083912Z",
-    "respond_by": "2026-09-14T17:21:08.083912Z",
+    "raised_at": "2026-09-03T01:36:10.175550Z",
+    "respond_by": "2026-09-24T01:36:10.175550Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1623,8 +1623,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0005"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0176",
@@ -1634,8 +1634,8 @@
     "claim_text": "Cardholder asserts a recurring charge was taken twice in the same cycle.",
     "amount": 49900,
     "currency": "INR",
-    "raised_at": "2026-08-12T01:00:46.974865Z",
-    "respond_by": "2026-09-02T01:00:46.974865Z",
+    "raised_at": "2026-08-21T09:15:49.066503Z",
+    "respond_by": "2026-09-11T09:15:49.066503Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1649,8 +1649,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0025"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0042",
@@ -1660,8 +1660,8 @@
     "claim_text": "Cardholder contends the service delivered fell short of the specification agreed at purchase.",
     "amount": 349900,
     "currency": "INR",
-    "raised_at": "2026-08-17T11:14:24.900897Z",
-    "respond_by": "2026-09-07T11:14:24.900897Z",
+    "raised_at": "2026-08-26T19:29:26.992535Z",
+    "respond_by": "2026-09-16T19:29:26.992535Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1676,7 +1676,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0022"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0204",
@@ -1686,8 +1686,8 @@
     "claim_text": "Cardholder asserts the goods received differ from those ordered in a material respect.",
     "amount": 679900,
     "currency": "INR",
-    "raised_at": "2026-08-06T02:23:58.562713Z",
-    "respond_by": "2026-08-27T02:23:58.562713Z",
+    "raised_at": "2026-08-15T10:39:00.654351Z",
+    "respond_by": "2026-09-05T10:39:00.654351Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1702,7 +1702,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0001"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0046",
@@ -1712,8 +1712,8 @@
     "claim_text": "Cardholder asserts that a digital goods purchase was made without their authorisation.",
     "amount": 249900,
     "currency": "INR",
-    "raised_at": "2026-08-19T19:18:54.706179+00:00",
-    "respond_by": "2026-09-06T19:18:54.706179+00:00",
+    "raised_at": "2026-08-29T07:50:19.088979Z",
+    "respond_by": "2026-09-16T07:50:19.088979Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -1732,8 +1732,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0029",
@@ -1743,8 +1743,8 @@
     "claim_text": "Cardholder asserts that only part of a multi-item order was received and disputes the full transaction amount.",
     "amount": 569900,
     "currency": "INR",
-    "raised_at": "2026-08-06T05:00:32.841867Z",
-    "respond_by": "2026-08-27T05:00:32.841867Z",
+    "raised_at": "2026-08-15T13:15:34.933505Z",
+    "respond_by": "2026-09-05T13:15:34.933505Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1759,7 +1759,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0006"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0099",
@@ -1769,8 +1769,8 @@
     "claim_text": "Cardholder asserts a service cancelled within the cooling-off period was not refunded.",
     "amount": 1199900,
     "currency": "INR",
-    "raised_at": "2026-08-19T01:07:18.301140Z",
-    "respond_by": "2026-09-09T01:07:18.301140Z",
+    "raised_at": "2026-08-28T09:22:20.392778Z",
+    "respond_by": "2026-09-18T09:22:20.392778Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1784,8 +1784,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "upi",
-    "payer_ref": "payer_0007"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0044",
@@ -1795,8 +1795,8 @@
     "claim_text": "Cardholder disputes two debits of the same value posted on consecutive days.",
     "amount": 99900,
     "currency": "INR",
-    "raised_at": "2026-08-21T02:58:10.026259Z",
-    "respond_by": "2026-09-11T02:58:10.026259Z",
+    "raised_at": "2026-08-30T11:13:12.117897Z",
+    "respond_by": "2026-09-20T11:13:12.117897Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1805,8 +1805,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0016"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0076",
@@ -1816,8 +1816,8 @@
     "claim_text": "Cardholder disputes a second charge for a ride-hailing trip already paid.",
     "amount": 48900,
     "currency": "INR",
-    "raised_at": "2026-08-09T03:24:10.266724Z",
-    "respond_by": "2026-08-30T03:24:10.266724Z",
+    "raised_at": "2026-08-18T11:39:12.358362Z",
+    "respond_by": "2026-09-08T11:39:12.358362Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1826,8 +1826,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0008"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0075",
@@ -1837,8 +1837,8 @@
     "claim_text": "Cardholder asserts an EMI instalment was collected twice in one month.",
     "amount": 419900,
     "currency": "INR",
-    "raised_at": "2026-08-17T17:38:50.287421Z",
-    "respond_by": "2026-09-07T17:38:50.287421Z",
+    "raised_at": "2026-08-27T01:53:52.379059Z",
+    "respond_by": "2026-09-17T01:53:52.379059Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1852,8 +1852,8 @@
       }
     ],
     "ground_truth_label": "contest_win",
-    "rail": "rupay",
-    "payer_ref": "payer_0005"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0036",
@@ -1863,8 +1863,8 @@
     "claim_text": "Cardholder states a furniture delivery scheduled for their residence was never completed.",
     "amount": 2849900,
     "currency": "INR",
-    "raised_at": "2026-08-19T00:33:22.389851Z",
-    "respond_by": "2026-09-09T00:33:22.389851Z",
+    "raised_at": "2026-08-28T08:48:24.481489Z",
+    "respond_by": "2026-09-18T08:48:24.481489Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1884,7 +1884,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0014"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0032",
@@ -1894,8 +1894,8 @@
     "claim_text": "Cardholder states the annual plan was not renewed by consent and that no renewal notice was received.",
     "amount": 449900,
     "currency": "INR",
-    "raised_at": "2026-08-20T07:09:29.144459Z",
-    "respond_by": "2026-09-10T07:09:29.144459Z",
+    "raised_at": "2026-08-29T15:24:31.236097Z",
+    "respond_by": "2026-09-19T15:24:31.236097Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1910,7 +1910,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0014"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0231",
@@ -1920,8 +1920,8 @@
     "claim_text": "Cardholder asserts the order was never received.",
     "amount": 234900,
     "currency": "INR",
-    "raised_at": "2026-08-24T15:18:18.583285Z",
-    "respond_by": "2026-09-14T15:18:18.583285Z",
+    "raised_at": "2026-09-02T23:33:20.674923Z",
+    "respond_by": "2026-09-23T23:33:20.674923Z",
     "evidence_bundle": [
       {
         "type": "delivery_proof",
@@ -1936,7 +1936,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0013"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0059",
@@ -1946,8 +1946,8 @@
     "claim_text": "Issuer rejects the merchant's representment and maintains the goods were materially different from those advertised.",
     "amount": 2199900,
     "currency": "INR",
-    "raised_at": "2026-08-25T16:53:27.316720Z",
-    "respond_by": "2026-09-08T16:53:27.316720Z",
+    "raised_at": "2026-09-04T01:08:29.408358Z",
+    "respond_by": "2026-09-18T01:08:29.408358Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -1961,8 +1961,8 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "rupay",
-    "payer_ref": "payer_0023"
+    "rail": "card",
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0050",
@@ -1972,8 +1972,8 @@
     "claim_text": "Cardholder states a gym membership was terminated in person but billing continued.",
     "amount": 299900,
     "currency": "INR",
-    "raised_at": "2026-08-14T11:30:04.200852Z",
-    "respond_by": "2026-09-04T11:30:04.200852Z",
+    "raised_at": "2026-08-23T19:45:06.292490Z",
+    "respond_by": "2026-09-13T19:45:06.292490Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -1988,7 +1988,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0003"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0146",
@@ -1998,8 +1998,8 @@
     "claim_text": "Cardholder asserts an unauthorised purchase of digital credits.",
     "amount": 49900,
     "currency": "INR",
-    "raised_at": "2026-08-22T19:09:47.515737Z",
-    "respond_by": "2026-09-09T19:09:47.515737Z",
+    "raised_at": "2026-09-01T03:24:49.607375Z",
+    "respond_by": "2026-09-19T03:24:49.607375Z",
     "evidence_bundle": [
       {
         "type": "device_signal",
@@ -2024,7 +2024,7 @@
     ],
     "ground_truth_label": "contest_win",
     "rail": "card",
-    "payer_ref": "payer_0010"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0222",
@@ -2034,8 +2034,8 @@
     "claim_text": "Cardholder contends the item was misrepresented at the point of sale.",
     "amount": 549900,
     "currency": "INR",
-    "raised_at": "2026-08-11T15:47:43.649159Z",
-    "respond_by": "2026-09-01T15:47:43.649159Z",
+    "raised_at": "2026-08-21T00:02:45.740797Z",
+    "respond_by": "2026-09-11T00:02:45.740797Z",
     "evidence_bundle": [
       {
         "type": "order_history",
@@ -2050,7 +2050,7 @@
     ],
     "ground_truth_label": "contest_loss",
     "rail": "card",
-    "payer_ref": "payer_0019"
+    "payer_ref": null
   },
   {
     "dispute_id": "disp_synthetic_0015",
@@ -2060,8 +2060,8 @@
     "claim_text": "Cardholder states they cancelled the service but were billed for a subsequent period regardless.",
     "amount": 99900,
     "currency": "INR",
-    "raised_at": "2026-08-15T19:18:54.706179+00:00",
-    "respond_by": "2026-09-05T19:18:54.706179+00:00",
+    "raised_at": "2026-08-30T16:37:11.012974Z",
+    "respond_by": "2026-09-20T16:37:11.012974Z",
     "evidence_bundle": [
       {
         "type": "communication_log",
@@ -2075,7 +2075,7 @@
       }
     ],
     "ground_truth_label": "should_accept",
-    "rail": "upi",
-    "payer_ref": "payer_0003"
+    "rail": "card",
+    "payer_ref": null
   }
 ]

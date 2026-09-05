@@ -48,6 +48,8 @@ backend/data/real/
 backend/eval/artifacts/real/
 backend/eval/real_runs/
 backend/training/private/
+backend/.demo-checks/
+backend/eval/synthetic_win_gate_candidate.json
 
 # Tuning cache: regenerable via `python eval/tune_thresholds.py --build-cache`
 backend/eval/.signal_cache.json

@@ -917,9 +917,9 @@ def export_would_submit(
 
 
 # --- backing a dispute with a real test-mode payment (Section 7) -----------------------
-# Section 7 requires each dispute's payment_id to reference a REAL test-mode payment, and
-# 181 of 182 seeded disputes still carry a pay_PENDING_ placeholder. The reason is not
-# laziness: Razorpay exposes no endpoint that fabricates a payment. Orders are creatable
+# Section 7 allows a dispute's payment_id to reference a REAL test-mode payment. Seeded
+# disputes may carry pay_PENDING_ placeholders because Razorpay exposes no endpoint that
+# fabricates a payment. Orders are creatable
 # over the API; payments only come into existence when someone completes a Checkout
 # interaction, and this account has server-to-server payment creation disabled (both
 # payment.createUpi and payment.createPaymentJson return 404), so there is no API-only

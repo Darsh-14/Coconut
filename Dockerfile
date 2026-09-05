@@ -56,8 +56,8 @@ COPY --from=frontend /build/dist ./frontend/dist
 # Run as a non-root user. UID 1000 also matches Hugging Face Docker Spaces' documented
 # mounted-volume convention, so an attached model/database bucket remains writable.
 RUN useradd --create-home --uid 1000 coconut \
-    && mkdir -p /models \
-    && chown -R coconut:coconut /srv /models
+    && mkdir -p /models /data \
+    && chown -R coconut:coconut /srv /models /data
 USER coconut
 
 WORKDIR /srv/backend
@@ -67,7 +67,7 @@ EXPOSE 8000
 # model is in memory, so an orchestrator does not route traffic into a request that would
 # stall for fifteen seconds waiting for a cold load. start-period covers the first
 # download, which is far slower than a warm start.
-HEALTHCHECK --interval=15s --timeout=5s --start-period=180s --retries=5 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=600s --retries=5 \
     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=4).status == 200 else 1)"
 
 CMD ["python", "-m", "uvicorn", "app.server:site", "--host", "0.0.0.0", "--port", "8000"]

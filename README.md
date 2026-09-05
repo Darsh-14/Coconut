@@ -8,6 +8,27 @@ human approves before anything is treated as final, and nothing is ever submitte
 Razorpay or a bank automatically. Built for Razorpay's AI Buildathon, Track 2 (AI Risk
 Manager).
 
+See [Demo readiness](docs/DEMO_READINESS.md) for running Docker and presenting four cases,
+[manual model commands](docs/MANUAL_MODEL.md) for training, and
+[manual checks](docs/MANUAL_CHECKS.md) for tests. The Docker CLI is installed, but Docker
+Desktop currently reports that virtualization support is unavailable. Container execution
+therefore remains unverified until the Docker engine can start.
+
+## Latest updates
+
+- Run the website and backend together with Docker. Saved cases survive normal restarts.
+- Download the evidence-reading model before a presentation to reduce startup delays.
+- Open the review queue, UPI cases, performance report, or readiness page from navigation.
+- Search disputes from the workspace header. Queue filters remain in the page address.
+- Enter the demo without supplying an email or password. This is not secure account access.
+- Check service readiness and find the four presentation cases from one page.
+- Train manually with 24 additional synthetic examples. No improvement is claimed yet.
+
+The distinctive workflow combines claim-by-claim evidence checks, a decision gate that can
+defer to a person, UPI rule forecasts, editable response drafts, and an approval history.
+These are implemented features, not a claim of research priority over other products.
+Nothing is automatically sent to a bank. Use test payments and keep this demo local.
+
 ---
 
 ## The problem
@@ -122,7 +143,7 @@ samples. This is a compact, development-time risk-budget prototype in
 > 50-threshold search has no family-wise multiple-testing correction. The held-out result
 > below is an empirical check, not a repair for either assumption.
 
-**The Phase-0 operating rule beat the hand-picked baseline.** The held-out set and model are
+**Historical Phase-0 result.** Before the learned CONTEST safety gate was added, the held-out set and model were
 the same, but this is intentionally not a threshold-only ablation: in addition to replacing
 the two picked thresholds with one selected threshold, the CONTEST gate uses the minimum
 support confidence (the weakest link) instead of Section 10's legacy average-confidence gate.
@@ -136,7 +157,7 @@ support confidence (the weakest link) instead of Section 10's legacy average-con
 
 `POST /calibrate` sets the budget; `GET /verify-guarantee` is the backward-compatible name
 of the endpoint that checks it empirically on a test split sharing no dispute ids with the
-calibration data. At the shipped operating point, 4 of 13 model-contested test cases were
+calibration data. At that historical operating point, 4 of 13 model-contested test cases were
 contest errors (30.8%), below the configured 75% budget. The legacy JSON fields
 `empirical_fp_rate_on_calibration` and `observed_fp_rate_on_test` retain their names for API
 compatibility; both use `FP / (TP + FP)`, so user-facing copy calls the quantity the
@@ -256,11 +277,49 @@ First run downloads the NLI model (~750MB) from Hugging Face and caches it.
 
 ---
 
-## Running it in one command (Docker)
+## Running with Docker Desktop
 
-```bash
-cp .env.example .env      # add your rzp_test_ keys
-docker compose up --build # -> http://localhost:8000
+Docker requires both the command-line tool and a running Docker Desktop engine. On Windows,
+first confirm that hardware virtualization is enabled in Task Manager under **Performance →
+CPU**. If Docker Desktop reports **virtualization support not detected**, the container setup
+cannot run yet; use the non-Docker instructions below or enable virtualization in the
+computer's BIOS/UEFI later.
+
+Open PowerShell in the project folder and prepare the private settings file once:
+
+```powershell
+Set-Location 'D:\Risky Rich'
+Copy-Item .env.example .env
+notepad .env
+```
+
+Add only Razorpay **test-mode** values to `.env`. Do not commit this file. Start Docker
+Desktop from the Start menu and wait until its engine is running, then confirm both the
+client and server are available:
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+`docker info` must show a **Server** section without a named-pipe or daemon error. Then build,
+download the evidence model into its reusable cache, and start Coconut:
+
+```powershell
+docker compose build coconut
+docker compose run --rm coconut python eval/prewarm_model.py
+docker compose up -d --wait --wait-timeout 900 coconut
+docker compose ps
+Invoke-RestMethod http://127.0.0.1:8000/api/ready
+```
+
+Open http://127.0.0.1:8000. The first model download is about 750 MB and can take several
+minutes. Later starts reuse the named cache. To inspect a failed startup or stop the app:
+
+```powershell
+docker compose logs --tail 100 coconut
+docker compose stop coconut
 ```
 
 One image, one process, one port: the frontend is built in a Node stage and served by
@@ -286,11 +345,11 @@ bundles the CUDA runtime — roughly 2.5GB of GPU libraries this image can never
 inference here is CPU-only by design. `requirements.txt` stays platform-neutral so a local
 `pip install -r` still works on Windows and macOS; only the Dockerfile pins the CPU wheel.
 
-> **Not verified on this machine.** Docker is not installed on the machine this was built
-> on, so the compose file and Dockerfile are written but have never been built — including
-> the CPU-wheel line above, which is reasoned rather than tested. The single-origin server
-> they run (`uvicorn app.server:site`) *is* verified — see below. If the build needs a fix,
-> that is where to look first.
+> **Current verification status:** Docker CLI 29.7.2 and Compose 5.5.0 are installed, but
+> Docker Desktop cannot start its engine because it reports that virtualization support is
+> unavailable. The image, Compose startup, CPU-wheel installation, and container healthcheck
+> have therefore not completed on this machine. The non-Docker single-origin server
+> (`uvicorn app.server:site`) remains the available local path.
 
 ### If you want to host it
 
@@ -370,25 +429,24 @@ The dev server proxies `/api/*` to the backend, so there is no base URL to confi
 
 **The front door.** `/` is a landing page — the thesis, the measured numbers and the
 limitations, for someone arriving with no context. The dashboard lives under `/app`, behind
-a sign-in screen at `/login`.
+a demo entry screen at `/login`.
 
-That sign-in is a front door, not an account system, and the card says so on itself.
-CLAUDE.md Section 16 puts authentication out of scope — this is a single-merchant demo — and
-a reviewer who meets a credential wall holding no credentials is worse off than one who
-meets no wall at all. So the fields are pre-filled, any value continues, nothing is checked
-or stored, and **no API route is protected by it**. Treat it as product framing, not
-security.
+Click **Continue to dashboard** to enter. No email or password is collected. The browser
+remembers that you entered the demo, but **no API route is protected by it**. Keep this
+single-merchant demonstration local; it is not suitable for private merchant records.
 
-**The app has six surfaces:**
+**Pages and navigation:**
 
 | | |
 |---|---|
 | **Landing** (`/`) | What this is, what it measured, and what it deliberately will not do |
-| **Sign in** (`/login`) | The front door. Pre-filled; any credentials continue |
+| **Demo entry** (`/login`) | Continue without an account or password |
 | **Overview** | Money at stake, what closes soonest, what is worth contesting, exposure by dispute type |
 | **Disputes** | The queue — filter by what Coconut concluded, sort by deadline or value |
 | **Case** | The bank's claim and the recommendation, then Evidence / Representment / Audit behind tabs |
 | **Performance** | The held-out evaluation, re-runnable live |
+| **Review queue / UPI cases** | Shortcuts to filtered disputes |
+| **Demo readiness** | Service availability and links to presentation cases |
 
 **The loop:** *Assess 25 disputes* on Overview → open a case from *Ready to contest* → read the
 per-evidence verdicts and the highlighted sentence that drove each → *Representment* tab, edit
@@ -554,7 +612,7 @@ expert adjudication. Optional pre-decision structured signals use explicit true/
 states and are rejected if timestamped after the decision cutoff.
 
 No real merchant records are included in this repository, so this addition does **not**
-change or improve the recorded 0.692 synthetic precision by itself. See
+change or improve the currently recorded synthetic metrics by itself. See
 [the real-data contract, privacy checklist, and release gates](docs/REAL_DATA_PIPELINE.md).
 
 ---
@@ -590,61 +648,57 @@ they cannot add information to one. The best cell in 1,200 beats the shipped con
 precision collapses to 0.490. Details in
 [ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here).
 
-### Results — held-out set, last real run
+### Results — synthetic held-out set, latest recorded run
 
 79 records, kept out of threshold fitting and the demo database (CLAUDE.md Section 9).
 CONTEST is the positive class.
 
-Re-run after the UPI rails were added to the dataset. The confusion matrix is unchanged —
-all five cap-breach cases came out of the human-review bucket, not the decided one — so
-precision, recall, F1 and coverage all held exactly. That was not engineered: breach
-records are selected blind, by hash, with no look at labels or at what the engine
-recommends.
+This run uses the zero-shot NLI pipeline followed by the synthetic-trained CONTEST safety
+gate. The gate can only demote a proposed contest to human review; it cannot manufacture a
+win or bypass the deterministic rules. The held-out file was regenerated from the same
+curated source and has already been inspected in earlier phases, so this is an empirical
+development result rather than a pristine external benchmark.
 
 | Metric | Value |
 |---|---|
-| Precision | **0.692** (9/13; Wilson 95% CI **0.424–0.873**) |
-| Selective recall | **0.750** (excludes deferrals and URCS outcomes) |
-| F1 | **0.720** |
-| Coverage | **0.291** |
-| Population automatic win capture | **0.281** (9/32 labelled winnable cases) |
-| False-positive cost estimate | **₹6,000** |
+| Precision | **1.000** (6/6; Wilson 95% CI **0.610–1.000**) |
+| Selective recall | **0.667** (excludes deferrals and rule outcomes) |
+| F1 | **0.800** |
+| Selective accuracy | **0.813** (13/16 model-decided cases) |
+| Coverage | **0.203** |
+| Population automatic win capture | **0.188** (6/32 labelled winnable cases) |
+| False-positive cost estimate | **₹0** |
 | Records evaluated | 79 |
 
 | | Count | Meaning |
 |---|---|---|
-| TP | 9 | model CONTEST, truth `contest_win` |
-| FP | 4 | model CONTEST, truth `contest_loss` / `should_accept` |
+| TP | 6 | model CONTEST, truth `contest_win` |
+| FP | 0 | model CONTEST, truth `contest_loss` / `should_accept` |
 | FN | 3 | model ACCEPT, truth `contest_win` |
 | TN | 7 | model ACCEPT, truth `contest_loss` / `should_accept` |
-| Flagged to human | 51 | routed to a person instead of guessed |
-| URCS auto-resolved | 5 | over an NPCI cap — rejected without the merchant, excluded from precision and recall |
+| Flagged to human | 63 | routed to a person instead of guessed |
+| URCS auto-resolved | 0 | no held-out record crossed a deterministic cap in this regenerated run |
 
-**How to read these.** The interval matters: thirteen CONTEST calls are too few to support a
-production-grade precision claim, even though the point estimate is 0.692. Model coverage of
-0.291 means 23 of 79 cases are decided on their
-evidence. Another 5 are resolved separately by deterministic NPCI caps, and 51 go to a
-person. That restraint is intended, not hidden: a copilot that is right on roughly seven
-of every ten contests it does make is more useful than one that guesses confidently on
-everything. The Section 11 recall is selective—it omits deferred cases—so automatic win
-capture is shown separately against all 32 labelled winnable cases.
+**How to read these.** Six correct contests produce a 1.000 point estimate, but the Wilson
+lower bound is only 0.610; this is not evidence for a production-grade 100% claim. The model
+decides 16 of 79 cases on their evidence and sends 63 to a person. The zero false positives
+remove the measured ₹1,500-per-case contest loss, but coverage falls from the ungated
+baseline. Recall is selective—it omits deferred cases—so automatic win capture is shown
+separately against all 32 labelled winnable cases.
 
-**The useful generalisation check** is not just precision but its agreement out of sample.
-That comparison is stated below against the *hand-picked* Section 10 thresholds,
-because those are the ones that were tuned: every threshold was fitted on
-`synthetic_disputes.json`, and the held-out set was opened once, at the end.
+The most useful current comparison is the same regenerated split before and after the gate:
 
-| At the hand-picked thresholds | Working set (tuned on) | Held-out (never seen) |
-|---|---|---|
-| Precision | 0.625 | 0.625 |
-| Coverage | 0.214 | 0.215 |
-| Recall | 0.556 | 0.625 |
+| Metric | Ungated NLI | NLI + CONTEST gate |
+|---|---:|---:|
+| Precision | 0.714 (10/14) | **1.000 (6/6)** |
+| Selective recall | **0.769** | 0.667 |
+| F1 | 0.741 | **0.800** |
+| Selective accuracy | 0.708 | **0.813** |
+| Coverage | **0.304** | 0.203 |
 
-Near-identical values are evidence consistent with generalisation, not proof of it on this
-small synthetic dataset. The Phase-0 risk-budget operating rule then improved on that point —
-0.625 → 0.692 precision, 0.215 → 0.291 coverage — without ever being tuned on the held-out data, which is the comparison
-in [Name your risk budget](#name-your-risk-budget-not-a-threshold) above. For contrast, the
-naive single-signal engine scored **0.481** precision on the same working set.
+The improvement is a precision/coverage trade rather than a universal accuracy claim. The
+older hand-picked and Phase-0 measurements remain above as historical ablations; the naive
+single-signal engine scored **0.481** precision on its development comparison.
 
 ---
 
@@ -659,8 +713,8 @@ Stated plainly.
 - **Nothing is ever auto-submitted.** On approval the system builds the exact payload it
   *would* send, stores it in the audit log, and labels it "would submit to Razorpay". It
   does not make the call. This is enforced in two independent places and tested in both.
-- **The NLI model is zero-shot, not fine-tuned.** Fine-tuning on dispute-shaped data is the
-  obvious route to better numbers and is deliberately out of scope here.
+- **The NLI model is zero-shot, while the safety gate is supervised on synthetic data.**
+  Neither component has been trained or validated on real merchant adjudications.
 - **Ground truth is generated, not observed.** Labels reflect how a well-informed person
   would judge each bundle, not the outcome of a real bank adjudication. The metrics measure
   agreement with that judgement.

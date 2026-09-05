@@ -128,7 +128,7 @@ def merge_adjudications(
             }
         )
         updated[record_index] = RealDisputeRecord.model_validate(
-            {**record.model_dump(mode="python"), "evidence": tuple(evidence)}
+                {**record.model_dump(mode="json"), "evidence": [item.model_dump(mode="json") for item in evidence]}
         )
         labelled += 1
         provenance_counts[provenance] += 1

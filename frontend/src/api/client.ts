@@ -272,7 +272,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     // A network-level failure means the backend is not running; say so plainly rather
     // than surfacing a bare "Failed to fetch" to the user.
     throw new ApiError(
-      'Cannot reach the backend. Start it with `uvicorn app.main:app --reload` from backend/.',
+      'Service unavailable. Check the connection and try again.',
       0,
     )
   }
@@ -292,7 +292,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listDisputes: () => request<DisputeSummary[]>('/disputes'),
+  listDisputes: (signal?: AbortSignal) => request<DisputeSummary[]>('/disputes', { signal }),
   getDispute: (id: string) => request<DisputeDetail>(`/disputes/${id}`),
   decide: (id: string) => request<Decision>(`/disputes/${id}/decide`, { method: 'POST' }),
   approve: (id: string, decisionId: number, approved: boolean, editedPacket: string | null) =>

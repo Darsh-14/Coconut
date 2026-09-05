@@ -27,7 +27,6 @@ from app.services.conformal_calibrator import (  # noqa: E402
 )
 from app.services.synthetic_win_gate import (  # noqa: E402
     ARTIFACT_PATH,
-    load_synthetic_win_model,
     predict_probability,
 )
 from real_metrics import wilson_interval  # noqa: E402
@@ -79,11 +78,12 @@ def _metrics(decisions: Sequence[tuple[str, str]]) -> dict[str, Any]:
     }
 
 
-def compare() -> dict[str, Any]:
+def compare(artifact_path: Path = ARTIFACT_PATH) -> dict[str, Any]:
     cache = load_scores()
     if cache is None:
         raise RuntimeError("NLI score cache is missing or incompatible")
-    model = load_synthetic_win_model()
+    from app.services.synthetic_win_gate import _parse_artifact
+    model = _parse_artifact(json.loads(artifact_path.read_text(encoding="utf-8")))
     if model is None:
         raise RuntimeError("synthetic win-gate artifact is missing or incompatible")
     threshold = calibrate_threshold(
@@ -91,7 +91,7 @@ def compare() -> dict[str, Any]:
     )
     if threshold is None:
         raise RuntimeError("the shipped NLI risk budget has no supported threshold")
-    artifact_metadata = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    artifact_metadata = json.loads(artifact_path.read_text(encoding="utf-8"))
     held_out_unused = bool(
         artifact_metadata.get("training", {}).get(
             "held_out_labels_used_for_training_or_selection"
@@ -141,8 +141,12 @@ def compare() -> dict[str, Any]:
 
 
 def main() -> int:
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--artifact", type=Path, default=ARTIFACT_PATH)
+    args = parser.parse_args()
     try:
-        report = compare()
+        report = compare(args.artifact)
     except (OSError, ValueError, RuntimeError, KeyError, json.JSONDecodeError) as exc:
         print(f"Synthetic gate evaluation failed: {exc}", file=sys.stderr)
         return 2

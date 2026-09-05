@@ -5,12 +5,8 @@
  * the Overview's "How well it calls them" card, and the Performance page. They drifted,
  * and how they drifted is the reason this file exists rather than three sets of numbers.
  *
- * Overview showed 62.5% precision at 21.5% coverage under the heading "Last recorded run",
- * and its own docstring claimed those matched the README and the Performance page. They
- * did not. Those are Section 10's HAND-PICKED thresholds, not the calibrated ones the
- * system actually ships with. A reviewer moving from the landing page (0.692) to the
- * dashboard (0.625) would have found the product contradicting itself about its own
- * accuracy — in a project whose entire argument is honest measurement.
+ * Current figures belong here; explicitly historical baselines live separately below.
+ * UI pages derive their displayed counts from this object rather than repeating literals.
  *
  * Held static rather than fetched, deliberately: the landing page renders before the API
  * is warm, and a marketing surface showing a spinner or an error is worse than one showing
@@ -22,22 +18,28 @@
  * still agrees with these, including the confusion matrix.
  */
 
-/** The shipped prototype operating point: risk-budget threshold on the held-out split. */
+/** Current synthetic held-out run of the shipped NLI pipeline plus CONTEST safety gate. */
 export const RECORDED = {
-  precision: 0.692,
-  recall: 0.75,
-  f1: 0.72,
-  coverage: 0.291,
-  falsePositiveCostInr: 6000,
+  precision: 1,
+  recall: 0.6667,
+  f1: 0.8,
+  coverage: 0.2025,
+  selectiveAccuracy: 0.8125,
+  populationAutoWinCapture: 0.1875,
+  contestSupport: 6,
+  precisionWilson95: { lower: 0.6097, upper: 1 },
+  falsePositiveCostInr: 0,
   nEvaluated: 79,
-  autoResolved: 5,
-  matrix: { tp: 9, fp: 4, fn: 3, tn: 7, flagged_human: 51 },
+  autoResolved: 0,
+  matrix: { tp: 6, fp: 0, fn: 3, tn: 7, flagged_human: 63 },
   /** ISO date of the run these figures came from. */
-  measuredOn: '2026-08-28',
+  measuredOn: '2026-09-05',
 } as const
 
 /** What the shipped operating point is compared against on the Performance page. */
 export const BASELINES = {
+  /** Same regenerated held-out set and NLI decisions before the learned gate. */
+  ungatedCurrent: { precision: 0.7143, coverage: 0.3038 },
   /** Section 10's hand-picked 0.7 / 0.65 thresholds, before calibration replaced them. */
   section10: { precision: 0.625, coverage: 0.215 },
   /** The single-signal engine, rejected: worse than a coin flip, and inverted. */

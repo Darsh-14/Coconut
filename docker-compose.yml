@@ -1,8 +1,6 @@
 # docker compose up --build   ->   http://localhost:8000
 #
-# One service on purpose. The database is a SQLite file and the model is a cache directory;
-# neither earns a container of its own at this scale, and splitting them would add moving
-# parts to a setup whose whole claim is that a stranger can clone and run it in minutes.
+# The application serves the UI and API together. Optional profiles isolate checks.
 
 services:
   coconut:
@@ -10,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - .env
     environment:
@@ -18,12 +16,42 @@ services:
       # `docker compose down`. Left at the default it would live in the container's
       # writable layer and vanish with it.
       DATABASE_URL: sqlite:////data/coconut.db
+      LLM_PROVIDER: none
     volumes:
       # The NLI model is ~750MB and is downloaded on first start. Named, so it is fetched
       # once for the life of the volume rather than on every rebuild.
       - model-cache:/models
       - coconut-data:/data
     restart: unless-stopped
+
+  smoke:
+    profiles: ["smoke"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8011:8000"
+    environment:
+      RAZORPAY_KEY_ID: rzp_test_isolated_checks
+      RAZORPAY_KEY_SECRET: isolated_checks_only
+      DATABASE_URL: sqlite:////data/smoke.db
+      LLM_PROVIDER: none
+    volumes:
+      - model-cache:/models
+    # No presentation database or real credentials. Recreating resets this workspace.
+
+  backend-tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      RAZORPAY_KEY_ID: rzp_test_container_checks
+      RAZORPAY_KEY_SECRET: container_checks_only
+      DATABASE_URL: sqlite:////tmp/test.db
+      COCONUT_SKIP_WARMUP: "1"
+      LLM_PROVIDER: none
+    command: ["python", "-m", "pytest", "tests", "-m", "not slow", "-q", "-p", "no:cacheprovider", "--basetemp=/tmp/coconut-pytest"]
 
 volumes:
   model-cache:

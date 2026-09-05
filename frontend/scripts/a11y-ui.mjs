@@ -13,9 +13,11 @@
 // existed; dialogs opening on a skeleton left focus outside themselves; and the focus ring
 // applied unconditionally rather than on :focus-visible, so every control wore one at rest.
 import { chromium } from 'playwright'
+import { mkdir } from 'node:fs/promises'
 
-const BASE = 'http://localhost:5173'
+const BASE = process.env.BASE_URL ?? 'http://localhost:5173'
 const SHOTS = process.env.SHOTS_DIR ?? './.shots'
+await mkdir(SHOTS, { recursive: true })
 const browser = await chromium.launch()
 
 // The dashboard now sits behind a front door (pages/Login.tsx), so every page these
@@ -38,7 +40,7 @@ const page = await newPage({ viewport: { width: 1440, height: 1000 } })
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text().slice(0, 140)))
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 
-const rows = await (await page.request.get('http://127.0.0.1:8000/disputes')).json()
+const rows = await (await page.request.get(`${BASE}/api/disputes`)).json()
 const target = rows[0].dispute_id
 
 // --- Tab reaches every control -------------------------------------------
@@ -158,9 +160,13 @@ if (contest) {
   await page.getByRole('tab', { name: /Representment/ }).click()
   const box = page.locator('textarea')
   await box.waitFor({ timeout: 10000 })
-  await box.focus()
-  const focused = await page.evaluate(() => document.activeElement?.tagName)
-  ok(focused === 'TEXTAREA', 'the representment textarea takes keyboard focus')
+  if (['approved', 'submitted'].includes(contest.status)) {
+    ok(await box.isDisabled(), 'an approved representment stays locked')
+  } else {
+    await box.focus()
+    const focused = await page.evaluate(() => document.activeElement?.tagName)
+    ok(focused === 'TEXTAREA', 'the representment textarea takes keyboard focus')
+  }
 }
 
 // --- responsive boundaries ------------------------------------------------
@@ -202,7 +208,7 @@ ok(lightBg === 'rgb(251, 251, 251)', `an explicit light choice still works (${li
 const lightBlur = await light.evaluate(
   () => getComputedStyle(document.querySelector('.surface')).backdropFilter,
 )
-ok(lightBlur.includes('blur(0px)'), `light surfaces stay opaque, no wasted blur (${lightBlur})`)
+ok(['none', 'blur(0px)'].includes(lightBlur), `light surfaces have no backdrop blur (${lightBlur})`)
 await light.screenshot({ path: `${SHOTS}/a4-light.png` })
 await light.close()
 

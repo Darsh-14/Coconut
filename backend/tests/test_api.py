@@ -222,8 +222,13 @@ def test_decide_returns_a_well_formed_decision(client):
     assert decision["dispute_id"] == "disp_synthetic_9001"
     assert decision["recommendation"] in {"CONTEST", "ACCEPT", "NEEDS_HUMAN_REVIEW"}
     assert 0.0 <= decision["confidence"] <= 1.0
+    from app.services.synthetic_win_gate import load_synthetic_win_model
+
+    gate = load_synthetic_win_model()
+    assert gate is not None
     assert decision["model_version"] == (
         "cross-encoder/nli-deberta-v3-base@6c749ce3425cd33b46d187e45b92bbf96ee12ec7"
+        f"+{gate.model_version}"
     )
     assert decision["decided_at"]
 

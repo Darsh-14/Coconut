@@ -29,10 +29,10 @@ Three deliberate choices, each with a reason:
    free at evaluation scale, reproducible by anyone cloning the repo, no rate limits. An
    LLM only rewrites prose *after* the verdict exists and cannot alter a recommendation,
    verdict or confidence.
-2. **The aggregation rule is a plain conditional, not a model.** A merchant has to be able
-   to read why the system said what it said; a judge has to be able to check it.
-3. **The system abstains.** The model decides 23 of 79 cases on their evidence; 51 go to a
-   human, and 5 more are resolved by NPCI's own rules before the merchant is involved.
+2. **The policy remains inspectable.** Deterministic rules and the NLI verdicts propose a
+   decision; a synthetic-trained safety gate may only demote CONTEST to human review.
+3. **The system abstains.** The model decides 16 of 79 cases on their evidence; 63 go to a
+   human, and this regenerated held-out run has no NPCI auto-resolved cases.
    Model coverage and deterministic resolution are reported separately rather than blurred.
 
 If asked why not Gemini/Claude for the verdict: cost and determinism at eval scale, plus
@@ -149,16 +149,14 @@ abstaining on thin evidence.
 
 ## What to avoid claiming
 
-- Don't call the metrics good. 0.692 precision at 29.1% coverage is honest and defensible
-  for zero-shot; overselling it invites a harder question than the number does.
+- Don't call six correct contests proof of perfect performance. Report 1.000 observed
+  precision at 20.3% coverage and the 0.610 Wilson lower bound together.
 - Don't imply the disputes are real. Lead with that limitation — it reads as rigour.
 - Don't claim return-risk scoring or abuse-ring detection are built. Say the core
   generalises, and that this repo does one loop end to end.
 
 ## Closing line
 
-> "It decides 23 of 79 cases on their evidence, resolves five under deterministic NPCI
-> caps, and sends 51 to a person. That abstention is the feature. The number I care about
-> isn't the precision — it's that the set I tuned on and the separate set not used to fit
-> thresholds scored
-> within a tenth of a percent of each other."
+> "It decides 16 of 79 cases on their evidence and sends 63 to a person. Six of six contest
+> calls match the synthetic labels, but six is small support, so the 61% Wilson lower bound
+> stays beside the 100% point estimate. That honest abstention is the feature."

@@ -50,7 +50,7 @@ export default function Overview() {
     <div>
       <PageHeader
         title="Overview"
-        sub="Where the money is."
+        sub="Dispute exposure and pending actions."
         action={
           batch ? (
             <div className="w-full sm:w-52" aria-live="polite">
@@ -301,8 +301,7 @@ function ModelCard({ onOpen }: { onOpen: () => void }) {
 
       <p className="mt-4 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
         It sends {(HUMAN_REVIEW_RATE * 100).toFixed(1)}% to a person; another{' '}
-        {RECORDED.autoResolved} are settled by deterministic NPCI caps. Guessing is what
-        costs a merchant the ₹1,500 twice over.
+        {RECORDED.autoResolved} are resolved by the rules engine.
       </p>
 
       <Button className="mt-4 w-full" onClick={onOpen}>

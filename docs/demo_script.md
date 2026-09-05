@@ -92,19 +92,19 @@ Scroll to the drafted representment, edit a word, click **Approve & prepare pack
 **Performance** → **Run evaluation**. The page already shows the last recorded run, so
 the live one is a verification rather than a reveal. While it runs:
 
-> "This is the held-out 30%, untouched during development. Real inference, not a cached
-> number — that's why it takes a minute."
+> "This is the regenerated synthetic held-out 30%. It was not used to fit this gate, but
+> earlier project phases have inspected held-out results, so this is an empirical check,
+> not a pristine benchmark. This button runs real inference rather than replaying a number."
 
-When it lands: 69.2 / 75.0 / 72.0, model coverage 29.1%, ₹6,000.
+When it lands: 100.0 precision / 66.7 recall / 80.0 F1, model coverage 20.3%, ₹0.
 
-> "Model coverage of 29.1% means it decides 23 of 79 cases on their evidence. Five more
-> resolve under deterministic NPCI caps; 51, or 64.6%, go to a person. That abstention is
-> the product, not a shortfall — it says 'I don't know' instead of guessing.
+> "Model coverage of 20.3% means it decides 16 of 79 cases on their evidence; 63, or 79.7%,
+> go to a person. That abstention is the product, not a shortfall — it says 'I don't know'
+> instead of guessing.
 >
-> The number I actually care about isn't the precision. It's that at the thresholds I
-> hand-tuned, the working set scored 0.625 and coverage 0.214 and the held-out set scored
-> 0.625 and 0.215 — it generalised instead of fitting noise. Calibration then beat that
-> operating point, 0.625 to 0.692, without ever seeing the held-out data."
+> Six of six contests were correct, but that is small support: the 95% Wilson lower bound
+> is only 61.0%. The gate improved selective accuracy from 70.8% to 81.3% while reducing
+> coverage from 30.4% to 20.3%."
 
 ## 4:30 — Close (30s)
 
@@ -122,7 +122,7 @@ When it lands: 69.2 / 75.0 / 72.0, model coverage 29.1%, ₹6,000.
 | Symptom | Do this |
 |---|---|
 | Landed on a marketing page | That's the landing page — **Open the dashboard**, top right |
-| Bounced to a sign-in screen | Expected. Pre-filled; click **Continue to dashboard** |
+| Bounced to the demo entry screen | Expected. Click **Continue to dashboard**; no credentials needed |
 | Queue empty | `cd backend && python -m app.db.seed` |
 | "Cannot reach the backend" | Backend isn't running, or something else holds :8000 |
 | First `/decide` hangs | Model downloading. Warm it up before demoing |

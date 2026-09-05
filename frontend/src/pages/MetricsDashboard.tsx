@@ -90,8 +90,7 @@ export default function MetricsDashboard() {
             Current gate versus baselines
           </h2>
           <p className="mt-0.5 text-[12px] text-[var(--fg-3)]">
-            The learned gate removes risky CONTEST calls from the same regenerated synthetic
-            held-out run. Higher precision therefore needs to be read with lower coverage.
+            Recorded synthetic results. The contest gate increases precision and reduces coverage.
           </p>
         </div>
         <div className="grid gap-px sm:grid-cols-3" style={{ background: 'var(--line)' }}>
@@ -108,9 +107,7 @@ export default function MetricsDashboard() {
           className="border-t px-5 py-3 text-[11.5px] leading-relaxed text-[var(--fg-3)]"
           style={{ borderColor: 'var(--line)' }}
         >
-          Scoring evidence against the claim alone gave{' '}
-          {formatPercent(REFERENCE.naive.precision)} — not weak but <em>inverted</em>,
-          contesting losing cases more often than winning ones.
+          Historical single-signal baseline: {formatPercent(REFERENCE.naive.precision)} precision.
         </p>
       </Surface>
 
@@ -131,11 +128,11 @@ export default function MetricsDashboard() {
               sub={`right ${cm.tp} of ${cm.tp + cm.fp} contests`}
             />
             <Metric
-              label="Recall"
+              label="Selective recall"
               value={formatPercent(shown.recall)}
-              sub={`caught ${cm.tp} of ${cm.tp + cm.fn} winnable`}
+              sub={`${cm.tp} of ${cm.tp + cm.fn} non-deferred wins`}
             />
-            <Metric label="F1" value={formatPercent(shown.f1)} sub="the two balanced" />
+            <Metric label="F1" value={formatPercent(shown.f1)} sub="Precision / selective recall" />
             <Metric
               label="Selective accuracy"
               value={formatPercent(selectiveAccuracy)}
@@ -181,7 +178,7 @@ export default function MetricsDashboard() {
 
             <Surface className="p-5">
               <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
-                Cost of being wrong
+                False-positive cost
               </p>
               <p
                 className="num mt-1.5 text-[27px] leading-none tracking-[-0.02em] text-[var(--warn)]"
@@ -193,18 +190,14 @@ export default function MetricsDashboard() {
                 })}
               </p>
               <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--fg-3)]">
-                {cm.fp} lost contest{cm.fp === 1 ? '' : 's'} × ₹1,500. The number the design
-                optimises against.
+                Estimated cost of {cm.fp} incorrect contest recommendation{cm.fp === 1 ? '' : 's'}.
               </p>
             </Surface>
           </div>
 
           <p className="text-[11.5px] text-[var(--fg-3)]">
-            {isLive
-              ? 'Live runs use the current zero-shot NLI pipeline plus its synthetic-trained contest safety gate.'
-              : 'The recorded baseline uses the zero-shot NLI pipeline without the optional learned safety gate.'}{' '}
-            Ground truth is generated, not observed from real bank adjudications, so a small
-            high-precision result is not a production benchmark.
+            Synthetic labels, not bank outcomes. Precision is based on {cm.tp + cm.fp} contests;
+            deferred cases are excluded from selective recall and accuracy.
           </p>
       </div>
     </div>
