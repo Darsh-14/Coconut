@@ -8,16 +8,22 @@ human approves before anything is treated as final, and nothing is ever submitte
 Razorpay or a bank automatically. Built for Razorpay's AI Buildathon, Track 2 (AI Risk
 Manager).
 
-See [the presentation guide](docs/DEMO_READINESS.md) for running Docker and presenting four cases,
-[manual model commands](docs/MANUAL_MODEL.md) for training, and
-[manual checks](docs/MANUAL_CHECKS.md) for tests. The Docker CLI is installed, but Docker
-Desktop currently reports that virtualization support is unavailable. Container execution
-therefore remains unverified until the Docker engine can start.
+The Docker CLI is installed, but Docker Desktop currently reports that virtualization
+support is unavailable. Container execution therefore remains unverified until the Docker
+engine can start. Local startup, model, test, demo and evaluation commands are included in
+this README.
 
 ## Latest updates
 
-An isolated, resettable demo is available: see [Demo workspace](docs/DEMO_WORKSPACE.md).
-It runs the existing engine on prepared sample cases using its own temporary database.
+An isolated, resettable demo runs the existing engine on prepared sample cases using its
+own temporary database. Build the frontend, then start it from `backend/` with:
+
+```powershell
+..\.venv\Scripts\python.exe -m uvicorn app.demo:app --host 127.0.0.1 --port 8011
+```
+
+Open `http://127.0.0.1:8011` and choose **Try demo**. The regular server can remain on port
+8000; run the demo with a single worker.
 
 - Run the website and backend together with Docker. Saved cases survive normal restarts.
 - Download the evidence-reading model before a presentation to reduce startup delays.
@@ -117,9 +123,10 @@ The evaluated weights are pinned to Hub revision
 `6c749ce3425cd33b46d187e45b92bbf96ee12ec7`; every new decision records that full model
 version alongside the calibrated threshold that produced it.
 
-**Why two signals.** See [ARCHITECTURE.md](ARCHITECTURE.md#the-two-signal-verification-engine).
-Scoring evidence against the claim alone produced **precision 0.481** — worse than a coin
-flip, and inverted: it fired CONTEST on losing cases *more often* than winning ones.
+**Why two signals.** Scoring evidence against the claim alone produced **precision 0.481**
+— worse than a coin flip, and inverted: it fired CONTEST on losing cases *more often* than
+winning ones. The second signal asks whether relevant evidence is specific enough to
+substantiate the merchant's position.
 
 ---
 
@@ -172,9 +179,8 @@ Stated up front rather than buried, because these are the parts that matter:
 1. **The tightest budget this development sample supports is ~71%.** Not a typo;
    the *score* it calibrates has almost no dynamic range — contest scores cluster at 0.500
    (p25 0.498, median 0.500, only 1 of 42 above 0.55) and precision does not improve as the
-   threshold rises. That is the same AUC ≈ 0.57 ceiling documented in
-   [ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here), reappearing as an
-   unsupported budget. Ask for 5% and the system says so and defers everything, rather
+   threshold rises. That AUC ≈ 0.57 ceiling reappears as an unsupported budget. Ask for 5%
+   and the system says so and defers everything, rather
    than pretending. **A tight, useful operating point needs a better-calibrated
    confidence signal, not a better threshold search.**
 2. **Calibration data is synthetic and reused development data.** It does not establish
@@ -612,8 +618,9 @@ expert adjudication. Optional pre-decision structured signals use explicit true/
 states and are rejected if timestamped after the decision cutoff.
 
 No real merchant records are included in this repository, so this addition does **not**
-change or improve the currently recorded synthetic metrics by itself. See
-[the real-data contract, privacy checklist, and release gates](docs/REAL_DATA_PIPELINE.md).
+change or improve the currently recorded synthetic metrics by itself. The importer keeps
+private rows and artifacts in ignored paths and requires merchant authorization, outcome
+blinding during annotation, chronological group splits and an untouched final test split.
 
 ---
 
@@ -637,20 +644,18 @@ python eval/tune_thresholds.py --build-cache   # one inference pass over the wor
 python eval/tune_thresholds.py                 # replay 1,200 configurations in seconds
 ```
 
-The sweep holds CLAUDE.md Section 10's aggregation rule fixed — that rule is specified
-literally, and moving those numbers would be tuning away the spec. It only varies the four
-constants the engine defines for itself.
+The sweep holds the original aggregation rule fixed and varies only the four constants the
+engine defines for itself.
 
 It finds nothing worth shipping, and says why: the two signals separate `contest_win` from
 everything else at **AUC 0.571** and **0.556**. Thresholds pick an operating point on a curve;
 they cannot add information to one. The best cell in 1,200 beats the shipped configuration by
 0.2 points of accuracy — one record out of 42 — while sitting directly against a cliff where
-precision collapses to 0.490. Details in
-[ARCHITECTURE.md](ARCHITECTURE.md#why-tuning-stopped-here).
+precision collapses to 0.490.
 
 ### Results — synthetic held-out set, latest recorded run
 
-79 records, kept out of threshold fitting and the demo database (CLAUDE.md Section 9).
+79 records, kept out of threshold fitting and the demo database.
 CONTEST is the positive class.
 
 This run uses the zero-shot NLI pipeline followed by the synthetic-trained CONTEST safety
@@ -699,6 +704,62 @@ The most useful current comparison is the same regenerated split before and afte
 The improvement is a precision/coverage trade rather than a universal accuracy claim. The
 older hand-picked and Phase-0 measurements remain above as historical ablations; the naive
 single-signal engine scored **0.481** precision on its development comparison.
+
+### Additional 1,000-case synthetic stress evaluation
+
+The frozen model was also run once over 1,000 additional synthetic cases spanning all six
+dispute reasons, three eligible payment rails and 30 authored scenario families. The model,
+gate, default risk budget, calibration data and source files were fingerprinted before the
+run. Ground-truth labels were removed from every record passed to inference.
+
+| Metric | 79-case held-out set | 1,000-case stress set |
+|---|---:|---:|
+| Contest precision | 1.000 (6/6) | **1.000 (72/72)** |
+| Descriptive Wilson 95% lower bound | 0.610 | **0.949** |
+| Selective recall | 0.667 | **0.686** |
+| Selective F1 | 0.800 | **0.814** |
+| Selective accuracy | 0.813 | **0.839** |
+| Coverage | 0.203 | **0.205** |
+| Population automatic win capture | **0.188** | 0.180 |
+| False contests | 0 | 0 |
+| Sent to human review | 63/79 | 795/1,000 |
+
+This improves the amount of synthetic evidence behind the narrow automatic-contest path:
+contest support grows from 6 to 72 without an observed false contest. It does not show a
+meaningful coverage improvement, and population automatic win capture is slightly lower.
+The 72 contests are also concentrated: 34 are `credit_not_processed`, 33 are
+`unrecognized_transaction`, four are `duplicate_charge`, one is `goods_not_as_described`,
+and none are `goods_not_received` or `subscription_cancelled`. This is strong evidence of
+where the current system is selective, not proof that it performs equally across reasons.
+The stress set contains parameterised variations of 30 authored families, so its cases are
+correlated and its Wilson interval is descriptive only. These are fictional outcome
+assumptions, not 1,000 independently adjudicated bank outcomes or production metrics.
+
+The complete stress run produced `TP=72`, `FP=0`, `FN=33`, `TN=100`, `human=795` and
+`auto_resolved=0`. Run it locally from `backend/` without Docker or a server:
+
+```powershell
+..\.venv\Scripts\python.exe eval/evaluate_stress.py --validate-only
+if ($LASTEXITCODE -ne 0) { throw 'Validation failed' }
+
+..\.venv\Scripts\python.exe eval/evaluate_stress.py --output-dir eval/stress_runs/full
+if ($LASTEXITCODE -ne 0) { throw 'Evaluation interrupted; use --resume' }
+
+$stressReport = Get-Content eval/stress_runs/full/report.json -Raw | ConvertFrom-Json
+$stressReport.complete_1000
+$stressReport.metrics | Format-List
+$stressReport.families_with_false_contests
+```
+
+The runner checkpoints every 20 cases. Resume an interrupted run with:
+
+```powershell
+..\.venv\Scripts\python.exe eval/evaluate_stress.py --output-dir eval/stress_runs/full --resume
+```
+
+It refuses to run if the frozen dataset, model, thresholds, calibration inputs, relevant
+code or inference dependency versions have changed. Reports remain local under the ignored
+`backend/eval/stress_runs/` directory.
 
 ---
 

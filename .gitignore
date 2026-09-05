@@ -36,6 +36,12 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+# --- local documentation ---
+# Keep only the repository's root README public. Detailed runbooks and pitch material stay local.
+*.md
+!/README.md
+docs/
+
 # --- per-account Razorpay test artefacts (regenerate with data/backfill_razorpay_backing.py) ---
 backend/data/razorpay_backing.json
 
@@ -50,6 +56,7 @@ backend/eval/real_runs/
 backend/training/private/
 backend/.demo-checks/
 backend/eval/synthetic_win_gate_candidate.json
+backend/eval/stress_runs/
 
 # Tuning cache: regenerable via `python eval/tune_thresholds.py --build-cache`
 backend/eval/.signal_cache.json
