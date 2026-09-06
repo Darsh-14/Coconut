@@ -178,6 +178,15 @@ const STATUSES: Record<string, string> = {
   submitted: 'Packet logged',
 }
 
-export function statusLabel(status: string): string {
+export function statusLabel(
+  status: string,
+  recommendation?: Recommendation | null,
+): string {
+  if (status === 'decided') {
+    if (recommendation === 'CONTEST') return 'Ready for approval'
+    if (recommendation === 'ACCEPT') return 'Decision ready'
+    if (recommendation === 'NEEDS_HUMAN_REVIEW') return 'Human review'
+    if (recommendation === 'NO_ACTION_NEEDED') return 'Auto-resolved'
+  }
   return STATUSES[status] ?? status
 }

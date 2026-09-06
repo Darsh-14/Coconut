@@ -35,11 +35,17 @@ export function RecommendationBanner({
   rationale?: string | null
 }) {
   const copy = RECOMMENDATIONS[recommendation]
+  const decisionLabel =
+    recommendation === 'NEEDS_HUMAN_REVIEW'
+      ? 'Routing decision'
+      : recommendation === 'NO_ACTION_NEEDED'
+        ? 'Rule-based decision'
+        : 'Automated decision'
 
   return (
     <section
       className="surface overflow-hidden"
-      aria-label="Recommendation"
+      aria-label={decisionLabel}
       style={{
         boxShadow: `var(--shadow-line), inset 2px 0 0 0 var(--${
           copy.tone === 'mute' ? 'fg-3' : copy.tone
@@ -49,14 +55,14 @@ export function RecommendationBanner({
       <div className="flex flex-wrap items-start justify-between gap-5 p-5">
         <div>
           <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--fg-3)]">
-            Recommendation
+            {decisionLabel}
           </p>
           <h2
             className="mt-1.5 flex items-center gap-2.5 text-[21px] tracking-[-0.022em]"
             style={{ fontVariationSettings: "'wght' 590" }}
           >
             <span className={`size-2 rounded-full ${toneDot(copy.tone)}`} />
-            {copy.headline}
+            {copy.label}: {copy.headline}
           </h2>
         </div>
 
@@ -103,6 +109,12 @@ export function PhaseBadge({ phase }: { phase: string }) {
   return <Badge title={copy.meaning}>{copy.label}</Badge>
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  return <Badge>{statusLabel(status)}</Badge>
+export function StatusBadge({
+  status,
+  recommendation,
+}: {
+  status: string
+  recommendation?: Recommendation | null
+}) {
+  return <Badge>{statusLabel(status, recommendation)}</Badge>
 }

@@ -72,9 +72,14 @@ export default function Overview() {
             </div>
           ) : (
             stats.unassessed > 0 && (
-              <Button variant="primary" onClick={() => assessNext(25)}>
-                Assess {Math.min(25, stats.unassessed)} disputes
-              </Button>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <span className="text-[12px] text-[var(--fg-3)]">
+                  Automatic assessment queued
+                </span>
+                <Button onClick={() => assessNext(25)}>
+                  Run {Math.min(25, stats.unassessed)} now
+                </Button>
+              </div>
             )
           )
         }

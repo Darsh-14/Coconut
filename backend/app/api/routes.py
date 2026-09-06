@@ -32,7 +32,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.config import get_settings
-from app.db.database import get_session
+from app.db.database import SessionLocal, get_session
 from app.db.models import AuditLogRow, CalibrationRow, DecisionRow, DisputeRow, as_utc
 from app.models.schemas import (
     ApproveRequest,
@@ -369,6 +369,9 @@ def create_dispute(
     session.add(DisputeRow.from_schema(dispute))
     session.commit()
     logger.info("filed %s (%s, %s paise)", dispute_id, body.reason_code, body.amount)
+    from app.services.automation import schedule_automatic_assessment
+
+    schedule_automatic_assessment(None if body.rail == "upi" else [dispute_id])
     return dispute
 
 
@@ -423,6 +426,9 @@ def add_evidence(
     _bump_evidence(row, bundle)
     session.commit()
     logger.info("evidence added to %s (%d items, rev %d)", dispute_id, len(bundle), row.evidence_revision)
+    from app.services.automation import schedule_automatic_assessment
+
+    schedule_automatic_assessment([dispute_id])
     return row.to_schema()
 
 
@@ -448,6 +454,9 @@ def remove_evidence(
     _bump_evidence(row, bundle)
     session.commit()
     logger.info("evidence %d removed from %s (rev %d)", index, dispute_id, row.evidence_revision)
+    from app.services.automation import schedule_automatic_assessment
+
+    schedule_automatic_assessment([dispute_id])
     return row.to_schema()
 
 
@@ -506,18 +515,8 @@ def evidence_download(
     )
 
 
-@router.post(
-    "/disputes/{dispute_id}/decide",
-    response_model=Decision,
-    tags=["disputes"],
-)
-@_serialise_dispute_write
-def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision:
-    """Run the verification engine and aggregator, persist the decision, return it.
-
-    Re-running appends a new decision rather than overwriting: the audit trail should show
-    that a case was re-assessed, not silently rewrite history.
-    """
+def _assess_and_persist(dispute_id: str, session: Session) -> Decision:
+    """Run the verification pipeline; the caller owns the per-dispute lock."""
     row = _load_dispute(session, dispute_id)
     _require_no_standing_approval(row, "re-assess it")
     evidence = row.evidence_items()
@@ -613,6 +612,49 @@ def decide(dispute_id: str, session: Session = Depends(get_session)) -> Decision
         decision.confidence,
     )
     return decision
+
+
+@router.post(
+    "/disputes/{dispute_id}/decide",
+    response_model=Decision,
+    tags=["disputes"],
+)
+@_serialise_dispute_write
+def decide(
+    dispute_id: str,
+    force: bool = Query(True),
+    session: Session = Depends(get_session),
+) -> Decision:
+    """Run and persist a fresh assessment requested by a person or API client.
+
+    Explicit re-runs append a new decision. Initial queue actions pass force=false so a
+    click racing the automatic worker returns the standing decision without duplicating it.
+    """
+    row = _load_dispute(session, dispute_id)
+    latest = row.latest_decision
+    if (
+        not force
+        and latest is not None
+        and _decision_staleness_reason(session, row, latest) is None
+    ):
+        return latest.to_schema()
+    return _assess_and_persist(dispute_id, session)
+
+
+def assess_if_needed(dispute_id: str) -> bool:
+    """Persist one automatic decision only when the dispute is still unassessed.
+
+    The check and inference share the manual endpoint's lock.  A browser click racing the
+    background worker therefore produces one standing decision rather than two.
+    """
+    with _dispute_operation(dispute_id):
+        with SessionLocal() as session:
+            row = _load_dispute(session, dispute_id)
+            latest = row.latest_decision
+            if latest is not None and _decision_staleness_reason(session, row, latest) is None:
+                return False
+            _assess_and_persist(dispute_id, session)
+            return True
 
 
 @router.put(
@@ -1109,6 +1151,9 @@ def calibrate(
     # Publish only after durable storage succeeds. A failed commit must not leave this
     # process deciding cases under a risk budget that does not exist in the audit record.
     set_active_threshold(lam, body.alpha, body.delta)
+    from app.services.automation import schedule_automatic_assessment
+
+    schedule_automatic_assessment()
 
     r_hat, n_lam = (None, 0) if lam is None else empirical_fp_rate(pairs, lam)
     floor = smallest_achievable_alpha(pairs, body.delta)

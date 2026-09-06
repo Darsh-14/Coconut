@@ -84,6 +84,9 @@ def _warm_up_model() -> None:
     from app.services.verification_engine import warm_up
 
     warm_up()
+    from app.services.automation import schedule_automatic_assessment
+
+    schedule_automatic_assessment()
 
 
 app = FastAPI(
@@ -117,6 +120,13 @@ def workspace():
     return {'demo': bool(getattr(app.state, 'demo', False))}
 
 
+@app.get('/automation/status', tags=['ops'])
+def automation_status():
+    from app.services.automation import status
+
+    return status()
+
+
 @app.get("/health", tags=["ops"])
 def health() -> dict:
     """Liveness + configuration check.
@@ -125,6 +135,7 @@ def health() -> dict:
     is the only way it can boot at all.
     """
     settings = get_settings()
+    from app.services.automation import status as automatic_assessment_status
     from app.services.conformal_calibrator import active_state
     from app.services.verification_engine import model_is_loaded
 
@@ -136,6 +147,7 @@ def health() -> dict:
         "razorpay_key_id_prefix": settings.razorpay_key_id[:14],
         "anthropic_configured": settings.anthropic_configured,
         "auto_submit_to_razorpay": False,
+        "automatic_assessment": automatic_assessment_status(),
         "database": _database_health(),
         "model_loaded": model_is_loaded(),
         "calibrated": bool(calibration.get("calibrated")),

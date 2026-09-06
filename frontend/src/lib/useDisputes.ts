@@ -53,6 +53,13 @@ export function useDisputes() {
     }
   }, [])
 
+  const hasUnassessed = Boolean(rows?.some((row) => !row.recommendation))
+  useEffect(() => {
+    if (!hasUnassessed) return
+    const timer = window.setInterval(() => void refresh(), 3000)
+    return () => window.clearInterval(timer)
+  }, [hasUnassessed, refresh])
+
   const stats: QueueStats = useMemo(() => {
     const all = rows ?? []
     const contest = all.filter((r) => r.recommendation === 'CONTEST')
@@ -93,7 +100,7 @@ export function useDisputes() {
           if (i >= targets.length) return
           const target = targets[i]
           try {
-            const decision = await api.decide(target.dispute_id)
+            const decision = await api.decide(target.dispute_id, false)
             setRows((prev) =>
               prev?.map((r) =>
                 r.dispute_id === target.dispute_id

@@ -294,7 +294,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listDisputes: (signal?: AbortSignal) => request<DisputeSummary[]>('/disputes', { signal }),
   getDispute: (id: string) => request<DisputeDetail>(`/disputes/${id}`),
-  decide: (id: string) => request<Decision>(`/disputes/${id}/decide`, { method: 'POST' }),
+  decide: (id: string, force = true) =>
+    request<Decision>(`/disputes/${id}/decide?force=${force}`, { method: 'POST' }),
   approve: (id: string, decisionId: number, approved: boolean, editedPacket: string | null) =>
     request<AuditLogEntry>(`/disputes/${id}/approve`, {
       method: 'POST',

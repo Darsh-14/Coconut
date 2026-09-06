@@ -136,8 +136,10 @@ export default function DisputeQueue() {
             <div className="flex flex-wrap gap-2">
               {stats.unassessed > 0 && (
                 <>
-                  <Button onClick={() => assessNext(15)}>Assess 15</Button>
-                  <Button onClick={() => assessNext(50)}>Assess 50</Button>
+                  <span className="self-center text-[12px] text-[var(--fg-3)]">
+                    Automatic assessment queued
+                  </span>
+                  <Button onClick={() => assessNext(15)}>Run 15 now</Button>
                 </>
               )}
               <Button variant="primary" onClick={() => setFiling(true)}>
@@ -232,8 +234,8 @@ export default function DisputeQueue() {
                   Clear search
                 </Button>
               ) : stats.unassessed > 0 ? (
-                <Button variant="primary" size="sm" onClick={() => assessNext(15)}>
-                  Assess 15 disputes
+                <Button size="sm" onClick={() => assessNext(15)}>
+                  Run 15 now
                 </Button>
               ) : undefined
             }
@@ -350,7 +352,7 @@ export default function DisputeQueue() {
                       </td>
 
                       <td className="px-4 py-3 align-middle text-[var(--fg-2)]">
-                        {statusLabel(row.status)}
+                        {statusLabel(row.status, row.recommendation)}
                       </td>
                     </tr>
                   )
@@ -458,7 +460,7 @@ function MobileCase({ row }: { row: DisputeSummary }) {
           </span>
         </span>
         <span className="col-span-2 text-[11px] text-[var(--fg-3)]">
-          {statusLabel(row.status)}
+          {statusLabel(row.status, row.recommendation)}
         </span>
       </span>
     </Link>

@@ -24,6 +24,7 @@ os.environ.update({
 from fastapi.responses import JSONResponse
 from app.main import app as api_app
 from app.demo_cases import reset_demo, scenarios
+from app.services.automation import schedule_automatic_assessment
 
 api_app.state.demo = True
 _requests = asyncio.Lock()
@@ -41,6 +42,7 @@ async def isolate_demo_actions(request, call_next):
 @api_app.post('/demo/reset')
 def reset():
     reset_demo()
+    schedule_automatic_assessment()
     return {'scenarios': scenarios()}
 
 

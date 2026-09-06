@@ -53,6 +53,18 @@ export default function CaseDetail() {
     void load()
   }, [load])
 
+  const awaitingAutomaticDecision = Boolean(
+    detail &&
+      (!detail.latest_decision || detail.decision_is_stale) &&
+      detail.status !== 'approved' &&
+      detail.status !== 'submitted',
+  )
+  useEffect(() => {
+    if (!awaitingAutomaticDecision) return
+    const timer = window.setInterval(() => void load(), 3000)
+    return () => window.clearInterval(timer)
+  }, [awaitingAutomaticDecision, load])
+
   /**
    * Autosave the representment edit.
    *
@@ -110,7 +122,7 @@ export default function CaseDetail() {
     setNotice(null)
     setActionError(null)
     try {
-      await api.decide(disputeId)
+      await api.decide(disputeId, Boolean(detail?.latest_decision))
       await load()
     } catch (e) {
       setActionError((e as Error).message)
@@ -234,7 +246,10 @@ export default function CaseDetail() {
             </h1>
             <PhaseBadge phase={dispute.phase} />
             <Badge title={railCopy(dispute.rail).meaning}>{railCopy(dispute.rail).label}</Badge>
-            <StatusBadge status={detail.status} />
+            <StatusBadge
+              status={detail.status}
+              recommendation={decision?.recommendation}
+            />
           </div>
           <p className="num mt-2 text-[12px] text-[var(--fg-3)]">{dispute.dispute_id}</p>
         </div>
@@ -593,9 +608,11 @@ function NotAssessed({ busy, onRun }: { busy: boolean; onRun: () => void }) {
         </>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-[var(--fg-2)]">Not assessed yet.</p>
-          <Button variant="primary" onClick={onRun}>
-            Run assessment
+          <p className="text-[13px] text-[var(--fg-2)]">
+            Automatic assessment queued.
+          </p>
+          <Button onClick={onRun}>
+            Run now
           </Button>
         </div>
       )}
