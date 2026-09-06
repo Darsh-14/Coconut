@@ -1,0 +1,49 @@
+FROM node:22-slim AS frontend
+
+WORKDIR /build
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend/ ./
+RUN npm run build
+
+
+FROM python:3.13-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/models \
+    TOKENIZERS_PARALLELISM=false
+
+WORKDIR /srv
+
+COPY backend/requirements.txt ./backend/requirements.txt
+
+RUN pip install --no-cache-dir \
+      --index-url https://download.pytorch.org/whl/cpu \
+      torch==2.13.0 \
+    && pip install --no-cache-dir -r backend/requirements.txt
+
+COPY backend/ ./backend/
+COPY --from=frontend /build/dist ./frontend/dist
+
+RUN useradd --create-home --uid 1000 coconut \
+    && mkdir -p /models \
+    && chown -R coconut:coconut /srv /models
+
+USER coconut
+WORKDIR /srv/backend
+
+# Download the pinned NLI weights during the remote Vercel build.
+# This prevents every cold start from downloading the ~750 MB model.
+RUN python eval/prewarm_model.py
+
+# Runtime inference must use the exact model cached above.
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "exec python -m uvicorn app.demo:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
