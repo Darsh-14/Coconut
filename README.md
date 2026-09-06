@@ -7,7 +7,7 @@
 **Evidence in. Defensible decision out.**
 
 [Architecture](#architecture) · [Innovation](#why-this-is-different) ·
-[Results](#results) · [Judge's route](#demo) · [Run locally](#run-locally)
+[Results](#results) · [Quick review path](#demo) · [Run locally](#run-locally)
 
 > Coconut reads the bank's claim, tests every merchant record against it, and recommends
 > **Contest**, **Accept**, **Human review**, or **No action** — with the exact evidence and
@@ -22,7 +22,26 @@ the evidence clears an explicit risk policy and deferring when it does not.
 |---|---|---|
 | Bank claim, reason code, payment rail, evidence bundle and dispute history | A recommendation, confidence, evidence-level verdicts, highlighted proof and rationale | Final approval. Coconut never submits a dispute response automatically |
 
-![Coconut case view showing an NPCI rule decision, its source and the required human action](frontend/public/shots/case-light.png)
+### The running product
+
+These are fresh captures from the isolated demo workspace. They show real assessments from
+the normal engine rather than static mockups.
+
+| Portfolio view | Claim-to-evidence reasoning |
+|---|---|
+| ![Coconut home view showing exposure, assessed outcomes and cases ready to contest](frontend/public/shots/readme-overview.png) | ![Coconut contest case showing the bank claim, recommendation and highlighted evidence spans](frontend/public/shots/readme-evidence.png) |
+
+<a id="architecture"></a>
+
+## Architecture — rules first, model second, human last
+
+The diagram separates the system into three stages: rail intelligence, evidence and risk,
+and human control. UPI cap outcomes bypass statistical inference; every other path ends
+with a reviewable human action and persisted audit record.
+
+[![Full Coconut architecture: rail-aware routing, two-signal NLI verification, explicit risk policy, four outcomes and human-controlled audit](frontend/public/shots/coconut-architecture.svg)](frontend/public/shots/coconut-architecture.svg)
+
+_[Open the architecture at full size](frontend/public/shots/coconut-architecture.svg)._
 
 ## Objective — turn dispute evidence into a safe action
 
@@ -67,56 +86,7 @@ treatment, and keeps the model, policy, draft and human action as separate revie
 stages. Razorpay integration is visible through test-mode orders, Checkout, signed webhooks
 and a simulated submission payload.
 
-<a id="architecture"></a>
-
-## Architecture — rules first, model second, human last
-
-Read the diagram from left to right. The orange route handles a deterministic UPI outcome.
-The blue route evaluates evidence. Both end at a human-controlled action and a persisted
-audit record.
-
-```mermaid
-flowchart LR
-    A["Dispute<br/>claim · reason · rail · evidence"] --> B{"Eligible UPI<br/>case?"}
-
-    B -->|Yes| C["NPCI rules engine<br/>30-day CD1 / CD2 counters"]
-    C -->|Cap crossed| N["NO ACTION<br/>URCS expected to reject"]
-    C -->|Merchant must answer| D
-    B -->|No| D
-
-    subgraph VERIFY["1 · Evidence verification — local NLI"]
-        D["Split evidence into records"] --> E["Engagement signal<br/>Does it address the bank's claim?"]
-        D --> F["Substantiation signal<br/>Does it contain reason-specific proof?"]
-        E --> G["Per-record verdict<br/>support · contradict · neutral<br/>confidence · highlighted span"]
-        F --> G
-    end
-
-    subgraph POLICY["2 · Explicit decision policy"]
-        G --> H{"Risk threshold +<br/>corroboration rule"}
-        H -->|Strong contradiction| I["ACCEPT"]
-        H -->|Unanimous, strong,<br/>2+ evidence types| J["CONTEST candidate"]
-        H -->|Mixed or incomplete| K["HUMAN REVIEW"]
-        J -. "Synthetic demo/eval only:<br/>safety gate may demote" .-> K
-    end
-
-    J --> L["Representment draft"]
-    Q["Optional Gemini / Anthropic"] -. "wording only" .-> L
-
-    N --> M{"Human acknowledges,<br/>approves or rejects"}
-    I --> M
-    K --> M
-    L --> M
-    M --> O[("Audit log + simulated<br/>Razorpay payload")]
-
-    classDef rules fill:#fff3d6,stroke:#b36b00,color:#5c3600
-    classDef model fill:#eaf3ff,stroke:#2474c6,color:#123c66
-    classDef action fill:#ecf8ef,stroke:#25834a,color:#164d2c
-    class C,N rules
-    class D,E,F,G,H,J model
-    class I,K,L,M,O action
-```
-
-### What happens inside a decision
+## How each decision is produced
 
 - **UPI forecast:** [`urcs_forecaster.py`](backend/app/services/urcs_forecaster.py) applies
   versioned rules from [`npci_rules.py`](backend/app/services/npci_rules.py). If NPCI's
@@ -140,6 +110,23 @@ The evaluated NLI weights are pinned to Hugging Face revision
 `6c749ce3425cd33b46d187e45b92bbf96ee12ec7`. Each new decision stores the full model
 version and calibrated threshold, which makes later review possible.
 
+### The architecture running end to end
+
+| Rule path in the product | Live FastAPI contract |
+|---|---|
+| ![UPI dispute showing the live NPCI budget, CD2 outcome and no-action recommendation](frontend/public/shots/readme-upi.png) | ![Live OpenAPI-derived view of Coconut's typed FastAPI routes](frontend/public/shots/readme-api.png) |
+
+The backend capture below is built from live `/api/health`, dispute-detail and
+`would-submit.json` responses after a demo contest is approved. The capture script formats
+those responses for legibility; it does not hard-code their values. It shows the database
+health, pinned model revision, evidence verdicts, human approval and the explicit
+`transmitted: false` boundary in one frame.
+
+![Live Coconut backend state showing health, a persisted model decision, human approval and a prepared but untransmitted payload](frontend/public/shots/readme-backend-state.png)
+
+All five README captures can be regenerated with
+[`capture-readme.mjs`](frontend/scripts/capture-readme.mjs) against `app.demo:app`.
+
 ## Four outcomes, one review surface
 
 The isolated demo places four prepared cases in a shortcut bar. They use the normal
@@ -151,10 +138,6 @@ decision engine and differ only in their inputs.
 | **Accept** | A merchant record supports the bank's claim, so paying another contest fee is hard to justify |
 | **Human review** | Evidence is relevant but mixed or incomplete; Coconut states exactly which condition failed |
 | **UPI limit** | The NPCI counter reaches the payer-payee cap and the rules engine returns **No action** before the NLI path |
-
-| Dispute queue | Measured performance |
-|---|---|
-| ![Coconut dispute queue with decision filters, deadlines and values](frontend/public/shots/queue-light.png) | ![Coconut performance view with the risk budget and empirical check](frontend/public/shots/metrics-light.png) |
 
 A concrete case in the seeded dataset, `disp_synthetic_0168`, shows the difference between
 having evidence and having a defensible case. The cardholder claims a ₹32,499 order never
@@ -239,7 +222,10 @@ coverage is the finished product.
 
 <a id="demo"></a>
 
-## Judge's three-minute route
+## Suggested three-minute review path
+
+For a reviewer with limited time, this sequence verifies the four decisions and their
+technical boundaries without requiring a prepared presentation:
 
 1. Open **Contest** in the demo shortcut bar. Compare the bank's claim with each highlighted
    evidence span, then open **Representment** to see the draft built from those findings.
